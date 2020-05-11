@@ -39,7 +39,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
-class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
+class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
   with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
 
   trait Setup {
@@ -87,7 +87,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     val notifyDeletionPendingInAdvance = 30
     val configuration = new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvance))
 
-    val underTest = new UpdateUnusedSandboxApplicationRecordJob(
+    val underTest = new SandboxApplicationRecordJob(
       mockSandboxThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
       mockEmailConnector,
@@ -103,7 +103,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     val configuration =
       new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = notifyDeletionPendingInAdvance))
 
-    val underTest = new UpdateUnusedProductionApplicationRecordJob(
+    val underTest = new ProductionApplicationRecordJob(
       mockProductionThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
       mockEmailConnector,

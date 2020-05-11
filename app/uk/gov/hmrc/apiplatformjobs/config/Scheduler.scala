@@ -36,8 +36,8 @@ class Scheduler @Inject()(deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedD
                           deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
                           deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig,
                           deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
-                          updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordJob,
-                          updateUnusedProductionApplicationRecordJob: UpdateUnusedProductionApplicationRecordJob,
+                          updateUnusedSandboxApplicationRecordsJob: SandboxApplicationRecordJob,
+                          updateUnusedProductionApplicationRecordJob: ProductionApplicationRecordJob,
                           override val applicationLifecycle: ApplicationLifecycle,
                           override val application: Application)
                          (implicit val ec: ExecutionContext) extends RunningOfScheduledJobs {
