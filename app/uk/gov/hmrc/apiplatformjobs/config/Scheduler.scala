@@ -20,7 +20,7 @@ import com.google.inject.AbstractModule
 import javax.inject.{Inject, Singleton}
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJob, DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJob, DeleteUnverifiedDevelopersJobConfig, UpdateUnusedApplicationRecordsJob, UpdateUnusedProductionApplicationRecordJob, UpdateUnusedSandboxApplicationRecordJob}
+import uk.gov.hmrc.apiplatformjobs.scheduled._
 import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 import scala.concurrent.ExecutionContext

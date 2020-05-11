@@ -30,6 +30,7 @@ import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Random
 
 class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   with MongoSpecSupport
@@ -55,16 +56,17 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   }
 
   trait Setup {
-    def sandboxApplication(applicationId: UUID) = UnusedApplication(applicationId, Environment.SANDBOX, DateTime.now)
-    def productionApplication(applicationId: UUID) = UnusedApplication(applicationId, Environment.PRODUCTION, DateTime.now)
+    def sandboxApplication(applicationId: UUID) =
+      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.SANDBOX, DateTime.now, DateTime.now.plusDays(30))
+    def productionApplication(applicationId: UUID) =
+      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.PRODUCTION, DateTime.now, DateTime.now.plusDays(30))
   }
 
   "The 'unusedApplications' collection" should {
     "have all the current indexes" in {
 
       val expectedIndexes = Set(
-        Index(key = Seq("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true),
-        Index(key = Seq("lastInteractionDate" -> Ascending), name = Some("lastInteractionDateIndex"), unique = false, background = true)
+        Index(key = Seq("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true)
       )
 
       verifyIndexesVersionAgnostic(unusedApplicationRepository, expectedIndexes)
@@ -72,8 +74,6 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   }
 
   "applicationsByEnvironment" should {
-
-
     "correctly retrieve SANDBOX applications" in new Setup {
       val sandboxApplicationId = UUID.randomUUID
 

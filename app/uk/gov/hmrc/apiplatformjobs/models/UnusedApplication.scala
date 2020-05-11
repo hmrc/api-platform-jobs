@@ -24,9 +24,39 @@ import play.api.libs.json._
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class ApplicationUsageDetails(applicationId: UUID, creationDate: DateTime, lastAccessDate: Option[DateTime])
+case class ApplicationUsageDetails(applicationId: UUID,
+                                   applicationName: String,
+                                   administrators: Set[String],
+                                   creationDate: DateTime,
+                                   lastAccessDate: Option[DateTime])
 
-case class UnusedApplication(applicationId: UUID, environment: Environment, lastInteractionDate: DateTime)
+case class Administrator(emailAddress: String, firstName: String, lastName: String)
+case object Administrator {
+  def apply(emailAddress: String, firstName: String, lastName: String): Administrator = new Administrator(emailAddress, firstName, lastName)
+}
+case class AdministratorNotification(emailAddress: String, firstName: String, lastName: String, notified: Option[DateTime])
+case object AdministratorNotification {
+  def apply(emailAddress: String, firstName: String, lastName: String, notified: Option[DateTime]): AdministratorNotification =
+    new AdministratorNotification(emailAddress, firstName, lastName, notified)
+  def fromAdministrator(administrator: Administrator, notified: Option[DateTime]): AdministratorNotification =
+    new AdministratorNotification(administrator.emailAddress, administrator.firstName, administrator.lastName, notified)
+}
+
+case class UnusedApplication(applicationId: UUID,
+                             applicationName: String,
+                             administratorNotifications: Seq[AdministratorNotification],
+                             environment: Environment,
+                             lastInteractionDate: DateTime,
+                             scheduledDeletionDate: DateTime)
+
+case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
+                                                    userFirstName: String,
+                                                    userLastName: String,
+                                                    applicationName: String,
+                                                    environmentName: String,
+                                                    timeSinceLastUse: String,
+                                                    timeBeforeDeletion: String,
+                                                    dateOfScheduledDeletion: String)
 
 object Environment extends Enumeration {
   type Environment = Value
@@ -38,11 +68,17 @@ object MongoFormat {
 
   implicit def environmentWrites: Writes[Environment.Value] = (v: Environment.Value) => JsString(v.toString)
   implicit val environmentFormat: Format[Environment.Value] = Format(environmentReads(), environmentWrites)
+  implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
+  implicit val administratorNotificationsFormat: Format[AdministratorNotification] =
+    Format(Json.reads[AdministratorNotification], Json.writes[AdministratorNotification])
 
   val unusedApplicationReads: Reads[UnusedApplication] = (
     (JsPath \ "applicationId").read[UUID] and
+      (JsPath \ "applicationName").read[String] and
+      (JsPath \ "administratorNotifications").read[Seq[AdministratorNotification]] and
       (JsPath \ "environment").read[Environment] and
-      (JsPath \ "lastInteractionDate").read[DateTime]
+      (JsPath \ "lastInteractionDate").read[DateTime] and
+      (JsPath \ "scheduledDeletionDate").read[DateTime]
     )(UnusedApplication.apply _)
 
   def environmentReads[Environment](): Reads[Environment.Value] = {

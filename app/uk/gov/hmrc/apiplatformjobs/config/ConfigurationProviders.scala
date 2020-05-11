@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import javax.inject.{Inject, Provider, Singleton}
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
+import uk.gov.hmrc.apiplatformjobs.connectors.EmailConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
@@ -35,7 +36,8 @@ class ConfigurationModule extends Module {
       bind[ThirdPartyDeveloperConnectorConfig].toProvider[ThirdPartyDeveloperConnectorConfigProvider],
       bind[ThirdPartyApplicationConnectorConfig].toProvider[ThirdPartyApplicationConnectorConfigProvider],
       bind[DeleteUnverifiedDevelopersJobConfig].toProvider[DeleteUnverifiedDevelopersJobConfigProvider],
-      bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider]
+      bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider],
+      bind[EmailConfig].toProvider[EmailConfigProvider]
     )
   }
 }
@@ -105,5 +107,16 @@ class DeleteUnregisteredDevelopersJobConfigProvider @Inject()(configuration: Con
     val enabled = configuration.getOptional[Boolean]("deleteUnregisteredDevelopersJob.enabled").getOrElse(false)
     val limit = configuration.getOptional[Int]("deleteUnregisteredDevelopersJob.limit").getOrElse(10)
     DeleteUnregisteredDevelopersJobConfig(initialDelay, interval, enabled, limit)
+  }
+}
+
+@Singleton
+class EmailConfigProvider @Inject()(val sc: ServicesConfig) extends Provider[EmailConfig] {
+  override def get() = EmailConfig(sc.baseUrl("email"))
+}
+
+object ConfigHelper {
+  def getConfig[T](key: String, f: String => Option[T]): T = {
+    f(key).getOrElse(throw new RuntimeException(s"[$key] is not configured!"))
   }
 }

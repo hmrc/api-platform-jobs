@@ -37,8 +37,7 @@ class UnusedApplicationsRepository @Inject()(mongo: ReactiveMongoComponent)(impl
     MongoFormat.unusedApplicationFormat, ReactiveMongoFormats.objectIdFormats) {
 
   override def indexes = List(
-    Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true),
-    Index(key = List("lastInteractionDate" -> Ascending), name = Some("lastInteractionDateIndex"), unique = false, background = true)
+    Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true)
   )
 
   def applicationsByEnvironment(environment: Environment): Future[List[UnusedApplication]] = find("environment" -> environment)
