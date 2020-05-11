@@ -79,8 +79,8 @@ abstract class UpdateUnusedApplicationRecordsJob (environment: Environment,
       }
     }
 
-    def notifiyAdministrators(application: ApplicationUsageDetails,
-                                             verifiedAdminDetails: Map[String, Administrator]): Future[UnusedApplication] = {
+    def notifyAdministrators(application: ApplicationUsageDetails,
+                             verifiedAdminDetails: Map[String, Administrator]): Future[UnusedApplication] = {
       val lastInteractionDate = application.lastAccessDate.getOrElse(application.creationDate)
       val scheduledDeletionDate = calculateScheduledDeletionDate(lastInteractionDate)
       val verifiedAppAdmins = application.administrators.intersect(verifiedAdminDetails.keySet).flatMap(verifiedAdminDetails.get)
@@ -98,7 +98,7 @@ abstract class UpdateUnusedApplicationRecordsJob (environment: Environment,
     if (unusedApplications.nonEmpty) {
       for {
         verifiedAdmins: Map[String, Administrator] <- verifiedAdministratorDetails(unusedApplications.flatMap(_.administrators).toSet)
-        appDetails: Seq[UnusedApplication] <- Future.sequence(unusedApplications.map(app => notifiyAdministrators(app, verifiedAdmins)))
+        appDetails: Seq[UnusedApplication] <- Future.sequence(unusedApplications.map(app => notifyAdministrators(app, verifiedAdmins)))
       } yield appDetails
     } else Future.successful(Seq.empty)
   }

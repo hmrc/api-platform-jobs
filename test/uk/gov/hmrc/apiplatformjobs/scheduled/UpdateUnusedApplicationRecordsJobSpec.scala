@@ -56,7 +56,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
            |  startTime = "00:30"
            |  executionInterval = 1d
            |  enabled = false
-           |  externalEnvironmentName = "Sandbox"
+           |  externalEnvironmentName = "External Test"
            |  notifyDeletionPendingInAdvance = ${notifyDeletionPendingInAdvanceForSandbox}d
            |}
            |
@@ -64,7 +64,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
            |  startTime = "01:00"
            |  executionInterval = 1d
            |  enabled = false
-           |  externalEnvironmentName = "Production"
+           |  externalEnvironmentName = "Live"
            |  notifyDeletionPendingInAdvance = ${notifyDeletionPendingInAdvanceForProduction}d
            |}
            |
@@ -136,15 +136,13 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   }
 
   "SANDBOX job" should {
-    "add all newly discovered unused applications to database" in new SandboxJobSetup {
+    "add newly discovered unused applications with last used dates to database" in new SandboxJobSetup {
       val adminUserEmail = "foo@bar.com"
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set(adminUserEmail))
-//      val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-//        applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), None, Set(adminUserEmail))
 
       when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
-        .thenReturn(Future.successful(List(applicationWithLastUseDate._1))) //, applicationWithoutLastUseDate._1)))
+        .thenReturn(Future.successful(List(applicationWithLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
       when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
@@ -163,12 +161,51 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       capturedEmail.userFirstName must be ("Foo")
       capturedEmail.userLastName must be ("Bar")
       capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
-      capturedEmail.environmentName must be ("Sandbox")
+      capturedEmail.environmentName must be ("External Test")
+
+      val capturedInsertValue = insertCaptor.getValue
+      capturedInsertValue.size must be (1)
+      val unusedApplicationRecord = capturedInsertValue.head
+      unusedApplicationRecord.applicationId must be (applicationWithLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName must be (applicationWithLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment must be (Environment.SANDBOX)
+
+      verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
+    }
+
+    "add newly discovered unused applications with no last used dates to database" in new SandboxJobSetup {
+      val adminUserEmail = "foo@bar.com"
+      val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
+        applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), None, Set(adminUserEmail))
+
+      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(Future.successful(List(applicationWithoutLastUseDate._1)))
+      when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
+      when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.SANDBOX)).thenReturn(Future(List.empty))
+
+      val emailCaptor: ArgumentCaptor[UnusedApplicationToBeDeletedNotification] = ArgumentCaptor.forClass(classOf[UnusedApplicationToBeDeletedNotification])
+      when(mockEmailConnector.sendApplicationToBeDeletedNotification(emailCaptor.capture())).thenReturn(Future.successful(true))
+
+      val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
+      when(mockUnusedApplicationsRepository.bulkInsert(insertCaptor.capture())(*)).thenReturn(Future.successful(MultiBulkWriteResult.empty))
+
+      await(underTest.runJob)
+
+      emailCaptor.getAllValues.size() must be (1)
+      val capturedEmail = emailCaptor.getValue
+      capturedEmail.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
+      capturedEmail.userEmailAddress must be (adminUserEmail)
+      capturedEmail.userFirstName must be ("Foo")
+      capturedEmail.userLastName must be ("Bar")
+      capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
+      capturedEmail.environmentName must be ("External Test")
 
 
       val capturedInsertValue = insertCaptor.getValue
       capturedInsertValue.size must be (1)
-//      capturedInsertValue must contain (applicationWithLastUseDate._2) //, applicationWithoutLastUseDate._2)
+      val unusedApplicationRecord = capturedInsertValue.head
+      unusedApplicationRecord.applicationId must be (applicationWithoutLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment must be (Environment.SANDBOX)
 
       verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
     }
@@ -191,27 +228,76 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   }
 
   "PRODUCTION job" should {
-    "add all newly discovered unused applications to database" in new ProductionJobSetup {
+    "add newly discovered unused applications with last used dates to database" in new ProductionJobSetup {
       val adminUserEmail = "foo@bar.com"
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set(adminUserEmail))
-      val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), None, Set(adminUserEmail))
 
       when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
-        .thenReturn(Future.successful(List(applicationWithLastUseDate._1, applicationWithoutLastUseDate._1)))
+        .thenReturn(Future.successful(List(applicationWithLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
       when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.PRODUCTION)).thenReturn(Future(List.empty))
+
+      val emailCaptor: ArgumentCaptor[UnusedApplicationToBeDeletedNotification] = ArgumentCaptor.forClass(classOf[UnusedApplicationToBeDeletedNotification])
+      when(mockEmailConnector.sendApplicationToBeDeletedNotification(emailCaptor.capture())).thenReturn(Future.successful(true))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
       when(mockUnusedApplicationsRepository.bulkInsert(insertCaptor.capture())(*)).thenReturn(Future.successful(MultiBulkWriteResult.empty))
 
       await(underTest.runJob)
 
+      emailCaptor.getAllValues.size() must be (1)
+      val capturedEmail = emailCaptor.getValue
+      capturedEmail.applicationName must be (applicationWithLastUseDate._1.applicationName)
+      capturedEmail.userEmailAddress must be (adminUserEmail)
+      capturedEmail.userFirstName must be ("Foo")
+      capturedEmail.userLastName must be ("Bar")
+      capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
+      capturedEmail.environmentName must be ("Live")
+
       val capturedInsertValue = insertCaptor.getValue
-      capturedInsertValue.size must be (2)
-      capturedInsertValue must contain (applicationWithLastUseDate._2)
-      capturedInsertValue must contain (applicationWithoutLastUseDate._2)
+      capturedInsertValue.size must be (1)
+      val unusedApplicationRecord = capturedInsertValue.head
+      unusedApplicationRecord.applicationId must be (applicationWithLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName must be (applicationWithLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment must be (Environment.PRODUCTION)
+
+      verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
+    }
+
+    "add newly discovered unused applications with no last used dates to database" in new ProductionJobSetup {
+      val adminUserEmail = "foo@bar.com"
+      val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
+        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), None, Set(adminUserEmail))
+
+      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(Future.successful(List(applicationWithoutLastUseDate._1)))
+      when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
+      when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.PRODUCTION)).thenReturn(Future(List.empty))
+
+      val emailCaptor: ArgumentCaptor[UnusedApplicationToBeDeletedNotification] = ArgumentCaptor.forClass(classOf[UnusedApplicationToBeDeletedNotification])
+      when(mockEmailConnector.sendApplicationToBeDeletedNotification(emailCaptor.capture())).thenReturn(Future.successful(true))
+
+      val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
+      when(mockUnusedApplicationsRepository.bulkInsert(insertCaptor.capture())(*)).thenReturn(Future.successful(MultiBulkWriteResult.empty))
+
+      await(underTest.runJob)
+
+      emailCaptor.getAllValues.size() must be (1)
+      val capturedEmail = emailCaptor.getValue
+      capturedEmail.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
+      capturedEmail.userEmailAddress must be (adminUserEmail)
+      capturedEmail.userFirstName must be ("Foo")
+      capturedEmail.userLastName must be ("Bar")
+      capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
+      capturedEmail.environmentName must be ("Live")
+
+
+      val capturedInsertValue = insertCaptor.getValue
+      capturedInsertValue.size must be (1)
+      val unusedApplicationRecord = capturedInsertValue.head
+      unusedApplicationRecord.applicationId must be (applicationWithoutLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment must be (Environment.PRODUCTION)
 
       verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
     }
