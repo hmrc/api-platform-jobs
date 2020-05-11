@@ -1,7 +1,7 @@
 
 # api-platform-jobs
 
-This is a placeholder README.md for a new repository
+This is a repository that holds scheduled jobs for the API Platform.
 
 ### License
 
