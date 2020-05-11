@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformmicroservice.connectors
+package uk.gov.hmrc.apiplatformjobs.connectors
 
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.scalatest.MockitoSugar
@@ -23,7 +23,7 @@ import org.scalatestplus.play.WsScalaTestClient
 import play.api.http.Status._
 import play.api.libs.json.Json
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
-import uk.gov.hmrc.apiplatformmicroservice.models.UnusedApplicationToBeDeletedNotification
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplicationToBeDeletedNotification
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 

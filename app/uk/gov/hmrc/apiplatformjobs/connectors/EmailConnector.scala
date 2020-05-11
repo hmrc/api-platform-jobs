@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformmicroservice.connectors
+package uk.gov.hmrc.apiplatformjobs.connectors
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.mvc.Http.Status._
-import uk.gov.hmrc.apiplatformmicroservice.models.UnusedApplicationToBeDeletedNotification
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplicationToBeDeletedNotification
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
