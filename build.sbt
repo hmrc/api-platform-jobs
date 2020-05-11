@@ -34,7 +34,7 @@ def testDeps(scope: String) = Seq(
 
 lazy val root = (project in file("."))
   .settings(
-    name := "api-platform-microservice",
+    name := "api-platform-jobs",
     organization := "uk.gov.hmrc",
     scalaVersion := "2.12.10",
     majorVersion := 0,
