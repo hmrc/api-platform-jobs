@@ -43,6 +43,14 @@ trait TimedJobConfigReaders {
       TimedJobConfig(parsedStartTime, parsedExecutionInterval, parsedEnabled)
   }
 
+  implicit def updateUnusedApplicationsJobConfigReader: ValueReader[ApplicationToBeDeletedNotificationsJobConfig] =
+    ValueReader.relative[ApplicationToBeDeletedNotificationsJobConfig] {
+      config =>
+        val notifyDeletionPendingInAdvance = config.as[FiniteDuration]("notifyDeletionPendingInAdvance")
+        val externalEnvironmentName = config.as[String]("externalEnvironmentName")
+
+        ApplicationToBeDeletedNotificationsJobConfig(notifyDeletionPendingInAdvance, externalEnvironmentName)
+    }
 }
 
 object TimedJobConfigReaders extends TimedJobConfigReaders

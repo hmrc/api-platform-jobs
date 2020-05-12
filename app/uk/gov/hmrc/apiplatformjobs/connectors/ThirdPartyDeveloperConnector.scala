@@ -19,9 +19,9 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Format, JsValue, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.{formatDeleteDeveloperRequest, formatDeleteUnregisteredDevelopersRequest, formatDeveloperResponse}
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.{DeleteDeveloperRequest, DeleteUnregisteredDevelopersRequest, ThirdPartyDeveloperConnectorConfig, DeveloperResponse}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.{DeleteDeveloperRequest, DeleteUnregisteredDevelopersRequest, DeveloperResponse, ThirdPartyDeveloperConnectorConfig}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -42,6 +42,15 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
     http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/unregistered-developer/expired", Seq("limit" -> limit.toString)).map(_.map(_.email))
   }
 
+  def fetchVerifiedDevelopers(emailAddresses: Set[String]): Future[Seq[(String, String, String)]] = {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+
+    for {
+      developerDetails <- http.POST[JsValue, Seq[DeveloperResponse]](s"${config.baseUrl}/developers/get-by-emails", Json.toJson(emailAddresses.toSeq))
+      verifiedDevelopers = developerDetails.filter(_.verified)
+    } yield verifiedDevelopers.map(dev => (dev.email, dev.firstName, dev.lastName))
+  }
+
   def deleteDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
     http.POST(s"${config.baseUrl}/developer/delete?notifyDeveloper=false", DeleteDeveloperRequest(email)).map(_.status)
   }
@@ -54,7 +63,7 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
 object ThirdPartyDeveloperConnector {
   private[connectors] case class DeleteDeveloperRequest(emailAddress: String)
   private[connectors] case class DeleteUnregisteredDevelopersRequest(emails: Seq[String])
-  private[connectors] case class DeveloperResponse(email: String)
+  private[connectors] case class DeveloperResponse(email: String, firstName: String, lastName: String, verified: Boolean)
   case class ThirdPartyDeveloperConnectorConfig(baseUrl: String)
 
   object JsonFormatters {

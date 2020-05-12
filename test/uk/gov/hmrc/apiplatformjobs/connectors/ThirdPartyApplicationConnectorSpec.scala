@@ -27,7 +27,7 @@ import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.OK
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, PaginatedApplicationLastUseResponse}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -36,6 +36,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
+import scala.util.Random
 
 class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with MockitoSugar {
 
@@ -129,11 +130,25 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
     val dateFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
-    "return applicationId and lastUseDate as Tuples" in new Setup {
+    "return application details as ApplicationUsageDetails objects" in new Setup {
       val lastUseDate = DateTime.now.minusMonths(12)
       val encodedDateString: String = URLEncoder.encode(dateFormatter.withZoneUTC().print(lastUseDate), StandardCharsets.UTF_8.toString)
-      val oldApplication1 = ApplicationLastUseDate(UUID.randomUUID(), DateTime.now.minusMonths(12), Some(DateTime.now.minusMonths(13)))
-      val oldApplication2 = ApplicationLastUseDate(UUID.randomUUID(), DateTime.now.minusMonths(12), Some(DateTime.now.minusMonths(14)))
+      val oldApplication1Admin: String = "foo@bar.com"
+      val oldApplication1 =
+        ApplicationLastUseDate(
+          UUID.randomUUID(),
+          Random.alphanumeric.take(10).mkString,
+          Set(Collaborator(oldApplication1Admin, "ADMINISTRATOR"), Collaborator("a@b.com", "DEVELOPER")),
+          DateTime.now.minusMonths(12),
+          Some(DateTime.now.minusMonths(13)))
+      val oldApplication2Admin: String = "bar@baz.com"
+      val oldApplication2 =
+        ApplicationLastUseDate(
+          UUID.randomUUID(),
+          Random.alphanumeric.take(10).mkString,
+          Set(Collaborator(oldApplication2Admin, "ADMINISTRATOR"), Collaborator("b@c.com", "DEVELOPER")),
+          DateTime.now.minusMonths(12),
+          Some(DateTime.now.minusMonths(14)))
 
       when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
         meq( s"$baseUrl/application"),
@@ -142,8 +157,12 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
 
-      results should contain (ApplicationUsageDetails(oldApplication1.id, oldApplication1.createdOn, oldApplication1.lastAccess))
-      results should contain (ApplicationUsageDetails(oldApplication2.id, oldApplication2.createdOn, oldApplication2.lastAccess))
+      results should contain
+        ApplicationUsageDetails(
+          oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.createdOn, oldApplication1.lastAccess)
+      results should contain
+        ApplicationUsageDetails(
+          oldApplication2.id, oldApplication2.name, Set(oldApplication2Admin), oldApplication2.createdOn, oldApplication2.lastAccess)
     }
 
     "return empty Sequence when no results are returned" in new Setup {

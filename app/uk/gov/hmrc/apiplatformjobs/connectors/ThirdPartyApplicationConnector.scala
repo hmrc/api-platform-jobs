@@ -76,10 +76,23 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
 object ThirdPartyApplicationConnector {
   def toDomain(applications: List[ApplicationLastUseDate]): List[ApplicationUsageDetails] =
-    applications.map(app => ApplicationUsageDetails(app.id, app.createdOn, app.lastAccess))
+    applications.map(app => {
+      val admins =
+        app.collaborators
+          .filter(_.role == "ADMINISTRATOR")
+          .map(_.emailAddress)
+
+      ApplicationUsageDetails(app.id, app.name, admins, app.createdOn, app.lastAccess)
+    })
+
 
   private[connectors] case class ApplicationResponse(id: String)
-  private[connectors] case class ApplicationLastUseDate(id: UUID, createdOn: DateTime, lastAccess: Option[DateTime])
+  private[connectors] case class Collaborator(emailAddress: String, role: String)
+  private[connectors] case class ApplicationLastUseDate(id: UUID,
+                                                        name: String,
+                                                        collaborators: Set[Collaborator],
+                                                        createdOn: DateTime,
+                                                        lastAccess: Option[DateTime])
   private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate],
                                                                      page: Int,
                                                                      pageSize: Int,
@@ -94,6 +107,7 @@ object ThirdPartyApplicationConnector {
   object JsonFormatters {
     implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
     implicit val formatApplicationResponse: Format[ApplicationResponse] = Json.format[ApplicationResponse]
+    implicit val formatCollaborator: Format[Collaborator] = Json.format[Collaborator]
     implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate] = Json.format[ApplicationLastUseDate]
     implicit val formatPaginatedApplicationLastUseDate: Format[PaginatedApplicationLastUseResponse] = Json.format[PaginatedApplicationLastUseResponse]
   }

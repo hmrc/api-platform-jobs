@@ -20,7 +20,7 @@ import com.google.inject.AbstractModule
 import javax.inject.{Inject, Singleton}
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJob, DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJob, DeleteUnverifiedDevelopersJobConfig, UpdateUnusedApplicationRecordsJob, UpdateUnusedProductionApplicationRecordJob, UpdateUnusedSandboxApplicationRecordJob}
+import uk.gov.hmrc.apiplatformjobs.scheduled._
 import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 import scala.concurrent.ExecutionContext
@@ -36,8 +36,8 @@ class Scheduler @Inject()(deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedD
                           deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
                           deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig,
                           deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
-                          updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordJob,
-                          updateUnusedProductionApplicationRecordJob: UpdateUnusedProductionApplicationRecordJob,
+                          updateUnusedSandboxApplicationRecordsJob: SandboxApplicationRecordJob,
+                          updateUnusedProductionApplicationRecordJob: ProductionApplicationRecordJob,
                           override val applicationLifecycle: ApplicationLifecycle,
                           override val application: Application)
                          (implicit val ec: ExecutionContext) extends RunningOfScheduledJobs {
