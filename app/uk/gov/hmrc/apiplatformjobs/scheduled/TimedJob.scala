@@ -37,7 +37,7 @@ abstract class TimedJob @Inject()(override val name: String,
 
   val jobConfig: TimedJobConfig = configuration.underlying.as[TimedJobConfig](name)
 
-  def isEnabled: Boolean = jobConfig.enabled
+  override val isEnabled: Boolean = jobConfig.enabled
 
   override def initialDelay: FiniteDuration = jobConfig.startTime match {
     case Some(startTime) => calculateInitialDelay(startTime.startTime)

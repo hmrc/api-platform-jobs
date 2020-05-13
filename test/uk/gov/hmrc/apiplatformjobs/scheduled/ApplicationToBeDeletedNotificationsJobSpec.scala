@@ -87,7 +87,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
     val notifyDeletionPendingInAdvance = 30
     val configuration = new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvance))
 
-    val underTest = new SandboxApplicationRecordJob(
+    val underTest = new SandboxApplicationsToBeDeletedNotificationJob(
       mockSandboxThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
       mockEmailConnector,
@@ -103,7 +103,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
     val configuration =
       new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = notifyDeletionPendingInAdvance))
 
-    val underTest = new ProductionApplicationRecordJob(
+    val underTest = new ProductionApplicationsToBeDeletedNotificationJob(
       mockProductionThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
       mockEmailConnector,

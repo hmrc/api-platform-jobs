@@ -128,22 +128,22 @@ abstract class ApplicationToBeDeletedNotificationsJob(environment: Environment,
 }
 
 @Singleton
-class SandboxApplicationRecordJob @Inject()(@Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
-                                            thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                            emailConnector: EmailConnector,
-                                            unusedApplicationsRepository: UnusedApplicationsRepository,
-                                            configuration: Configuration,
-                                            mongo: ReactiveMongoComponent)
+class SandboxApplicationsToBeDeletedNotificationJob @Inject()(@Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+                                                              thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
+                                                              emailConnector: EmailConnector,
+                                                              unusedApplicationsRepository: UnusedApplicationsRepository,
+                                                              configuration: Configuration,
+                                                              mongo: ReactiveMongoComponent)
   extends ApplicationToBeDeletedNotificationsJob(
     Environment.SANDBOX, thirdPartyApplicationConnector, thirdPartyDeveloperConnector, emailConnector, unusedApplicationsRepository, configuration, mongo)
 
 @Singleton
-class ProductionApplicationRecordJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
-                                               thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                               emailConnector: EmailConnector,
-                                               unusedApplicationsRepository: UnusedApplicationsRepository,
-                                               configuration: Configuration,
-                                               mongo: ReactiveMongoComponent)
+class ProductionApplicationsToBeDeletedNotificationJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+                                                                 thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
+                                                                 emailConnector: EmailConnector,
+                                                                 unusedApplicationsRepository: UnusedApplicationsRepository,
+                                                                 configuration: Configuration,
+                                                                 mongo: ReactiveMongoComponent)
   extends ApplicationToBeDeletedNotificationsJob(
     Environment.PRODUCTION, thirdPartyApplicationConnector, thirdPartyDeveloperConnector, emailConnector, unusedApplicationsRepository, configuration, mongo)
 

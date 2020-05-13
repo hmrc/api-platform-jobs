@@ -29,6 +29,8 @@ trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState {
 
   val lockKeeper: LockKeeper
 
+  val isEnabled: Boolean
+
   def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful]
 
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
