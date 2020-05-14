@@ -38,7 +38,7 @@ abstract class ApplicationToBeDeletedNotificationsJob(environment: Environment,
                                                       unusedApplicationsRepository: UnusedApplicationsRepository,
                                                       configuration: Configuration,
                                                       mongo: ReactiveMongoComponent)
-  extends TimedJob(s"UpdateUnusedApplicationsRecords-$environment", configuration, mongo) {
+  extends TimedJob(s"ApplicationToBeDeletedNotifications-$environment", configuration, mongo) {
 
   val updateUnusedApplicationRecordsJobConfig: ApplicationToBeDeletedNotificationsJobConfig =
     configuration.underlying.as[ApplicationToBeDeletedNotificationsJobConfig](name)
