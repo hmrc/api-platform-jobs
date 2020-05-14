@@ -55,7 +55,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
         s"""
            |deleteUnusedApplicationsAfter = ${deleteUnusedApplicationsAfter}d
            |
-           |UpdateUnusedApplicationsRecords-SANDBOX {
+           |ApplicationToBeDeletedNotifications-SANDBOX {
            |  startTime = "00:30"
            |  executionInterval = 1d
            |  enabled = false
@@ -63,7 +63,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
            |  notifyDeletionPendingInAdvance = ${notifyDeletionPendingInAdvanceForSandbox}d
            |}
            |
-           |UpdateUnusedApplicationsRecords-PRODUCTION {
+           |ApplicationToBeDeletedNotifications-PRODUCTION {
            |  startTime = "01:00"
            |  executionInterval = 1d
            |  enabled = false
