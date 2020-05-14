@@ -40,6 +40,7 @@ class DeleteUnverifiedDevelopersJob @Inject()(override val lockKeeper: DeleteUnv
   override def name: String = "DeleteUnverifiedDevelopersJob"
   override def interval: FiniteDuration = jobConfig.interval
   override def initialDelay: FiniteDuration = jobConfig.initialDelay
+  override val isEnabled: Boolean = jobConfig.enabled
   implicit val hc: HeaderCarrier = HeaderCarrier()
   override val deleteFunction: (String) => Future[Int] = developerConnector.deleteDeveloper
   val createdBeforeInDays = 30

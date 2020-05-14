@@ -37,9 +37,10 @@ class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: DeleteU
   extends ScheduledMongoJob with DeleteDeveloper {
 
   override def name: String = "DeleteUnregisteredDevelopersJob"
-
   override def interval: FiniteDuration = jobConfig.interval
   override def initialDelay: FiniteDuration = jobConfig.initialDelay
+
+  override val isEnabled: Boolean = jobConfig.enabled
   implicit val hc: HeaderCarrier = HeaderCarrier()
   override val deleteFunction: (String) => Future[Int] = developerConnector.deleteUnregisteredDeveloper
 

@@ -32,30 +32,18 @@ class SchedulerModule extends AbstractModule {
 }
 
 @Singleton
-class Scheduler @Inject()(deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedDevelopersJobConfig,
-                          deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
-                          deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig,
+class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
                           deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
-                          updateUnusedSandboxApplicationRecordsJob: SandboxApplicationRecordJob,
-                          updateUnusedProductionApplicationRecordJob: ProductionApplicationRecordJob,
+                          sandboxApplicationsToBeDeletedNotificationJob: SandboxApplicationsToBeDeletedNotificationJob,
+                          productionApplicationsToBeDeletedNotificationJob: ProductionApplicationsToBeDeletedNotificationJob,
                           override val applicationLifecycle: ApplicationLifecycle,
                           override val application: Application)
                          (implicit val ec: ExecutionContext) extends RunningOfScheduledJobs {
-  lazy val deleteUnverifiedDevsJob: Seq[ScheduledJob] = if (deleteUnverifiedDevelopersJobConfig.enabled) {
-    Seq(deleteUnverifiedDevelopersJob)
-  } else {
-    Seq.empty
-  }
-
-  lazy val deleteUnregisteredDevsJob: Seq[ScheduledJob] = if (deleteUnregisteredDevelopersJobConfig.enabled) {
-    Seq(deleteUnregisteredDevelopersJob)
-  } else {
-    Seq.empty
-  }
-
-  lazy val unusedApplicationJobs: Seq[ScheduledJob] =
-    Seq(updateUnusedSandboxApplicationRecordsJob, updateUnusedProductionApplicationRecordJob)
+  override lazy val scheduledJobs: Seq[ScheduledJob] =
+    Seq(
+      deleteUnverifiedDevelopersJob,
+      deleteUnregisteredDevelopersJob,
+      sandboxApplicationsToBeDeletedNotificationJob,
+      productionApplicationsToBeDeletedNotificationJob)
       .filter(_.isEnabled)
-
-  override lazy val scheduledJobs: Seq[ScheduledJob] = deleteUnverifiedDevsJob ++ deleteUnregisteredDevsJob ++ unusedApplicationJobs
 }
