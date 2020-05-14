@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import com.typesafe.config.{Config, ConfigFactory}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeUtils}
 import org.mockito.Mockito.{times, verify, verifyNoInteractions, when}
 import org.mockito.{ArgumentCaptor, ArgumentMatchersSugar}
 import org.scalatest.Matchers._
@@ -41,6 +41,9 @@ import scala.util.Random
 
 class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
   with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
+
+  val BaselineTime = DateTime.now.getMillis
+  DateTimeUtils.setCurrentMillisFixed(BaselineTime)
 
   trait Setup {
     val environmentName = "Test Environment"
@@ -120,7 +123,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
 
       val calculatedCutoffDate = underTest.notificationCutoffDate()
 
-      calculatedCutoffDate.getMillis must be (expectedCutoffDate.getMillis +- 500) // tolerance of 500 milliseconds
+      calculatedCutoffDate.getMillis must be (expectedCutoffDate.getMillis)
     }
   }
 
@@ -131,7 +134,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
 
       val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
 
-      calculatedDeletionDate.getMillis must be (expectedDeletionDate.getMillis +- 500)
+      calculatedDeletionDate.getMillis must be (expectedDeletionDate.getMillis)
     }
   }
 

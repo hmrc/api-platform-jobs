@@ -19,7 +19,8 @@ import java.util.UUID
 
 import javax.inject.{Inject, Named, Singleton}
 import net.ceedubs.ficus.Ficus._
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Days}
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{EmailConnector, ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
@@ -42,6 +43,8 @@ abstract class ApplicationToBeDeletedNotificationsJob(environment: Environment,
   val updateUnusedApplicationRecordsJobConfig: ApplicationToBeDeletedNotificationsJobConfig =
     configuration.underlying.as[ApplicationToBeDeletedNotificationsJobConfig](name)
   val DeleteUnusedApplicationsAfter: FiniteDuration = configuration.underlying.as[FiniteDuration]("deleteUnusedApplicationsAfter")
+
+  lazy val DateFormatter: DateTimeFormatter = DateTimeFormat.longDate()
 
   def notificationCutoffDate(): DateTime =
     DateTime.now
@@ -87,9 +90,11 @@ abstract class ApplicationToBeDeletedNotificationsJob(environment: Environment,
 
       for {
         notifiedAdmins: Seq[AdministratorNotification] <- Future.sequence(verifiedAppAdmins.map(admin => {
-          emailConnector.sendApplicationToBeDeletedNotification(emailNotification(application, admin)).map {
-            case true => AdministratorNotification.fromAdministrator(admin, Some(DateTime.now()))
-            case _ => AdministratorNotification.fromAdministrator(admin, None)
+          emailConnector.sendApplicationToBeDeletedNotification(
+            emailNotification(application.applicationName, lastInteractionDate, scheduledDeletionDate, admin))
+            .map {
+              case true => AdministratorNotification.fromAdministrator(admin, Some(DateTime.now()))
+              case _ => AdministratorNotification.fromAdministrator(admin, None)
           }
         }).toSeq)
       } yield notificationResult(application, notifiedAdmins, lastInteractionDate, scheduledDeletionDate)
@@ -103,16 +108,22 @@ abstract class ApplicationToBeDeletedNotificationsJob(environment: Environment,
     } else Future.successful(Seq.empty)
   }
 
-  def emailNotification(application: ApplicationUsageDetails, administrator: Administrator): UnusedApplicationToBeDeletedNotification =
+  def emailNotification(applicationName: String,
+                        lastInteractionDate: DateTime,
+                        scheduledDeletionDate: DateTime,
+                        administrator: Administrator): UnusedApplicationToBeDeletedNotification = {
+    val daysSinceLastInteraction = Days.daysBetween(lastInteractionDate, DateTime.now).getDays
+
     UnusedApplicationToBeDeletedNotification(
       administrator.emailAddress,
       administrator.firstName,
       administrator.lastName,
-      application.applicationName,
+      applicationName,
       updateUnusedApplicationRecordsJobConfig.externalEnvironmentName,
-      "",
+      s"$daysSinceLastInteraction days",
       s"${DeleteUnusedApplicationsAfter.length} ${DeleteUnusedApplicationsAfter.unit.toString.toLowerCase}",
-      "")
+      DateFormatter.print(scheduledDeletionDate))
+  }
 
   def notificationResult(application: ApplicationUsageDetails,
                          notifiedAdmins: Seq[AdministratorNotification],
