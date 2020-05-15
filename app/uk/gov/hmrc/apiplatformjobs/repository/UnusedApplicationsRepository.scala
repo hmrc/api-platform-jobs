@@ -20,6 +20,8 @@ import java.util.UUID
 
 import akka.stream.Materializer
 import javax.inject.{Inject, Singleton}
+import org.joda.time.DateTime
+import play.api.libs.json.{Format, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
@@ -36,11 +38,21 @@ class UnusedApplicationsRepository @Inject()(mongo: ReactiveMongoComponent)(impl
   extends ReactiveRepository[UnusedApplication, BSONObjectID]("unusedApplications", mongo.mongoConnector.db,
     MongoFormat.unusedApplicationFormat, ReactiveMongoFormats.objectIdFormats) {
 
+  implicit val mongoDateFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+
   override def indexes = List(
-    Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true)
+    Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true),
+    Index(
+      key = List("environment" -> Ascending, "scheduledDeletionDate" -> Ascending),
+      name = Some("scheduledDeletionDateIndex"),
+      unique = false,
+      background = true)
   )
 
   def applicationsByEnvironment(environment: Environment): Future[List[UnusedApplication]] = find("environment" -> environment)
+
+  def applicationsToBeDeleted(environment: Environment, deletionDate: DateTime = DateTime.now): Future[List[UnusedApplication]] =
+    find("environment" -> environment, "scheduledDeletionDate" -> Json.obj("$lte" -> deletionDate))
 
   def deleteApplication(environment: Environment, applicationId: UUID): Future[Boolean] =
     remove("environment" -> environment, "applicationId" -> applicationId)

@@ -56,17 +56,18 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   }
 
   trait Setup {
-    def sandboxApplication(applicationId: UUID) =
-      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.SANDBOX, DateTime.now, DateTime.now.plusDays(30))
-    def productionApplication(applicationId: UUID) =
-      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.PRODUCTION, DateTime.now, DateTime.now.plusDays(30))
+    def sandboxApplication(applicationId: UUID, lastInteractionDate: DateTime = DateTime.now, scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
+      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.SANDBOX, lastInteractionDate, scheduledDeletionDate)
+    def productionApplication(applicationId: UUID, lastInteractionDate: DateTime = DateTime.now, scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
+      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.PRODUCTION, lastInteractionDate, scheduledDeletionDate)
   }
 
   "The 'unusedApplications' collection" should {
     "have all the current indexes" in {
 
       val expectedIndexes = Set(
-        Index(key = Seq("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true)
+        Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true),
+        Index(key = List("environment" -> Ascending, "scheduledDeletionDate" -> Ascending), name = Some("scheduledDeletionDateIndex"), unique = false, background = true)
       )
 
       verifyIndexesVersionAgnostic(unusedApplicationRepository, expectedIndexes)
@@ -107,6 +108,46 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds should contain (productionApplication1Id)
       returnedApplicationIds should contain (productionApplication2Id)
+    }
+  }
+
+  "applicationsToBeDeleted" should {
+    "correctly retrieve SANDBOX applications that are scheduled to be deleted" in new Setup {
+      val sandboxApplicationToBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.minusDays(1))
+      val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.plusDays(1))
+
+      await(unusedApplicationRepository
+        .bulkInsert(
+          Seq(
+            sandboxApplicationToBeDeleted,
+            sandboxApplicationToNotBeDeleted,
+            productionApplication(UUID.randomUUID()),
+            productionApplication(UUID.randomUUID()))))
+
+      val results = await(unusedApplicationRepository.applicationsToBeDeleted(Environment.SANDBOX, DateTime.now))
+
+      val returnedApplicationIds = results.map(_.applicationId)
+      returnedApplicationIds.size should be (1)
+      returnedApplicationIds.head should be (sandboxApplicationToBeDeleted.applicationId)
+    }
+
+    "correctly retrieve PRODUCTION applications that are scheduled to be deleted" in new Setup {
+      val productionApplicationToBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.minusDays(1))
+      val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.plusDays(1))
+
+      await(unusedApplicationRepository
+        .bulkInsert(
+          Seq(
+            sandboxApplication(UUID.randomUUID()),
+            sandboxApplication(UUID.randomUUID()),
+            productionApplicationToBeDeleted,
+            productionApplicationToNotBeDeleted)))
+
+      val results = await(unusedApplicationRepository.applicationsToBeDeleted(Environment.PRODUCTION, DateTime.now))
+
+      val returnedApplicationIds = results.map(_.applicationId)
+      returnedApplicationIds.size should be (1)
+      returnedApplicationIds.head should be (productionApplicationToBeDeleted.applicationId)
     }
   }
 
