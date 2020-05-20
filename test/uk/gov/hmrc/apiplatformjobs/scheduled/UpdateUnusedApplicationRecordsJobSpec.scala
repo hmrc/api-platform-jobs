@@ -39,7 +39,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
-class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
+class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
 
   val BaselineTime = DateTime.now.getMillis
@@ -55,7 +55,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
         s"""
            |deleteUnusedApplicationsAfter = ${deleteUnusedApplicationsAfter}d
            |
-           |ApplicationToBeDeletedNotifications-SANDBOX {
+           |UpdateUnusedApplicationRecords-SANDBOX {
            |  startTime = "00:30"
            |  executionInterval = 1d
            |  enabled = false
@@ -63,7 +63,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
            |  notifyDeletionPendingInAdvance = ${notifyDeletionPendingInAdvanceForSandbox}d
            |}
            |
-           |ApplicationToBeDeletedNotifications-PRODUCTION {
+           |UpdateUnusedApplicationRecords-PRODUCTION {
            |  startTime = "01:00"
            |  executionInterval = 1d
            |  enabled = false
@@ -90,7 +90,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
     val notifyDeletionPendingInAdvance = 30
     val configuration = new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvance))
 
-    val underTest = new SandboxApplicationsToBeDeletedNotificationJob(
+    val underTest = new UpdateUnusedSandboxApplicationRecordsJob(
       mockSandboxThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
       mockEmailConnector,
@@ -106,7 +106,7 @@ class ApplicationToBeDeletedNotificationsJobSpec extends PlaySpec
     val configuration =
       new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = notifyDeletionPendingInAdvance))
 
-    val underTest = new ProductionApplicationsToBeDeletedNotificationJob(
+    val underTest = new UpdateUnusedProductionApplicationRecordsJob(
       mockProductionThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
       mockEmailConnector,

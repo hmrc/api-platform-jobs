@@ -31,17 +31,17 @@ import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class ApplicationToBeDeletedNotificationsJob(environment: Environment,
-                                                      thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
-                                                      thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                                      emailConnector: EmailConnector,
-                                                      unusedApplicationsRepository: UnusedApplicationsRepository,
-                                                      configuration: Configuration,
-                                                      mongo: ReactiveMongoComponent)
-  extends TimedJob(s"ApplicationToBeDeletedNotifications-$environment", configuration, mongo) {
+abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
+                                                 thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+                                                 thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
+                                                 emailConnector: EmailConnector,
+                                                 unusedApplicationsRepository: UnusedApplicationsRepository,
+                                                 configuration: Configuration,
+                                                 mongo: ReactiveMongoComponent)
+  extends TimedJob(s"UpdateUnusedApplicationRecords-$environment", configuration, mongo) {
 
-  val updateUnusedApplicationRecordsJobConfig: ApplicationToBeDeletedNotificationsJobConfig =
-    configuration.underlying.as[ApplicationToBeDeletedNotificationsJobConfig](name)
+  val updateUnusedApplicationRecordsJobConfig: UpdateUnusedApplicationRecordsJobConfig =
+    configuration.underlying.as[UpdateUnusedApplicationRecordsJobConfig](name)
   val DeleteUnusedApplicationsAfter: FiniteDuration = configuration.underlying.as[FiniteDuration]("deleteUnusedApplicationsAfter")
 
   lazy val DateFormatter: DateTimeFormatter = DateTimeFormat.longDate()
@@ -139,23 +139,23 @@ abstract class ApplicationToBeDeletedNotificationsJob(environment: Environment,
 }
 
 @Singleton
-class SandboxApplicationsToBeDeletedNotificationJob @Inject()(@Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
-                                                              thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                                              emailConnector: EmailConnector,
-                                                              unusedApplicationsRepository: UnusedApplicationsRepository,
-                                                              configuration: Configuration,
-                                                              mongo: ReactiveMongoComponent)
-  extends ApplicationToBeDeletedNotificationsJob(
+class UpdateUnusedSandboxApplicationRecordsJob @Inject()(@Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+                                                         thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
+                                                         emailConnector: EmailConnector,
+                                                         unusedApplicationsRepository: UnusedApplicationsRepository,
+                                                         configuration: Configuration,
+                                                         mongo: ReactiveMongoComponent)
+  extends UpdateUnusedApplicationRecordsJob(
     Environment.SANDBOX, thirdPartyApplicationConnector, thirdPartyDeveloperConnector, emailConnector, unusedApplicationsRepository, configuration, mongo)
 
 @Singleton
-class ProductionApplicationsToBeDeletedNotificationJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
-                                                                 thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                                                 emailConnector: EmailConnector,
-                                                                 unusedApplicationsRepository: UnusedApplicationsRepository,
-                                                                 configuration: Configuration,
-                                                                 mongo: ReactiveMongoComponent)
-  extends ApplicationToBeDeletedNotificationsJob(
+class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+                                                            thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
+                                                            emailConnector: EmailConnector,
+                                                            unusedApplicationsRepository: UnusedApplicationsRepository,
+                                                            configuration: Configuration,
+                                                            mongo: ReactiveMongoComponent)
+  extends UpdateUnusedApplicationRecordsJob(
     Environment.PRODUCTION, thirdPartyApplicationConnector, thirdPartyDeveloperConnector, emailConnector, unusedApplicationsRepository, configuration, mongo)
 
-case class ApplicationToBeDeletedNotificationsJobConfig(notifyDeletionPendingInAdvance: FiniteDuration, externalEnvironmentName: String)
+case class UpdateUnusedApplicationRecordsJobConfig(notifyDeletionPendingInAdvance: FiniteDuration, externalEnvironmentName: String)
