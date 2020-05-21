@@ -69,18 +69,19 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
            |  }
            |}
            |
-           |UpdateUnusedApplicationRecordsJob-SANDBOX {
-           |  startTime = "00:30"
-           |  executionInterval = 1d
-           |  enabled = false
-           |}
+           |UpdateUnusedApplicationRecordsJob {
+           |  SANDBOX {
+           |    startTime = "00:30"
+           |    executionInterval = 1d
+           |    enabled = false
+           |  }
            |
-           |UpdateUnusedApplicationRecordsJob-PRODUCTION {
-           |  startTime = "01:00"
-           |  executionInterval = 1d
-           |  enabled = false
+           |  PRODUCTION {
+           |    startTime = "01:00"
+           |    executionInterval = 1d
+           |    enabled = false
+           |  }
            |}
-           |
            |""".stripMargin)
     }
 
