@@ -40,7 +40,7 @@ case class UnusedApplication(applicationId: UUID,
                              administrators: Seq[Administrator],
                              environment: Environment,
                              lastInteractionDate: DateTime,
-                             scheduledNotifications: Seq[LocalDate],
+                             scheduledNotificationDates: Seq[LocalDate],
                              scheduledDeletionDate: LocalDate)
 
 case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
@@ -71,7 +71,7 @@ object MongoFormat {
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
       (JsPath \ "lastInteractionDate").read[DateTime] and
-      (JsPath \ "scheduledNotifications").read[List[LocalDate]] and
+      (JsPath \ "scheduledNotificationDates").read[List[LocalDate]] and
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
     )(UnusedApplication.apply _)
 

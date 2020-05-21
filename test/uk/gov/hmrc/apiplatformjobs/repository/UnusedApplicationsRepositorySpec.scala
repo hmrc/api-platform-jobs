@@ -87,6 +87,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
 
       val expectedIndexes = Set(
         Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true),
+        Index(key = List("environment" -> Ascending, "scheduledNotificationDates" -> Ascending), name = Some("scheduledNotificationDatesIndex"), unique = false, background = true),
         Index(key = List("environment" -> Ascending, "scheduledDeletionDate" -> Ascending), name = Some("scheduledDeletionDateIndex"), unique = false, background = true)
       )
 

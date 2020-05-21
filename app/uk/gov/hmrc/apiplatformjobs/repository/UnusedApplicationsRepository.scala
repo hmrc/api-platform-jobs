@@ -41,7 +41,16 @@ class UnusedApplicationsRepository @Inject()(mongo: ReactiveMongoComponent)(impl
   implicit val mongoDateFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
 
   override def indexes = List(
-    Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true),
+    Index(
+      key = List("environment" -> Ascending, "applicationId" -> Ascending),
+      name = Some("applicationIdIndex"),
+      unique = true,
+      background = true),
+    Index(
+      key = List("environment" -> Ascending, "scheduledNotificationDates" -> Ascending),
+      name = Some("scheduledNotificationDatesIndex"),
+      unique = false,
+      background = true),
     Index(
       key = List("environment" -> Ascending, "scheduledDeletionDate" -> Ascending),
       name = Some("scheduledDeletionDateIndex"),

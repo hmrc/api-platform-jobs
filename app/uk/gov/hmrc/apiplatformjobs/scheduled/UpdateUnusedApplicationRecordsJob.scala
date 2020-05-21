@@ -44,11 +44,15 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
       .minus(deleteUnusedApplicationsAfter(environment).toMillis)
       .plus(firstNotificationInAdvance(environment).toMillis)
 
-  def calculateNotificationDates(scheduledDeletionDate: LocalDate): List[LocalDate] =
-    sendNotificationsInAdvance(environment).map(inAdvance => scheduledDeletionDate.minusDays(inAdvance.toDays.toInt)).toList
+  def calculateNotificationDates(scheduledDeletionDate: LocalDate): Seq[LocalDate] =
+    sendNotificationsInAdvance(environment)
+      .map(inAdvance => scheduledDeletionDate.minusDays(inAdvance.toDays.toInt))
+      .toSeq
 
   def calculateScheduledDeletionDate(lastInteractionDate: DateTime): LocalDate =
-    lastInteractionDate.plus(deleteUnusedApplicationsAfter(environment).toMillis).toLocalDate
+    lastInteractionDate
+      .plus(deleteUnusedApplicationsAfter(environment).toMillis)
+      .toLocalDate
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def unknownApplications(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]) = {
