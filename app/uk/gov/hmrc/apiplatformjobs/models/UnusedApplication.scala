@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.models
 
 import java.util.UUID
 
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, LocalDate}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
@@ -40,8 +40,8 @@ case class UnusedApplication(applicationId: UUID,
                              administrators: Seq[Administrator],
                              environment: Environment,
                              lastInteractionDate: DateTime,
-                             scheduledNotifications: List[DateTime],
-                             scheduledDeletionDate: DateTime)
+                             scheduledNotifications: Seq[LocalDate],
+                             scheduledDeletionDate: LocalDate)
 
 case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
                                                     userFirstName: String,
@@ -59,6 +59,7 @@ object Environment extends Enumeration {
 
 object MongoFormat {
   implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
+  implicit val localDateFormat = ReactiveMongoFormats.localDateFormats
 
   implicit def environmentWrites: Writes[Environment.Value] = (v: Environment.Value) => JsString(v.toString)
   implicit val environmentFormat: Format[Environment.Value] = Format(environmentReads(), environmentWrites)
@@ -70,8 +71,8 @@ object MongoFormat {
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
       (JsPath \ "lastInteractionDate").read[DateTime] and
-      (JsPath \ "scheduledNotifications").read[List[DateTime]] and
-      (JsPath \ "scheduledDeletionDate").read[DateTime]
+      (JsPath \ "scheduledNotifications").read[List[LocalDate]] and
+      (JsPath \ "scheduledDeletionDate").read[LocalDate]
     )(UnusedApplication.apply _)
 
   def environmentReads[Environment](): Reads[Environment.Value] = {

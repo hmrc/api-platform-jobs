@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import javax.inject.{Inject, Named, Singleton}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, LocalDate}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -44,11 +44,11 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
       .minus(deleteUnusedApplicationsAfter(environment).toMillis)
       .plus(firstNotificationInAdvance(environment).toMillis)
 
-  def calculateNotificationDates(scheduledDeletionDate: DateTime): List[DateTime] =
-    sendNotificationsInAdvance(environment).map(inAdvance => scheduledDeletionDate.minus(inAdvance.toMillis)).toList
+  def calculateNotificationDates(scheduledDeletionDate: LocalDate): List[LocalDate] =
+    sendNotificationsInAdvance(environment).map(inAdvance => scheduledDeletionDate.minusDays(inAdvance.toDays.toInt)).toList
 
-  def calculateScheduledDeletionDate(lastInteractionDate: DateTime): DateTime =
-    lastInteractionDate.plus(deleteUnusedApplicationsAfter(environment).toMillis)
+  def calculateScheduledDeletionDate(lastInteractionDate: DateTime): LocalDate =
+    lastInteractionDate.plus(deleteUnusedApplicationsAfter(environment).toMillis).toLocalDate
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def unknownApplications(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]) = {

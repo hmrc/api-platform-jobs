@@ -135,11 +135,11 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   "calculateScheduledDeletionDate" should {
     "correctly calculate date that application should be deleted" in new SandboxJobSetup {
       val lastUseDate = DateTime.now()
-      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
+      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter).toLocalDate
 
       val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
 
-      calculatedDeletionDate.getMillis must be (expectedDeletionDate.getMillis)
+      calculatedDeletionDate must be (expectedDeletionDate)
     }
   }
 
@@ -287,6 +287,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     val lastInteractionDate = lastAccessDate.getOrElse(creationDate)
 
     (ApplicationUsageDetails(applicationId, applicationName, administrators, creationDate, lastAccessDate),
-      UnusedApplication(applicationId, applicationName, administratorDetails.toSeq, environment, lastInteractionDate, List(lastInteractionDate.plusDays(335)), lastInteractionDate.plusDays(365)))
+      UnusedApplication(applicationId, applicationName, administratorDetails.toSeq, environment, lastInteractionDate, List(lastInteractionDate.plusDays(335).toLocalDate), lastInteractionDate.plusDays(365).toLocalDate))
   }
 }

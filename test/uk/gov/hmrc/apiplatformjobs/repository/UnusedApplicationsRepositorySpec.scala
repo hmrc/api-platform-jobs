@@ -20,7 +20,7 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, LocalDate}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
@@ -58,8 +58,8 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   trait Setup {
     def sandboxApplication(applicationId: UUID,
                            lastInteractionDate: DateTime = DateTime.now,
-                           scheduledNotificationDates: List[DateTime] = List(DateTime.now.plusDays(1)),
-                           scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
+                           scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now.plusDays(1)),
+                           scheduledDeletionDate: LocalDate = LocalDate.now.plusDays(30)) =
       UnusedApplication(
         applicationId,
         Random.alphanumeric.take(10).mkString,
@@ -70,8 +70,8 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
         scheduledDeletionDate)
     def productionApplication(applicationId: UUID,
                               lastInteractionDate: DateTime = DateTime.now,
-                              scheduledNotificationDates: List[DateTime] = List(DateTime.now.plusDays(1)),
-                              scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
+                              scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now.plusDays(1)),
+                              scheduledDeletionDate: LocalDate = LocalDate.now.plusDays(30)) =
       UnusedApplication(
         applicationId,
         Random.alphanumeric.take(10).mkString,
@@ -133,8 +133,8 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
 
   "applicationsToBeDeleted" should {
     "correctly retrieve SANDBOX applications that are scheduled to be deleted" in new Setup {
-      val sandboxApplicationToBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.minusDays(1))
-      val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.plusDays(1))
+      val sandboxApplicationToBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))
+      val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.plusDays(1))
 
       await(unusedApplicationRepository
         .bulkInsert(
@@ -152,8 +152,8 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     }
 
     "correctly retrieve PRODUCTION applications that are scheduled to be deleted" in new Setup {
-      val productionApplicationToBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.minusDays(1))
-      val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = DateTime.now.plusDays(1))
+      val productionApplicationToBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))
+      val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.plusDays(1))
 
       await(unusedApplicationRepository
         .bulkInsert(
