@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import com.typesafe.config.{Config, ConfigFactory}
-import org.joda.time.{DateTime, DateTimeUtils}
+import org.joda.time.{DateTime, DateTimeUtils, LocalDate}
 import org.mockito.Mockito.{times, verify, verifyNoInteractions, when}
 import org.mockito.{ArgumentCaptor, ArgumentMatchersSugar}
 import org.scalatest.Matchers._
@@ -51,19 +51,21 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     // scalastyle:off magic.number
     def jobConfiguration(deleteUnusedSandboxApplicationsAfter: Int = 365,
                          deleteUnusedProductionApplicationsAfter: Int = 365,
-                         notifyDeletionPendingInAdvanceForSandbox: Int = 30,
-                         notifyDeletionPendingInAdvanceForProduction: Int = 30): Config = {
+                         notifyDeletionPendingInAdvanceForSandbox: Seq[Int] = Seq(30),
+                         notifyDeletionPendingInAdvanceForProduction: Seq[Int] = Seq(30)): Config = {
+      val sandboxNotificationsString = notifyDeletionPendingInAdvanceForSandbox.mkString("", "d,", "d")
+      val productionNotificationsString = notifyDeletionPendingInAdvanceForProduction.mkString("", "d,", "d")
       ConfigFactory.parseString(
         s"""
            |UnusedApplications {
            |  SANDBOX {
            |    deleteUnusedApplicationsAfter = ${deleteUnusedSandboxApplicationsAfter}d
-           |    sendNotificationsInAdvance = [${notifyDeletionPendingInAdvanceForSandbox}d]
+           |    sendNotificationsInAdvance = [$sandboxNotificationsString]
            |  }
            |
            |  PRODUCTION {
            |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
-           |    sendNotificationsInAdvance = [${notifyDeletionPendingInAdvanceForProduction}d]
+           |    sendNotificationsInAdvance = [$productionNotificationsString]
            |  }
            |}
            |
@@ -95,7 +97,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   trait SandboxJobSetup extends Setup {
     val deleteUnusedApplicationsAfter = 365
     val notifyDeletionPendingInAdvance = 30
-    val configuration = new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvance))
+    val configuration =
+      new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForSandbox = Seq(notifyDeletionPendingInAdvance)))
 
     val underTest = new UpdateUnusedSandboxApplicationRecordsJob(
       mockSandboxThirdPartyApplicationConnector,
@@ -109,6 +112,21 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   trait ProductionJobSetup extends Setup {
     val deleteUnusedApplicationsAfter = 365
     val notifyDeletionPendingInAdvance = 30
+    val configuration =
+      new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = Seq(notifyDeletionPendingInAdvance)))
+
+    val underTest = new UpdateUnusedProductionApplicationRecordsJob(
+      mockProductionThirdPartyApplicationConnector,
+      mockThirdPartyDeveloperConnector,
+      mockUnusedApplicationsRepository,
+      configuration,
+      reactiveMongoComponent
+    )
+  }
+
+  trait MultipleNotificationsSetup extends Setup {
+    val deleteUnusedApplicationsAfter = 365
+    val notifyDeletionPendingInAdvance = Seq(30, 14 ,7)
     val configuration =
       new Configuration(jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = notifyDeletionPendingInAdvance))
 
@@ -129,6 +147,17 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       val calculatedCutoffDate = underTest.notificationCutoffDate()
 
       calculatedCutoffDate.getMillis must be (expectedCutoffDate.getMillis)
+    }
+  }
+
+  "calculateNotificationDates" should {
+    "correctly calculate when notifications should be sent" in new MultipleNotificationsSetup {
+      val scheduledDeletionDate = LocalDate.now.plusDays(40)
+      val expectedNotificationDates = notifyDeletionPendingInAdvance.map(scheduledDeletionDate.minusDays)
+
+      val calculatedNotificationDates = underTest.calculateNotificationDates(scheduledDeletionDate)
+
+      calculatedNotificationDates must contain allElementsOf (expectedNotificationDates)
     }
   }
 
