@@ -48,6 +48,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   trait Setup {
     val environmentName = "Test Environment"
 
+    // scalastyle:off magic.number
     def jobConfiguration(deleteUnusedSandboxApplicationsAfter: Int = 365,
                          deleteUnusedProductionApplicationsAfter: Int = 365,
                          notifyDeletionPendingInAdvanceForSandbox: Int = 30,
@@ -171,7 +172,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     "add newly discovered unused applications with no last used dates to database" in new SandboxJobSetup {
       val adminUserEmail = "foo@bar.com"
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), None, Set(adminUserEmail))
+        applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
       when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(Future.successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
@@ -194,7 +195,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
 
     "not persist application details already stored in database" in new SandboxJobSetup {
       val application: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set())
+        applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set()) // scalastyle:off magic.number
 
       when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
         .thenReturn(Future.successful(List(application._1)))
@@ -213,7 +214,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     "add newly discovered unused applications with last used dates to database" in new ProductionJobSetup {
       val adminUserEmail = "foo@bar.com"
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set(adminUserEmail))
+        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set(adminUserEmail)) // scalastyle:off magic.number
 
       when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
         .thenReturn(Future.successful(List(applicationWithLastUseDate._1)))
@@ -238,7 +239,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     "add newly discovered unused applications with no last used dates to database" in new ProductionJobSetup {
       val adminUserEmail = "foo@bar.com"
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), None, Set(adminUserEmail))
+        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
       when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(Future.successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
@@ -261,7 +262,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
 
     "not persist application details already stored in database" in new ProductionJobSetup {
       val application: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set())
+        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set()) // scalastyle:off magic.number
 
       when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
         .thenReturn(Future.successful(List(application._1)))
@@ -286,6 +287,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     val lastInteractionDate = lastAccessDate.getOrElse(creationDate)
 
     (ApplicationUsageDetails(applicationId, applicationName, administrators, creationDate, lastAccessDate),
-      UnusedApplication(applicationId, applicationName, administratorDetails.toSeq, environment, lastInteractionDate, lastInteractionDate.plusDays(365)))
+      UnusedApplication(applicationId, applicationName, administratorDetails.toSeq, environment, lastInteractionDate, List(lastInteractionDate.plusDays(335)), lastInteractionDate.plusDays(365)))
   }
 }

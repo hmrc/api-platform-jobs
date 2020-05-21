@@ -44,6 +44,9 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
       .minus(deleteUnusedApplicationsAfter(environment).toMillis)
       .plus(firstNotificationInAdvance(environment).toMillis)
 
+  def calculateNotificationDates(scheduledDeletionDate: DateTime): List[DateTime] =
+    sendNotificationsInAdvance(environment).map(inAdvance => scheduledDeletionDate.minus(inAdvance.toMillis)).toList
+
   def calculateScheduledDeletionDate(lastInteractionDate: DateTime): DateTime =
     lastInteractionDate.plus(deleteUnusedApplicationsAfter(environment).toMillis)
 
@@ -81,6 +84,8 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
     val lastInteractionDate = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate)
+    val scheduledDeletionDate = calculateScheduledDeletionDate(lastInteractionDate)
+    val notificationSchedule = calculateNotificationDates(scheduledDeletionDate)
 
     UnusedApplication(
       applicationUsageDetails.applicationId,
@@ -88,7 +93,8 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
       verifiedApplicationAdministrators.toSeq,
       environment,
       lastInteractionDate,
-      calculateScheduledDeletionDate(lastInteractionDate))
+      notificationSchedule,
+      scheduledDeletionDate)
   }
 
 }

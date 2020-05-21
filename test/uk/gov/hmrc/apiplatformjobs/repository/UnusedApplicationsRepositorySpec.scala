@@ -56,10 +56,30 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   }
 
   trait Setup {
-    def sandboxApplication(applicationId: UUID, lastInteractionDate: DateTime = DateTime.now, scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
-      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.SANDBOX, lastInteractionDate, scheduledDeletionDate)
-    def productionApplication(applicationId: UUID, lastInteractionDate: DateTime = DateTime.now, scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
-      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), Environment.PRODUCTION, lastInteractionDate, scheduledDeletionDate)
+    def sandboxApplication(applicationId: UUID,
+                           lastInteractionDate: DateTime = DateTime.now,
+                           scheduledNotificationDates: List[DateTime] = List(DateTime.now.plusDays(1)),
+                           scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
+      UnusedApplication(
+        applicationId,
+        Random.alphanumeric.take(10).mkString,
+        Seq(),
+        Environment.SANDBOX,
+        lastInteractionDate,
+        scheduledNotificationDates,
+        scheduledDeletionDate)
+    def productionApplication(applicationId: UUID,
+                              lastInteractionDate: DateTime = DateTime.now,
+                              scheduledNotificationDates: List[DateTime] = List(DateTime.now.plusDays(1)),
+                              scheduledDeletionDate: DateTime = DateTime.now.plusDays(30)) =
+      UnusedApplication(
+        applicationId,
+        Random.alphanumeric.take(10).mkString,
+        Seq(),
+        Environment.PRODUCTION,
+        lastInteractionDate,
+        scheduledNotificationDates,
+        scheduledDeletionDate)
   }
 
   "The 'unusedApplications' collection" should {

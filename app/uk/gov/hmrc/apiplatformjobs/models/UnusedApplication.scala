@@ -40,6 +40,7 @@ case class UnusedApplication(applicationId: UUID,
                              administrators: Seq[Administrator],
                              environment: Environment,
                              lastInteractionDate: DateTime,
+                             scheduledNotifications: List[DateTime],
                              scheduledDeletionDate: DateTime)
 
 case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
@@ -69,6 +70,7 @@ object MongoFormat {
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
       (JsPath \ "lastInteractionDate").read[DateTime] and
+      (JsPath \ "scheduledNotifications").read[List[DateTime]] and
       (JsPath \ "scheduledDeletionDate").read[DateTime]
     )(UnusedApplication.apply _)
 
@@ -86,6 +88,4 @@ object MongoFormat {
   }
 
   implicit val unusedApplicationFormat: Format[UnusedApplication] = Format(unusedApplicationReads, Json.writes[UnusedApplication])
-
-
 }

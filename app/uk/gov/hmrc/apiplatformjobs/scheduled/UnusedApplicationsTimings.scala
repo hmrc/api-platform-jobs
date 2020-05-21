@@ -25,18 +25,21 @@ import scala.concurrent.duration.FiniteDuration
 trait UnusedApplicationsTimings {
   val timingsConfiguration: UnusedApplicationsConfiguration
 
+  /** The amount of time an application be unused for in a given environment before it is deleted */
   def deleteUnusedApplicationsAfter(environment: Environment): FiniteDuration =
     environment match {
       case Environment.SANDBOX => timingsConfiguration.sandbox.deleteUnusedApplicationsAfter
       case Environment.PRODUCTION => timingsConfiguration.production.deleteUnusedApplicationsAfter
     }
 
+  /** How far in advance of deletion notifications are sent out for the environment */
   def sendNotificationsInAdvance(environment: Environment): Set[FiniteDuration] =
     environment match {
       case Environment.SANDBOX => timingsConfiguration.sandbox.sendNotificationsInAdvance
       case Environment.PRODUCTION => timingsConfiguration.production.sendNotificationsInAdvance
     }
 
+  /** How far in advance the first notification needs to be sent (i.e. what is the largest sendNotificationsInAdvance value for the environment) */
   def firstNotificationInAdvance(environment: Environment): FiniteDuration =
     environment match {
       case Environment.SANDBOX => timingsConfiguration.sandbox.sendNotificationsInAdvance.max
