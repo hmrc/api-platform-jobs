@@ -18,40 +18,34 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import javax.inject.{Inject, Named, Singleton}
-import net.ceedubs.ficus.Ficus._
-import org.joda.time.{DateTime, Days}
+import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.apiplatformjobs.connectors.{EmailConnector, ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
                                                  thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                  thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                                 emailConnector: EmailConnector,
                                                  unusedApplicationsRepository: UnusedApplicationsRepository,
                                                  configuration: Configuration,
                                                  mongo: ReactiveMongoComponent)
-  extends TimedJob(s"UpdateUnusedApplicationRecords-$environment", configuration, mongo) {
-
-  val updateUnusedApplicationRecordsJobConfig: UpdateUnusedApplicationRecordsJobConfig =
-    configuration.underlying.as[UpdateUnusedApplicationRecordsJobConfig](name)
-  val DeleteUnusedApplicationsAfter: FiniteDuration = configuration.underlying.as[FiniteDuration]("deleteUnusedApplicationsAfter")
+  extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, mongo) {
 
   lazy val DateFormatter: DateTimeFormatter = DateTimeFormat.longDate()
 
   def notificationCutoffDate(): DateTime =
     DateTime.now
-      .minus(DeleteUnusedApplicationsAfter.toMillis)
-      .plus(updateUnusedApplicationRecordsJobConfig.notifyDeletionPendingInAdvance.toMillis)
+      .minus(deleteUnusedApplicationsAfter(environment).toMillis)
+      .plus(firstNotificationInAdvance(environment).toMillis)
 
-  def calculateScheduledDeletionDate(lastInteractionDate: DateTime): DateTime = lastInteractionDate.plus(DeleteUnusedApplicationsAfter.toMillis)
+  def calculateScheduledDeletionDate(lastInteractionDate: DateTime): DateTime =
+    lastInteractionDate.plus(deleteUnusedApplicationsAfter(environment).toMillis)
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def unknownApplications(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]) = {
@@ -59,19 +53,6 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
       currentUnusedApplications.filterNot(app => knownApplicationIds.contains(app.applicationId))
     }
 
-    for {
-      knownApplications <- unusedApplicationsRepository.applicationsByEnvironment(environment)
-      currentUnusedApplications <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
-
-      newUnusedApplications: Seq[ApplicationUsageDetails] = unknownApplications(knownApplications, currentUnusedApplications)
-      _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${newUnusedApplications.size} new unused applications since last update")
-
-      notifiedApplications <- sendEmailNotifications(newUnusedApplications)
-      _ = if(notifiedApplications.nonEmpty) unusedApplicationsRepository.bulkInsert(notifiedApplications)
-    } yield RunningOfJobSuccessful
-  }
-
-  def sendEmailNotifications(unusedApplications: Seq[ApplicationUsageDetails])(implicit executionContext: ExecutionContext): Future[Seq[UnusedApplication]] = {
     def verifiedAdministratorDetails(adminEmails: Set[String]): Future[Map[String, Administrator]] = {
       if (adminEmails.isEmpty) {
         Future.successful(Map.empty)
@@ -82,80 +63,60 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
       }
     }
 
-    def notifyAdministrators(application: ApplicationUsageDetails,
-                             verifiedAdminDetails: Map[String, Administrator]): Future[UnusedApplication] = {
-      val lastInteractionDate = application.lastAccessDate.getOrElse(application.creationDate)
-      val scheduledDeletionDate = calculateScheduledDeletionDate(lastInteractionDate)
-      val verifiedAppAdmins = application.administrators.intersect(verifiedAdminDetails.keySet).flatMap(verifiedAdminDetails.get)
+    for {
+      knownApplications <- unusedApplicationsRepository.applicationsByEnvironment(environment)
+      currentUnusedApplications <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
 
-      for {
-        notifiedAdmins: Seq[AdministratorNotification] <- Future.sequence(verifiedAppAdmins.map(admin => {
-          emailConnector.sendApplicationToBeDeletedNotification(
-            emailNotification(application.applicationName, lastInteractionDate, scheduledDeletionDate, admin))
-            .map {
-              case true => AdministratorNotification.fromAdministrator(admin, Some(DateTime.now()))
-              case _ => AdministratorNotification.fromAdministrator(admin, None)
-          }
-        }).toSeq)
-      } yield notificationResult(application, notifiedAdmins, lastInteractionDate, scheduledDeletionDate)
-    }
+      newUnusedApplications: Seq[ApplicationUsageDetails] = unknownApplications(knownApplications, currentUnusedApplications)
+      _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${newUnusedApplications.size} new unused applications since last update")
 
-    if (unusedApplications.nonEmpty) {
-      for {
-        verifiedAdmins: Map[String, Administrator] <- verifiedAdministratorDetails(unusedApplications.flatMap(_.administrators).toSet)
-        appDetails: Seq[UnusedApplication] <- Future.sequence(unusedApplications.map(app => notifyAdministrators(app, verifiedAdmins)))
-      } yield appDetails
-    } else Future.successful(Seq.empty)
+      verifiedApplicationAdministrators: Map[String, Administrator] <- verifiedAdministratorDetails(newUnusedApplications.flatMap(_.administrators).toSet)
+      newUnusedApplicationRecords: Seq[UnusedApplication] = newUnusedApplications.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
+
+      _ = if(newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
+    } yield RunningOfJobSuccessful
   }
 
-  def emailNotification(applicationName: String,
-                        lastInteractionDate: DateTime,
-                        scheduledDeletionDate: DateTime,
-                        administrator: Administrator): UnusedApplicationToBeDeletedNotification = {
-    val daysSinceLastInteraction = Days.daysBetween(lastInteractionDate, DateTime.now).getDays
+  def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[String, Administrator]): UnusedApplication = {
+    val verifiedApplicationAdministrators =
+      applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
+    val lastInteractionDate = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate)
 
-    UnusedApplicationToBeDeletedNotification(
-      administrator.emailAddress,
-      administrator.firstName,
-      administrator.lastName,
-      applicationName,
-      updateUnusedApplicationRecordsJobConfig.externalEnvironmentName,
-      s"$daysSinceLastInteraction days",
-      s"${DeleteUnusedApplicationsAfter.length} ${DeleteUnusedApplicationsAfter.unit.toString.toLowerCase}",
-      DateFormatter.print(scheduledDeletionDate))
-  }
-
-  def notificationResult(application: ApplicationUsageDetails,
-                         notifiedAdmins: Seq[AdministratorNotification],
-                         lastInteractionDate: DateTime,
-                         scheduledDeletionDate: DateTime): UnusedApplication =
     UnusedApplication(
-      application.applicationId,
-      application.applicationName,
-      notifiedAdmins,
+      applicationUsageDetails.applicationId,
+      applicationUsageDetails.applicationName,
+      verifiedApplicationAdministrators.toSeq,
       environment,
       lastInteractionDate,
-      scheduledDeletionDate)
+      calculateScheduledDeletionDate(lastInteractionDate))
+  }
+
 }
 
 @Singleton
 class UpdateUnusedSandboxApplicationRecordsJob @Inject()(@Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                          thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                                         emailConnector: EmailConnector,
                                                          unusedApplicationsRepository: UnusedApplicationsRepository,
                                                          configuration: Configuration,
                                                          mongo: ReactiveMongoComponent)
   extends UpdateUnusedApplicationRecordsJob(
-    Environment.SANDBOX, thirdPartyApplicationConnector, thirdPartyDeveloperConnector, emailConnector, unusedApplicationsRepository, configuration, mongo)
+    Environment.SANDBOX,
+    thirdPartyApplicationConnector,
+    thirdPartyDeveloperConnector,
+    unusedApplicationsRepository,
+    configuration,
+    mongo)
 
 @Singleton
 class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                             thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
-                                                            emailConnector: EmailConnector,
                                                             unusedApplicationsRepository: UnusedApplicationsRepository,
                                                             configuration: Configuration,
                                                             mongo: ReactiveMongoComponent)
   extends UpdateUnusedApplicationRecordsJob(
-    Environment.PRODUCTION, thirdPartyApplicationConnector, thirdPartyDeveloperConnector, emailConnector, unusedApplicationsRepository, configuration, mongo)
-
-case class UpdateUnusedApplicationRecordsJobConfig(notifyDeletionPendingInAdvance: FiniteDuration, externalEnvironmentName: String)
+    Environment.PRODUCTION,
+    thirdPartyApplicationConnector,
+    thirdPartyDeveloperConnector,
+    unusedApplicationsRepository,
+    configuration,
+    mongo)

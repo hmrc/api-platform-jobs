@@ -20,6 +20,7 @@ import com.typesafe.config.{Config, ConfigException}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ValueReader
 import org.joda.time.LocalTime
+import uk.gov.hmrc.apiplatformjobs.models.Environment
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -43,14 +44,18 @@ trait TimedJobConfigReaders {
       TimedJobConfig(parsedStartTime, parsedExecutionInterval, parsedEnabled)
   }
 
-  implicit def updateUnusedApplicationsJobConfigReader: ValueReader[UpdateUnusedApplicationRecordsJobConfig] =
-    ValueReader.relative[UpdateUnusedApplicationRecordsJobConfig] {
-      config =>
-        val notifyDeletionPendingInAdvance = config.as[FiniteDuration]("notifyDeletionPendingInAdvance")
-        val externalEnvironmentName = config.as[String]("externalEnvironmentName")
+  implicit def unusedApplicationsConfigurationReader: ValueReader[UnusedApplicationsConfiguration] =
+    ValueReader.relative[UnusedApplicationsConfiguration] { config =>
+      def environmentConfiguration(environment: Environment.Value): UnusedApplicationsEnvironmentConfiguration =
+        UnusedApplicationsEnvironmentConfiguration(
+          config.as[FiniteDuration](s"$environment.deleteUnusedApplicationsAfter"),
+          config.as[Set[FiniteDuration]](s"$environment.sendNotificationsInAdvance"))
 
-        UpdateUnusedApplicationRecordsJobConfig(notifyDeletionPendingInAdvance, externalEnvironmentName)
+      UnusedApplicationsConfiguration(
+        environmentConfiguration(Environment.SANDBOX),
+        environmentConfiguration(Environment.PRODUCTION))
     }
+
 }
 
 object TimedJobConfigReaders extends TimedJobConfigReaders

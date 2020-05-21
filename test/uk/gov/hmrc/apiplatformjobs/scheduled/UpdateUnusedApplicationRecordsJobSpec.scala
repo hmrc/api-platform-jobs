@@ -29,7 +29,7 @@ import play.api.Configuration
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.MultiBulkWriteResult
-import uk.gov.hmrc.apiplatformjobs.connectors.{EmailConnector, ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
@@ -48,27 +48,34 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
   trait Setup {
     val environmentName = "Test Environment"
 
-    def jobConfiguration(deleteUnusedApplicationsAfter: Int = 365,
+    def jobConfiguration(deleteUnusedSandboxApplicationsAfter: Int = 365,
+                         deleteUnusedProductionApplicationsAfter: Int = 365,
                          notifyDeletionPendingInAdvanceForSandbox: Int = 30,
                          notifyDeletionPendingInAdvanceForProduction: Int = 30): Config = {
       ConfigFactory.parseString(
         s"""
-           |deleteUnusedApplicationsAfter = ${deleteUnusedApplicationsAfter}d
+           |UnusedApplications {
+           |  SANDBOX {
+           |    deleteUnusedApplicationsAfter = ${deleteUnusedSandboxApplicationsAfter}d
+           |    sendNotificationsInAdvance = [${notifyDeletionPendingInAdvanceForSandbox}d]
+           |  }
            |
-           |UpdateUnusedApplicationRecords-SANDBOX {
+           |  PRODUCTION {
+           |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
+           |    sendNotificationsInAdvance = [${notifyDeletionPendingInAdvanceForProduction}d]
+           |  }
+           |}
+           |
+           |UpdateUnusedApplicationRecordsJob-SANDBOX {
            |  startTime = "00:30"
            |  executionInterval = 1d
            |  enabled = false
-           |  externalEnvironmentName = "External Test"
-           |  notifyDeletionPendingInAdvance = ${notifyDeletionPendingInAdvanceForSandbox}d
            |}
            |
-           |UpdateUnusedApplicationRecords-PRODUCTION {
+           |UpdateUnusedApplicationRecordsJob-PRODUCTION {
            |  startTime = "01:00"
            |  executionInterval = 1d
            |  enabled = false
-           |  externalEnvironmentName = "Live"
-           |  notifyDeletionPendingInAdvance = ${notifyDeletionPendingInAdvanceForProduction}d
            |}
            |
            |""".stripMargin)
@@ -77,7 +84,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector = mock[SandboxThirdPartyApplicationConnector]
     val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
     val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector = mock[ThirdPartyDeveloperConnector]
-    val mockEmailConnector: EmailConnector = mock[EmailConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
 
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
@@ -93,7 +99,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     val underTest = new UpdateUnusedSandboxApplicationRecordsJob(
       mockSandboxThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
-      mockEmailConnector,
       mockUnusedApplicationsRepository,
       configuration,
       reactiveMongoComponent
@@ -109,7 +114,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
     val underTest = new UpdateUnusedProductionApplicationRecordsJob(
       mockProductionThirdPartyApplicationConnector,
       mockThirdPartyDeveloperConnector,
-      mockEmailConnector,
       mockUnusedApplicationsRepository,
       configuration,
       reactiveMongoComponent
@@ -149,22 +153,10 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
       when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
-      val emailCaptor: ArgumentCaptor[UnusedApplicationToBeDeletedNotification] = ArgumentCaptor.forClass(classOf[UnusedApplicationToBeDeletedNotification])
-      when(mockEmailConnector.sendApplicationToBeDeletedNotification(emailCaptor.capture())).thenReturn(Future.successful(true))
-
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
       when(mockUnusedApplicationsRepository.bulkInsert(insertCaptor.capture())(*)).thenReturn(Future.successful(MultiBulkWriteResult.empty))
 
       await(underTest.runJob)
-
-      emailCaptor.getAllValues.size() must be (1)
-      val capturedEmail = emailCaptor.getValue
-      capturedEmail.applicationName must be (applicationWithLastUseDate._1.applicationName)
-      capturedEmail.userEmailAddress must be (adminUserEmail)
-      capturedEmail.userFirstName must be ("Foo")
-      capturedEmail.userLastName must be ("Bar")
-      capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
-      capturedEmail.environmentName must be ("External Test")
 
       val capturedInsertValue = insertCaptor.getValue
       capturedInsertValue.size must be (1)
@@ -185,23 +177,10 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
       when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
-      val emailCaptor: ArgumentCaptor[UnusedApplicationToBeDeletedNotification] = ArgumentCaptor.forClass(classOf[UnusedApplicationToBeDeletedNotification])
-      when(mockEmailConnector.sendApplicationToBeDeletedNotification(emailCaptor.capture())).thenReturn(Future.successful(true))
-
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
       when(mockUnusedApplicationsRepository.bulkInsert(insertCaptor.capture())(*)).thenReturn(Future.successful(MultiBulkWriteResult.empty))
 
       await(underTest.runJob)
-
-      emailCaptor.getAllValues.size() must be (1)
-      val capturedEmail = emailCaptor.getValue
-      capturedEmail.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
-      capturedEmail.userEmailAddress must be (adminUserEmail)
-      capturedEmail.userFirstName must be ("Foo")
-      capturedEmail.userLastName must be ("Bar")
-      capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
-      capturedEmail.environmentName must be ("External Test")
-
 
       val capturedInsertValue = insertCaptor.getValue
       capturedInsertValue.size must be (1)
@@ -241,22 +220,10 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
       when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.PRODUCTION)).thenReturn(Future(List.empty))
 
-      val emailCaptor: ArgumentCaptor[UnusedApplicationToBeDeletedNotification] = ArgumentCaptor.forClass(classOf[UnusedApplicationToBeDeletedNotification])
-      when(mockEmailConnector.sendApplicationToBeDeletedNotification(emailCaptor.capture())).thenReturn(Future.successful(true))
-
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
       when(mockUnusedApplicationsRepository.bulkInsert(insertCaptor.capture())(*)).thenReturn(Future.successful(MultiBulkWriteResult.empty))
 
       await(underTest.runJob)
-
-      emailCaptor.getAllValues.size() must be (1)
-      val capturedEmail = emailCaptor.getValue
-      capturedEmail.applicationName must be (applicationWithLastUseDate._1.applicationName)
-      capturedEmail.userEmailAddress must be (adminUserEmail)
-      capturedEmail.userFirstName must be ("Foo")
-      capturedEmail.userLastName must be ("Bar")
-      capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
-      capturedEmail.environmentName must be ("Live")
 
       val capturedInsertValue = insertCaptor.getValue
       capturedInsertValue.size must be (1)
@@ -277,23 +244,10 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail))).thenReturn(Future.successful(Seq((adminUserEmail, "Foo", "Bar"))))
       when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.PRODUCTION)).thenReturn(Future(List.empty))
 
-      val emailCaptor: ArgumentCaptor[UnusedApplicationToBeDeletedNotification] = ArgumentCaptor.forClass(classOf[UnusedApplicationToBeDeletedNotification])
-      when(mockEmailConnector.sendApplicationToBeDeletedNotification(emailCaptor.capture())).thenReturn(Future.successful(true))
-
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
       when(mockUnusedApplicationsRepository.bulkInsert(insertCaptor.capture())(*)).thenReturn(Future.successful(MultiBulkWriteResult.empty))
 
       await(underTest.runJob)
-
-      emailCaptor.getAllValues.size() must be (1)
-      val capturedEmail = emailCaptor.getValue
-      capturedEmail.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
-      capturedEmail.userEmailAddress must be (adminUserEmail)
-      capturedEmail.userFirstName must be ("Foo")
-      capturedEmail.userLastName must be ("Bar")
-      capturedEmail.timeBeforeDeletion must be (s"$deleteUnusedApplicationsAfter days")
-      capturedEmail.environmentName must be ("Live")
-
 
       val capturedInsertValue = insertCaptor.getValue
       capturedInsertValue.size must be (1)
@@ -328,7 +282,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
                          administrators: Set[String]): (ApplicationUsageDetails, UnusedApplication) = {
     val applicationId = UUID.randomUUID()
     val applicationName = Random.alphanumeric.take(10).mkString
-    val administratorDetails = administrators.map(admin => new AdministratorNotification(admin, "Foo", "Bar", Some(DateTime.now)))
+    val administratorDetails = administrators.map(admin => new Administrator(admin, "Foo", "Bar"))
     val lastInteractionDate = lastAccessDate.getOrElse(creationDate)
 
     (ApplicationUsageDetails(applicationId, applicationName, administrators, creationDate, lastAccessDate),
