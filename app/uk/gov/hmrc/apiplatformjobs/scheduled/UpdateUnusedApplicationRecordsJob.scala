@@ -39,25 +39,35 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
 
   lazy val DateFormatter: DateTimeFormatter = DateTimeFormat.longDate()
 
+  /**
+   * The date we should use to find applications that have not been used since.
+   * This should be far enough in advance that all required notifications can be sent out.
+   */
   def notificationCutoffDate(): DateTime =
     DateTime.now
       .minus(deleteUnusedApplicationsAfter(environment).toMillis)
       .plus(firstNotificationInAdvance(environment).toMillis)
 
+  /** The dates we will be sending notifications out to Admins */
   def calculateNotificationDates(scheduledDeletionDate: LocalDate): Seq[LocalDate] =
     sendNotificationsInAdvance(environment)
       .map(inAdvance => scheduledDeletionDate.minusDays(inAdvance.toDays.toInt))
       .toSeq
 
+  /** The date we will be deleting the application */
   def calculateScheduledDeletionDate(lastInteractionDate: DateTime): LocalDate =
     lastInteractionDate
       .plus(deleteUnusedApplicationsAfter(environment).toMillis)
       .toLocalDate
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    def unknownApplications(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]) = {
+    def applicationsToUpdate(knownApplications: List[UnusedApplication],
+                             currentUnusedApplications: List[ApplicationUsageDetails]): (Set[UUID], Set[UUID]) = {
+
       val knownApplicationIds: Set[UUID] = knownApplications.map(_.applicationId).toSet
-      currentUnusedApplications.filterNot(app => knownApplicationIds.contains(app.applicationId))
+      val currentUnusedApplicationIds: Set[UUID] = currentUnusedApplications.map(_.applicationId).toSet
+
+      (currentUnusedApplicationIds.diff(knownApplicationIds), knownApplicationIds.diff(currentUnusedApplicationIds))
     }
 
     def verifiedAdministratorDetails(adminEmails: Set[String]): Future[Map[String, Administrator]] = {
@@ -73,14 +83,16 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
     for {
       knownApplications <- unusedApplicationsRepository.applicationsByEnvironment(environment)
       currentUnusedApplications <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
+      updatesRequired: (Set[UUID], Set[UUID]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
-      newUnusedApplications: Seq[ApplicationUsageDetails] = unknownApplications(knownApplications, currentUnusedApplications)
-      _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${newUnusedApplications.size} new unused applications since last update")
-
-      verifiedApplicationAdministrators: Map[String, Administrator] <- verifiedAdministratorDetails(newUnusedApplications.flatMap(_.administrators).toSet)
-      newUnusedApplicationRecords: Seq[UnusedApplication] = newUnusedApplications.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
-
+      _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${updatesRequired._1.size} new unused applications since last update")
+      applicationsToAdd = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
+      verifiedApplicationAdministrators: Map[String, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
+      newUnusedApplicationRecords: Seq[UnusedApplication] = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
       _ = if(newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
+
+      _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${updatesRequired._2.size} applications that have been used since last update")
+      _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteApplication(environment, _)))
     } yield RunningOfJobSuccessful
   }
 

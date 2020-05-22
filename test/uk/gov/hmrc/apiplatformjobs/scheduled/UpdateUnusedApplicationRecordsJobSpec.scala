@@ -238,6 +238,23 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
     }
 
+    "remove applications that have been updated since last run" in new SandboxJobSetup {
+      val application: (ApplicationUsageDetails, UnusedApplication) =
+        applicationDetails(Environment.SANDBOX, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set()) // scalastyle:off magic.number
+
+      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(Future.successful(List.empty))
+      when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.SANDBOX)).thenReturn(Future(List(application._2)))
+      when(mockUnusedApplicationsRepository.deleteApplication(*, *)).thenReturn(Future.successful(true))
+
+      await(underTest.runJob)
+
+      verify(mockUnusedApplicationsRepository).deleteApplication(Environment.SANDBOX, application._2.applicationId)
+
+      verify(mockUnusedApplicationsRepository, times(0)).bulkInsert(*)(*)
+      verifyNoInteractions(mockThirdPartyDeveloperConnector)
+      verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
+    }
+
   }
 
   "PRODUCTION job" should {
@@ -305,6 +322,22 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
     }
 
+    "remove applications that have been updated since last run" in new ProductionJobSetup {
+      val application: (ApplicationUsageDetails, UnusedApplication) =
+        applicationDetails(Environment.PRODUCTION, DateTime.now.minusMonths(13), Some(DateTime.now.minusMonths(13)), Set()) // scalastyle:off magic.number
+
+      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(Future.successful(List.empty))
+      when(mockUnusedApplicationsRepository.applicationsByEnvironment(Environment.PRODUCTION)).thenReturn(Future(List(application._2)))
+      when(mockUnusedApplicationsRepository.deleteApplication(*, *)).thenReturn(Future.successful(true))
+
+      await(underTest.runJob)
+
+      verify(mockUnusedApplicationsRepository).deleteApplication(Environment.PRODUCTION, application._2.applicationId)
+
+      verify(mockUnusedApplicationsRepository, times(0)).bulkInsert(*)(*)
+      verifyNoInteractions(mockThirdPartyDeveloperConnector)
+      verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
+    }
   }
 
   private def applicationDetails(environment: Environment,
