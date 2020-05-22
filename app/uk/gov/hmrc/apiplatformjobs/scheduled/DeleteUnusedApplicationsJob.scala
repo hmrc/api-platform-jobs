@@ -31,12 +31,13 @@ abstract class DeleteUnusedApplicationsJob(environment: Environment,
                                            unusedApplicationsRepository: UnusedApplicationsRepository,
                                            configuration: Configuration,
                                            mongo: ReactiveMongoComponent)
-  extends TimedJob(s"DeleteUnusedApplications-$environment", configuration, mongo) {
+  extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, mongo) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     Future.successful(RunningOfJobSuccessful)
   }
 }
+
 @Singleton
 class DeleteUnusedSandboxApplicationsJob @Inject()(@Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                    unusedApplicationsRepository: UnusedApplicationsRepository,

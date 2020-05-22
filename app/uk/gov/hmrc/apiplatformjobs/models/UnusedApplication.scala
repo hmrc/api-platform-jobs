@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.models
 
 import java.util.UUID
 
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, LocalDate}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
@@ -34,20 +34,14 @@ case class Administrator(emailAddress: String, firstName: String, lastName: Stri
 case object Administrator {
   def apply(emailAddress: String, firstName: String, lastName: String): Administrator = new Administrator(emailAddress, firstName, lastName)
 }
-case class AdministratorNotification(emailAddress: String, firstName: String, lastName: String, notified: Option[DateTime])
-case object AdministratorNotification {
-  def apply(emailAddress: String, firstName: String, lastName: String, notified: Option[DateTime]): AdministratorNotification =
-    new AdministratorNotification(emailAddress, firstName, lastName, notified)
-  def fromAdministrator(administrator: Administrator, notified: Option[DateTime]): AdministratorNotification =
-    new AdministratorNotification(administrator.emailAddress, administrator.firstName, administrator.lastName, notified)
-}
 
 case class UnusedApplication(applicationId: UUID,
                              applicationName: String,
-                             administratorNotifications: Seq[AdministratorNotification],
+                             administrators: Seq[Administrator],
                              environment: Environment,
                              lastInteractionDate: DateTime,
-                             scheduledDeletionDate: DateTime)
+                             scheduledNotificationDates: Seq[LocalDate],
+                             scheduledDeletionDate: LocalDate)
 
 case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
                                                     userFirstName: String,
@@ -65,20 +59,20 @@ object Environment extends Enumeration {
 
 object MongoFormat {
   implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
+  implicit val localDateFormat = ReactiveMongoFormats.localDateFormats
 
   implicit def environmentWrites: Writes[Environment.Value] = (v: Environment.Value) => JsString(v.toString)
   implicit val environmentFormat: Format[Environment.Value] = Format(environmentReads(), environmentWrites)
   implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
-  implicit val administratorNotificationsFormat: Format[AdministratorNotification] =
-    Format(Json.reads[AdministratorNotification], Json.writes[AdministratorNotification])
 
   val unusedApplicationReads: Reads[UnusedApplication] = (
     (JsPath \ "applicationId").read[UUID] and
       (JsPath \ "applicationName").read[String] and
-      (JsPath \ "administratorNotifications").read[Seq[AdministratorNotification]] and
+      (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
       (JsPath \ "lastInteractionDate").read[DateTime] and
-      (JsPath \ "scheduledDeletionDate").read[DateTime]
+      (JsPath \ "scheduledNotificationDates").read[List[LocalDate]] and
+      (JsPath \ "scheduledDeletionDate").read[LocalDate]
     )(UnusedApplication.apply _)
 
   def environmentReads[Environment](): Reads[Environment.Value] = {
@@ -94,7 +88,5 @@ object MongoFormat {
     case _ => JsError("String value expected")
   }
 
-  implicit val unusedApplicationFormat = Format(unusedApplicationReads, Json.writes[UnusedApplication])
-
-
+  implicit val unusedApplicationFormat: Format[UnusedApplication] = Format(unusedApplicationReads, Json.writes[UnusedApplication])
 }

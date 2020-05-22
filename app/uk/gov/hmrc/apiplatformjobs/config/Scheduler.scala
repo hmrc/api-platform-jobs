@@ -34,8 +34,8 @@ class SchedulerModule extends AbstractModule {
 @Singleton
 class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
                           deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
-                          sandboxApplicationsToBeDeletedNotificationJob: SandboxApplicationsToBeDeletedNotificationJob,
-                          productionApplicationsToBeDeletedNotificationJob: ProductionApplicationsToBeDeletedNotificationJob,
+                          sandboxApplicationsToBeDeletedNotificationJob: UpdateUnusedSandboxApplicationRecordsJob,
+                          productionApplicationsToBeDeletedNotificationJob: UpdateUnusedProductionApplicationRecordsJob,
                           deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
                           deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
                           override val applicationLifecycle: ApplicationLifecycle,
