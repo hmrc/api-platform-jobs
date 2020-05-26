@@ -37,7 +37,7 @@ class ConfigurationModule extends Module {
       bind[ThirdPartyApplicationConnectorConfig].toProvider[ThirdPartyApplicationConnectorConfigProvider],
       bind[DeleteUnverifiedDevelopersJobConfig].toProvider[DeleteUnverifiedDevelopersJobConfigProvider],
       bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider],
-      bind[EmailConfig].toProvider[EmailConfigProvider],
+      bind[EmailConfig].toProvider[EmailConfigProvider]
     )
   }
 }
