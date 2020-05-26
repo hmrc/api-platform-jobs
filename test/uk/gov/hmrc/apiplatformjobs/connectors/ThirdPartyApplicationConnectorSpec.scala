@@ -26,7 +26,8 @@ import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.http.Status.OK
+import play.api.http.Status
+import play.api.http.Status.{OK, NO_CONTENT, BAD_REQUEST}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
@@ -177,6 +178,31 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
 
       results.size should be (0)
+    }
+  }
+
+  "deleteApplication" should {
+    "return true if call to TPA is successful" in new Setup {
+      val applicationId = UUID.randomUUID()
+      val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
+
+      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), any(), any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
+
+      val response = await(connector.deleteApplication(applicationId))
+
+      response should be (true)
+    }
+
+    "return false if call to TPA fails" in new Setup {
+      val applicationId = UUID.randomUUID()
+      val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
+
+      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), any(), any()))
+        .thenReturn(successful(HttpResponse(BAD_REQUEST)))
+
+      val response = await(connector.deleteApplication(applicationId))
+
+      response should be (false)
     }
   }
 }

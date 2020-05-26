@@ -92,7 +92,7 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
       _ = if(newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
 
       _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${updatesRequired._2.size} applications that have been used since last update")
-      _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(_)))
+      _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord))
     } yield RunningOfJobSuccessful
   }
 
