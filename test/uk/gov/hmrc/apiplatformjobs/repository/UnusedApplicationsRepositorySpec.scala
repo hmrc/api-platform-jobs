@@ -106,7 +106,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(UUID.randomUUID()),
             productionApplication(UUID.randomUUID()))))
 
-      val results = await(unusedApplicationRepository.applicationsByEnvironment(Environment.SANDBOX))
+      val results = await(unusedApplicationRepository.unusedApplications()(Environment.SANDBOX))
 
       results.size should be (1)
       results.head.applicationId should be (sandboxApplicationId)
@@ -123,7 +123,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(productionApplication1Id),
             productionApplication(productionApplication2Id))))
 
-      val results = await(unusedApplicationRepository.applicationsByEnvironment(Environment.PRODUCTION))
+      val results = await(unusedApplicationRepository.unusedApplications()(Environment.PRODUCTION))
 
       results.size should be (2)
       val returnedApplicationIds = results.map(_.applicationId)
@@ -145,7 +145,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(UUID.randomUUID()),
             productionApplication(UUID.randomUUID()))))
 
-      val results = await(unusedApplicationRepository.applicationsToBeDeleted(Environment.SANDBOX, DateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(DateTime.now)(Environment.SANDBOX))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be (1)
@@ -164,7 +164,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplicationToBeDeleted,
             productionApplicationToNotBeDeleted)))
 
-      val results = await(unusedApplicationRepository.applicationsToBeDeleted(Environment.PRODUCTION, DateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(DateTime.now)(Environment.PRODUCTION))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be (1)
@@ -183,10 +183,10 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(UUID.randomUUID()),
             productionApplication(UUID.randomUUID()))))
 
-      val result = await(unusedApplicationRepository.deleteApplication(Environment.SANDBOX, sandboxApplicationId))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(sandboxApplicationId)(Environment.SANDBOX))
 
       result should be (true)
-      await(unusedApplicationRepository.applicationsByEnvironment(Environment.SANDBOX)).size should be (0)
+      await(unusedApplicationRepository.unusedApplications()(Environment.SANDBOX)).size should be (0)
     }
 
     "correctly remove a PRODUCTION application" in new Setup {
@@ -198,14 +198,14 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             sandboxApplication(UUID.randomUUID()),
             productionApplication(productionApplicationId))))
 
-      val result = await(unusedApplicationRepository.deleteApplication(Environment.PRODUCTION, productionApplicationId))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(productionApplicationId)(Environment.PRODUCTION))
 
       result should be (true)
-      await(unusedApplicationRepository.applicationsByEnvironment(Environment.PRODUCTION)).size should be (0)
+      await(unusedApplicationRepository.unusedApplications()(Environment.PRODUCTION)).size should be (0)
     }
 
     "return true if application id was not found in database" in {
-      val result = await(unusedApplicationRepository.deleteApplication(Environment.PRODUCTION, UUID.randomUUID()))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(UUID.randomUUID())(Environment.PRODUCTION))
 
       result should be (true)
     }

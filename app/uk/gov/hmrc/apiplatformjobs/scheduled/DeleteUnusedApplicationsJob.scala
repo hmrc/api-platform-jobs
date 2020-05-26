@@ -17,7 +17,7 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import javax.inject.{Inject, Named, Singleton}
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment
@@ -33,7 +33,10 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
   extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", configuration, mongo) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    Future.successful(RunningOfJobSuccessful)
+    for {
+      applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted()
+      _ = Logger.info(s"[DeleteUnusedApplicationsJob] Found [${applicationsToDelete.size}] applications to delete")
+    } yield RunningOfJobSuccessful
   }
 }
 
