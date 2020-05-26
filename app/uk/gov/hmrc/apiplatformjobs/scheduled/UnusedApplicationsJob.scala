@@ -23,9 +23,8 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 
 abstract class UnusedApplicationsJob(jobName: String,
-                                     environment: Environment,
                                      configuration: Configuration,
-                                     mongo: ReactiveMongoComponent)
+                                     mongo: ReactiveMongoComponent)(implicit environment: Environment)
   extends TimedJob(s"$jobName.$environment", configuration, mongo) with UnusedApplicationsTimings {
 
   override val timingsConfiguration: UnusedApplicationsConfiguration = configuration.underlying.as[UnusedApplicationsConfiguration]("UnusedApplications")

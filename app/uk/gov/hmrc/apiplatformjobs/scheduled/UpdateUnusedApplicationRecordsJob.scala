@@ -29,13 +29,13 @@ import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
-                                                 thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                  thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
                                                  unusedApplicationsRepository: UnusedApplicationsRepository,
                                                  configuration: Configuration,
                                                  mongo: ReactiveMongoComponent)
-  extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, mongo) {
+                                                (implicit environment: Environment)
+  extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", configuration, mongo) {
 
   lazy val DateFormatter: DateTimeFormatter = DateTimeFormat.longDate()
 
@@ -122,12 +122,12 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject()(@Named("tpa-sandbox") t
                                                          configuration: Configuration,
                                                          mongo: ReactiveMongoComponent)
   extends UpdateUnusedApplicationRecordsJob(
-    Environment.SANDBOX,
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
     configuration,
-    mongo)
+    mongo)(Environment.SANDBOX)
+
 
 @Singleton
 class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
@@ -136,9 +136,8 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-producti
                                                             configuration: Configuration,
                                                             mongo: ReactiveMongoComponent)
   extends UpdateUnusedApplicationRecordsJob(
-    Environment.PRODUCTION,
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
     configuration,
-    mongo)
+    mongo)(Environment.PRODUCTION)

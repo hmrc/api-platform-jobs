@@ -26,12 +26,11 @@ import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class DeleteUnusedApplicationsJob(environment: Environment,
-                                           thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                            unusedApplicationsRepository: UnusedApplicationsRepository,
                                            configuration: Configuration,
-                                           mongo: ReactiveMongoComponent)
-  extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, mongo) {
+                                           mongo: ReactiveMongoComponent)(implicit environment: Environment)
+  extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", configuration, mongo) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     Future.successful(RunningOfJobSuccessful)
@@ -43,11 +42,11 @@ class DeleteUnusedSandboxApplicationsJob @Inject()(@Named("tpa-sandbox") thirdPa
                                                    unusedApplicationsRepository: UnusedApplicationsRepository,
                                                    configuration: Configuration,
                                                    mongo: ReactiveMongoComponent)
-  extends DeleteUnusedApplicationsJob(Environment.SANDBOX, thirdPartyApplicationConnector, unusedApplicationsRepository, configuration, mongo)
+  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, configuration, mongo)(Environment.SANDBOX)
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                       unusedApplicationsRepository: UnusedApplicationsRepository,
                                                       configuration: Configuration,
                                                       mongo: ReactiveMongoComponent)
-  extends DeleteUnusedApplicationsJob(Environment.PRODUCTION, thirdPartyApplicationConnector, unusedApplicationsRepository, configuration, mongo)
+  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, configuration, mongo)(Environment.PRODUCTION)
