@@ -20,7 +20,7 @@ import javax.inject.{Inject, Named, Singleton}
 import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.Environment
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
@@ -33,9 +33,21 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
   extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", configuration, mongo) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
+    def deleteApplication(application: UnusedApplication): Future[Unit] = {
+      Logger.info(s"[DeleteUnusedApplicationsJob] Deleting Application [${application.applicationName} (${application.applicationId})]")
+      thirdPartyApplicationConnector.deleteApplication(application.applicationId)
+        .map(deleteSuccessful =>
+          if (deleteSuccessful) {
+            unusedApplicationsRepository.deleteUnusedApplicationRecord(application.applicationId)
+          } else {
+            Logger.warn(s"[DeleteUnusedApplicationsJob] Unable to delete application [${application.applicationName} (${application.applicationId})]")
+          })
+    }
+
     for {
       applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted()
       _ = Logger.info(s"[DeleteUnusedApplicationsJob] Found [${applicationsToDelete.size}] applications to delete")
+      _ <- Future.sequence(applicationsToDelete.map(deleteApplication))
     } yield RunningOfJobSuccessful
   }
 }
