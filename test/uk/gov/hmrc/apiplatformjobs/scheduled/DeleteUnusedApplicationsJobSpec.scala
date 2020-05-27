@@ -18,13 +18,11 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.util.UUID
 
-import com.typesafe.config.ConfigFactory
 import org.joda.time.{DateTime, LocalDate}
 import org.mockito.ArgumentMatchersSugar
-import org.mockito.Mockito.{verify, when, times}
+import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.Configuration
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
@@ -38,7 +36,7 @@ import scala.concurrent.Future
 import scala.util.Random
 
 class DeleteUnusedApplicationsJobSpec extends PlaySpec
-  with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
+   with UnusedApplicationTestConfiguration with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
 
   trait Setup {
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
@@ -47,35 +45,6 @@ class DeleteUnusedApplicationsJobSpec extends PlaySpec
 
     val mockThirdPartyApplicationConnector: ThirdPartyApplicationConnector = mock[ThirdPartyApplicationConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
-
-    val configuration = new Configuration(ConfigFactory.parseString(
-      s"""
-         |UnusedApplications {
-         |  SANDBOX {
-         |    deleteUnusedApplicationsAfter = 365d
-         |    sendNotificationsInAdvance = [30d]
-         |  }
-         |
-         |  PRODUCTION {
-         |    deleteUnusedApplicationsAfter = 365d
-         |    sendNotificationsInAdvance = [30d]
-         |  }
-         |}
-         |
-         |DeleteUnusedApplicationsJob {
-         |  SANDBOX {
-         |    startTime = "01:30"
-         |    executionInterval = 1d
-         |    enabled = false
-         |  }
-         |
-         |  PRODUCTION {
-         |    startTime = "02:00"
-         |    executionInterval = 1d
-         |    enabled = false
-         |  }
-         |}
-         |""".stripMargin))
   }
 
   trait SandboxSetup extends Setup {
@@ -85,7 +54,7 @@ class DeleteUnusedApplicationsJobSpec extends PlaySpec
       new DeleteUnusedSandboxApplicationsJob(
         mockThirdPartyApplicationConnector,
         mockUnusedApplicationsRepository,
-        configuration,
+        defaultConfiguration,
         reactiveMongoComponent)
   }
 
@@ -96,7 +65,7 @@ class DeleteUnusedApplicationsJobSpec extends PlaySpec
       new DeleteUnusedProductionApplicationsJob(
         mockThirdPartyApplicationConnector,
         mockUnusedApplicationsRepository,
-        configuration,
+        defaultConfiguration,
         reactiveMongoComponent)
   }
 
