@@ -67,8 +67,8 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     http.GET[PaginatedApplicationLastUseResponse](
-      url = s"$serviceBaseUrl/application",
-      queryParams = Seq("lastUseBefore" -> urlEncode(ISODateFormatter.withZoneUTC().print(lastUseDate))))
+      url = s"$serviceBaseUrl/applications",
+      queryParams = Seq("lastUseBefore" -> ISODateFormatter.withZoneUTC().print(lastUseDate)))
       .map(page => toDomain(page.applications))
   }
 
@@ -104,8 +104,8 @@ object ThirdPartyApplicationConnector {
   private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate],
                                                                      page: Int,
                                                                      pageSize: Int,
-                                                                     total: Int,
-                                                                     matching: Int)
+                                                                     totalNumberOfApplications: Int,
+                                                                     numberOfMatchingApplications: Int)
 
   case class ThirdPartyApplicationConnectorConfig(
     applicationSandboxBaseUrl: String, applicationSandboxUseProxy: Boolean, applicationSandboxBearerToken: String, applicationSandboxApiKey: String,
