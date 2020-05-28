@@ -18,12 +18,12 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import javax.inject.{Inject, Named, Singleton}
-import org.joda.time.{DateTime, LocalDate}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.joda.time.{DateTime, LocalDate}
 import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
@@ -32,10 +32,10 @@ import scala.concurrent.{ExecutionContext, Future}
 abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                  thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
                                                  unusedApplicationsRepository: UnusedApplicationsRepository,
+                                                 environment: Environment,
                                                  configuration: Configuration,
                                                  mongo: ReactiveMongoComponent)
-                                                (implicit environment: Environment)
-  extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", configuration, mongo) {
+  extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, mongo) {
 
   lazy val DateFormatter: DateTimeFormatter = DateTimeFormat.longDate()
 
@@ -125,8 +125,9 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject()(@Named("tpa-sandbox") t
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
+    SANDBOX,
     configuration,
-    mongo)(Environment.SANDBOX)
+    mongo)
 
 
 @Singleton
@@ -139,5 +140,6 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-producti
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
+    PRODUCTION,
     configuration,
-    mongo)(Environment.PRODUCTION)
+    mongo)

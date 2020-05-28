@@ -20,17 +20,18 @@ import javax.inject.{Inject, Named, Singleton}
 import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                            unusedApplicationsRepository: UnusedApplicationsRepository,
+                                           environment: Environment,
                                            configuration: Configuration,
-                                           mongo: ReactiveMongoComponent)(implicit environment: Environment)
-  extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", configuration, mongo) {
+                                           mongo: ReactiveMongoComponent)
+  extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, mongo) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def deleteApplication(application: UnusedApplication): Future[Unit] = {
@@ -57,11 +58,11 @@ class DeleteUnusedSandboxApplicationsJob @Inject()(@Named("tpa-sandbox") thirdPa
                                                    unusedApplicationsRepository: UnusedApplicationsRepository,
                                                    configuration: Configuration,
                                                    mongo: ReactiveMongoComponent)
-  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, configuration, mongo)(Environment.SANDBOX)
+  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, SANDBOX, configuration, mongo)
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                       unusedApplicationsRepository: UnusedApplicationsRepository,
                                                       configuration: Configuration,
                                                       mongo: ReactiveMongoComponent)
-  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, configuration, mongo)(Environment.PRODUCTION)
+  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, PRODUCTION, configuration, mongo)
