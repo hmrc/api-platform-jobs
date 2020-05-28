@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 import org.joda.time.DateTime
@@ -26,8 +24,7 @@ import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.http.Status
-import play.api.http.Status.{OK, NO_CONTENT, BAD_REQUEST}
+import play.api.http.Status.{BAD_REQUEST, NO_CONTENT, OK}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
@@ -133,7 +130,8 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val lastUseDate = DateTime.now.minusMonths(12)
-      val encodedDateString: String = URLEncoder.encode(dateFormatter.withZoneUTC().print(lastUseDate), StandardCharsets.UTF_8.toString)
+      val dateString: String = dateFormatter.withZoneUTC().print(lastUseDate)
+
       val oldApplication1Admin: String = "foo@bar.com"
       val oldApplication1 =
         ApplicationLastUseDate(
@@ -152,8 +150,8 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
           Some(DateTime.now.minusMonths(14)))
 
       when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
-        meq( s"$baseUrl/application"),
-        meq(Seq("lastUseBefore" -> encodedDateString)))(any(), any(), any()))
+        meq( s"$baseUrl/applications"),
+        meq(Seq("lastUseBefore" -> dateString)))(any(), any(), any()))
         .thenReturn(successful(paginatedResponse(List(oldApplication1, oldApplication2))))
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
@@ -168,11 +166,11 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
     "return empty Sequence when no results are returned" in new Setup {
       val lastUseDate = DateTime.now.minusMonths(12)
-      val encodedDateString: String = URLEncoder.encode(dateFormatter.withZoneUTC().print(lastUseDate), StandardCharsets.UTF_8.toString)
+      val dateString: String = dateFormatter.withZoneUTC().print(lastUseDate)
 
       when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
-        meq( s"$baseUrl/application"),
-        meq(Seq("lastUseBefore" -> encodedDateString)))(any(), any(), any()))
+        meq( s"$baseUrl/applications"),
+        meq(Seq("lastUseBefore" -> dateString)))(any(), any(), any()))
         .thenReturn(successful(paginatedResponse(List.empty)))
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
