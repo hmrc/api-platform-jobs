@@ -81,7 +81,7 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
     }
 
     for {
-      knownApplications <- unusedApplicationsRepository.unusedApplications()
+      knownApplications <- unusedApplicationsRepository.unusedApplications(environment)
       currentUnusedApplications <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
       updatesRequired: (Set[UUID], Set[UUID]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
@@ -92,7 +92,7 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
       _ = if(newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
 
       _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${updatesRequired._2.size} applications that have been used since last update")
-      _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord))
+      _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))
     } yield RunningOfJobSuccessful
   }
 

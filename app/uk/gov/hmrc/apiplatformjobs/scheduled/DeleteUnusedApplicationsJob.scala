@@ -38,14 +38,14 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
       thirdPartyApplicationConnector.deleteApplication(application.applicationId)
         .map(deleteSuccessful =>
           if (deleteSuccessful) {
-            unusedApplicationsRepository.deleteUnusedApplicationRecord(application.applicationId)
+            unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, application.applicationId)
           } else {
             Logger.warn(s"[DeleteUnusedApplicationsJob] Unable to delete application [${application.applicationName} (${application.applicationId})]")
           })
     }
 
     for {
-      applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted()
+      applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment)
       _ = Logger.info(s"[DeleteUnusedApplicationsJob] Found [${applicationsToDelete.size}] applications to delete")
       _ <- Future.sequence(applicationsToDelete.map(deleteApplication))
     } yield RunningOfJobSuccessful

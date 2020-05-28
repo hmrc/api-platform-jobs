@@ -73,28 +73,28 @@ class DeleteUnusedApplicationsJobSpec extends PlaySpec
     "should delete application from TPA and database" in new SandboxSetup {
       private val applicationId = UUID.randomUUID
 
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted()(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApplicationRecord(applicationId, environment))))
       when(mockThirdPartyApplicationConnector.deleteApplication(applicationId)).thenReturn(Future.successful(true))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(applicationId)(environment)).thenReturn(Future.successful(true))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(environment, applicationId)).thenReturn(Future.successful(true))
 
       await(underTest.runJob)
 
       verify(mockThirdPartyApplicationConnector).deleteApplication(applicationId)
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(applicationId)(environment)
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
     }
 
     "should not delete from database if TPA delete failed" in new SandboxSetup {
       private val applicationId = UUID.randomUUID
 
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted()(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApplicationRecord(applicationId, environment))))
       when(mockThirdPartyApplicationConnector.deleteApplication(applicationId)).thenReturn(Future.successful(false))
 
       await(underTest.runJob)
 
       verify(mockThirdPartyApplicationConnector).deleteApplication(applicationId)
-      verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(applicationId)(environment)
+      verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
     }
   }
 
@@ -102,28 +102,28 @@ class DeleteUnusedApplicationsJobSpec extends PlaySpec
     "should delete application from TPA and database" in new ProductionSetup {
       private val applicationId = UUID.randomUUID
 
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted()(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApplicationRecord(applicationId, environment))))
       when(mockThirdPartyApplicationConnector.deleteApplication(applicationId)).thenReturn(Future.successful(true))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(applicationId)(environment)).thenReturn(Future.successful(true))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(environment, applicationId)).thenReturn(Future.successful(true))
 
       await(underTest.runJob)
 
       verify(mockThirdPartyApplicationConnector).deleteApplication(applicationId)
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(applicationId)(environment)
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
     }
 
     "should not delete from database if TPA delete failed" in new ProductionSetup {
       private val applicationId = UUID.randomUUID
 
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted()(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApplicationRecord(applicationId, environment))))
       when(mockThirdPartyApplicationConnector.deleteApplication(applicationId)).thenReturn(Future.successful(false))
 
       await(underTest.runJob)
 
       verify(mockThirdPartyApplicationConnector).deleteApplication(applicationId)
-      verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(applicationId)(environment)
+      verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
     }
   }
 

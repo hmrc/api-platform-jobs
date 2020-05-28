@@ -58,12 +58,12 @@ class UnusedApplicationsRepository @Inject()(mongo: ReactiveMongoComponent)(impl
       background = true)
   )
 
-  def unusedApplications()(implicit environment: Environment): Future[List[UnusedApplication]] = find("environment" -> environment)
+  def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = find("environment" -> environment)
 
-  def unusedApplicationsToBeDeleted(deletionDate: DateTime = DateTime.now)(implicit environment: Environment): Future[List[UnusedApplication]] =
+  def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: DateTime = DateTime.now): Future[List[UnusedApplication]] =
     find("environment" -> environment, "scheduledDeletionDate" -> Json.obj("$lte" -> deletionDate))
 
-  def deleteUnusedApplicationRecord(applicationId: UUID)(implicit environment: Environment): Future[Boolean] =
+  def deleteUnusedApplicationRecord(environment: Environment, applicationId: UUID): Future[Boolean] =
     remove("environment" -> environment, "applicationId" -> applicationId)
       .map(_.ok)
 }

@@ -19,7 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import java.net.URLEncoder.encode
 import java.util.UUID
 
-import akka.http.scaladsl.model.StatusCode
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names
 import javax.inject.{Inject, Singleton}
