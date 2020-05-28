@@ -25,7 +25,8 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.Environment.{PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
@@ -64,7 +65,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
         applicationId,
         Random.alphanumeric.take(10).mkString,
         Seq(),
-        Environment.SANDBOX,
+        SANDBOX,
         lastInteractionDate,
         scheduledNotificationDates,
         scheduledDeletionDate)
@@ -76,7 +77,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
         applicationId,
         Random.alphanumeric.take(10).mkString,
         Seq(),
-        Environment.PRODUCTION,
+        PRODUCTION,
         lastInteractionDate,
         scheduledNotificationDates,
         scheduledDeletionDate)
@@ -106,7 +107,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(UUID.randomUUID()),
             productionApplication(UUID.randomUUID()))))
 
-      val results = await(unusedApplicationRepository.applicationsByEnvironment(Environment.SANDBOX))
+      val results = await(unusedApplicationRepository.unusedApplications(SANDBOX))
 
       results.size should be (1)
       results.head.applicationId should be (sandboxApplicationId)
@@ -123,7 +124,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(productionApplication1Id),
             productionApplication(productionApplication2Id))))
 
-      val results = await(unusedApplicationRepository.applicationsByEnvironment(Environment.PRODUCTION))
+      val results = await(unusedApplicationRepository.unusedApplications(PRODUCTION))
 
       results.size should be (2)
       val returnedApplicationIds = results.map(_.applicationId)
@@ -145,7 +146,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(UUID.randomUUID()),
             productionApplication(UUID.randomUUID()))))
 
-      val results = await(unusedApplicationRepository.applicationsToBeDeleted(Environment.SANDBOX, DateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(SANDBOX, DateTime.now))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be (1)
@@ -164,7 +165,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplicationToBeDeleted,
             productionApplicationToNotBeDeleted)))
 
-      val results = await(unusedApplicationRepository.applicationsToBeDeleted(Environment.PRODUCTION, DateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, DateTime.now))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be (1)
@@ -183,10 +184,10 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             productionApplication(UUID.randomUUID()),
             productionApplication(UUID.randomUUID()))))
 
-      val result = await(unusedApplicationRepository.deleteApplication(Environment.SANDBOX, sandboxApplicationId))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(SANDBOX, sandboxApplicationId))
 
       result should be (true)
-      await(unusedApplicationRepository.applicationsByEnvironment(Environment.SANDBOX)).size should be (0)
+      await(unusedApplicationRepository.unusedApplications(SANDBOX)).size should be (0)
     }
 
     "correctly remove a PRODUCTION application" in new Setup {
@@ -198,14 +199,14 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
             sandboxApplication(UUID.randomUUID()),
             productionApplication(productionApplicationId))))
 
-      val result = await(unusedApplicationRepository.deleteApplication(Environment.PRODUCTION, productionApplicationId))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(PRODUCTION, productionApplicationId))
 
       result should be (true)
-      await(unusedApplicationRepository.applicationsByEnvironment(Environment.PRODUCTION)).size should be (0)
+      await(unusedApplicationRepository.unusedApplications(PRODUCTION)).size should be (0)
     }
 
     "return true if application id was not found in database" in {
-      val result = await(unusedApplicationRepository.deleteApplication(Environment.PRODUCTION, UUID.randomUUID()))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(PRODUCTION, UUID.randomUUID()))
 
       result should be (true)
     }

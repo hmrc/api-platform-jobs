@@ -18,21 +18,21 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import javax.inject.{Inject, Named, Singleton}
-import org.joda.time.{DateTime, LocalDate}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.joda.time.{DateTime, LocalDate}
 import play.api.{Configuration, Logger}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
-                                                 thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                  thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
                                                  unusedApplicationsRepository: UnusedApplicationsRepository,
+                                                 environment: Environment,
                                                  configuration: Configuration,
                                                  mongo: ReactiveMongoComponent)
   extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, mongo) {
@@ -81,7 +81,7 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
     }
 
     for {
-      knownApplications <- unusedApplicationsRepository.applicationsByEnvironment(environment)
+      knownApplications <- unusedApplicationsRepository.unusedApplications(environment)
       currentUnusedApplications <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
       updatesRequired: (Set[UUID], Set[UUID]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
@@ -92,7 +92,7 @@ abstract class UpdateUnusedApplicationRecordsJob(environment: Environment,
       _ = if(newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
 
       _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${updatesRequired._2.size} applications that have been used since last update")
-      _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteApplication(environment, _)))
+      _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))
     } yield RunningOfJobSuccessful
   }
 
@@ -122,12 +122,13 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject()(@Named("tpa-sandbox") t
                                                          configuration: Configuration,
                                                          mongo: ReactiveMongoComponent)
   extends UpdateUnusedApplicationRecordsJob(
-    Environment.SANDBOX,
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
+    SANDBOX,
     configuration,
     mongo)
+
 
 @Singleton
 class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
@@ -136,9 +137,9 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-producti
                                                             configuration: Configuration,
                                                             mongo: ReactiveMongoComponent)
   extends UpdateUnusedApplicationRecordsJob(
-    Environment.PRODUCTION,
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
+    PRODUCTION,
     configuration,
     mongo)

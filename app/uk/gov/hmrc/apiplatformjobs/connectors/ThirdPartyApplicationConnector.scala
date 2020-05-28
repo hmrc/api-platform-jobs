@@ -24,6 +24,7 @@ import com.google.inject.name.Names
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
+import play.api.http.Status
 import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationResponse, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig, toDomain}
@@ -69,6 +70,13 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       url = s"$serviceBaseUrl/application",
       queryParams = Seq("lastUseBefore" -> urlEncode(ISODateFormatter.withZoneUTC().print(lastUseDate))))
       .map(page => toDomain(page.applications))
+  }
+
+  def deleteApplication(applicationId: UUID): Future[Boolean] = {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+
+    http.POSTEmpty(s"$serviceBaseUrl/application/${applicationId.toString}/delete")
+      .map(_.status == Status.NO_CONTENT)
   }
 
   private def urlEncode(str: String, encoding: String = "UTF-8"): String = encode(str, encoding)
