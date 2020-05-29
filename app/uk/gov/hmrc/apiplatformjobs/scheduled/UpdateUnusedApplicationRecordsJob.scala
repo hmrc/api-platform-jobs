@@ -20,7 +20,7 @@ import java.util.UUID
 import javax.inject.{Inject, Named, Singleton}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, LocalDate}
-import play.api.{Configuration, Logger}
+import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
@@ -85,13 +85,13 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
       currentUnusedApplications <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
       updatesRequired: (Set[UUID], Set[UUID]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
-      _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${updatesRequired._1.size} new unused applications since last update")
+      _ = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
       applicationsToAdd = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
       verifiedApplicationAdministrators: Map[String, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
       newUnusedApplicationRecords: Seq[UnusedApplication] = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
       _ = if(newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
 
-      _ = Logger.info(s"[UpdateUnusedApplicationRecordsJob] Found ${updatesRequired._2.size} applications that have been used since last update")
+      _ = logInfo(s"Found ${updatesRequired._2.size} applications that have been used since last update")
       _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))
     } yield RunningOfJobSuccessful
   }
