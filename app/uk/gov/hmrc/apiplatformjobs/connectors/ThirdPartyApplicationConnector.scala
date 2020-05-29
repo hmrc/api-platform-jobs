@@ -25,12 +25,10 @@ import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.http.Status
-import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationResponse, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig, toDomain}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -104,8 +102,8 @@ object ThirdPartyApplicationConnector {
   private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate],
                                                                      page: Int,
                                                                      pageSize: Int,
-                                                                     totalNumberOfApplications: Int,
-                                                                     numberOfMatchingApplications: Int)
+                                                                     total: Int,
+                                                                     matching: Int)
 
   case class ThirdPartyApplicationConnectorConfig(
     applicationSandboxBaseUrl: String, applicationSandboxUseProxy: Boolean, applicationSandboxBearerToken: String, applicationSandboxApiKey: String,
@@ -113,7 +111,19 @@ object ThirdPartyApplicationConnector {
   )
 
   object JsonFormatters {
-    implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
+    import org.joda.time.DateTime
+    import play.api.libs.json.JodaWrites._
+    import play.api.libs.json._
+
+    implicit val dateTimeWriter: Writes[DateTime] = JodaDateTimeNumberWrites
+
+    implicit val dateTimeReader: Reads[DateTime] = {
+      case JsNumber(n) => JsSuccess(new DateTime(n.toLong))
+      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
+    }
+
+    implicit val dateTimeFormat: Format[DateTime] = Format(dateTimeReader, dateTimeWriter)
+
     implicit val formatApplicationResponse: Format[ApplicationResponse] = Json.format[ApplicationResponse]
     implicit val formatCollaborator: Format[Collaborator] = Json.format[Collaborator]
     implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate] = Json.format[ApplicationLastUseDate]

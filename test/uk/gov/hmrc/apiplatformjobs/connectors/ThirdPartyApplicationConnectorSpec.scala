@@ -25,6 +25,7 @@ import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.{BAD_REQUEST, NO_CONTENT, OK}
+import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
@@ -202,5 +203,91 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
       response should be (false)
     }
+  }
+
+  "JsonFormatters" should {
+    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
+
+    "correctly parse PaginatedApplicationLastUseResponse from TPA" in new PaginatedTPAResponse {
+      val parsedResponse: PaginatedApplicationLastUseResponse = Json.fromJson[PaginatedApplicationLastUseResponse](Json.parse(response)).get
+
+      parsedResponse.page should be (pageNumber)
+      parsedResponse.pageSize should be (pageSize)
+      parsedResponse.total should be (totalApplications)
+      parsedResponse.matching should be (matchingApplications)
+
+      parsedResponse.applications.size should be (1)
+      val application = parsedResponse.applications.head
+      application.id should be (applicationId)
+      application.name should be (applicationName)
+      application.createdOn should be (createdOn)
+      application.lastAccess should be (Some(lastAccess))
+
+      application.collaborators.size should be (2)
+      application.collaborators should contain (Collaborator(adminEmailAddress, "ADMINISTRATOR"))
+      application.collaborators should contain (Collaborator(developerEmailAddress, "DEVELOPER"))
+    }
+  }
+
+  "toDomain" should {
+    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
+    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.toDomain
+
+    "correctly convert ApplicationLastUseDates to ApplicationUsageDetails" in new PaginatedTPAResponse {
+      val parsedResponse: PaginatedApplicationLastUseResponse = Json.fromJson[PaginatedApplicationLastUseResponse](Json.parse(response)).get
+
+      val convertedApplicationDetails = toDomain(parsedResponse.applications)
+
+      convertedApplicationDetails.size should be (1)
+      val convertedApplication = convertedApplicationDetails.head
+
+      convertedApplication.applicationId should be (applicationId)
+      convertedApplication.applicationName should be (applicationName)
+      convertedApplication.creationDate should be (createdOn)
+      convertedApplication.lastAccessDate should be (Some(lastAccess))
+      convertedApplication.administrators.size should be (1)
+      convertedApplication.administrators should contain (adminEmailAddress)
+      convertedApplication.administrators should not contain (developerEmailAddress)
+    }
+  }
+
+  trait PaginatedTPAResponse {
+    val applicationId = UUID.randomUUID()
+    val applicationName = Random.alphanumeric.take(10).mkString
+    val createdOn = DateTime.now.minusYears(1)
+    val lastAccess = createdOn.plusDays(5)
+
+    val pageNumber = 1
+    val pageSize = 25
+    val totalApplications = 500
+    val matchingApplications = 1
+
+    val adminEmailAddress = "admin@foo.com"
+    val developerEmailAddress = "developer@foo.com"
+
+    val response = s"""{
+                      |  "applications": [
+                      |    {
+                      |      "id": "${applicationId.toString}",
+                      |      "name": "$applicationName",
+                      |      "collaborators": [
+                      |        {
+                      |          "emailAddress": "$adminEmailAddress",
+                      |          "role": "ADMINISTRATOR"
+                      |        },
+                      |        {
+                      |          "emailAddress": "$developerEmailAddress",
+                      |          "role": "DEVELOPER"
+                      |        }
+                      |      ],
+                      |      "createdOn": ${createdOn.getMillis},
+                      |      "lastAccess": ${lastAccess.getMillis}
+                      |    }
+                      |  ],
+                      |  "page": $pageNumber,
+                      |  "pageSize": $pageSize,
+                      |  "total": $totalApplications,
+                      |  "matching": $matchingApplications
+                      |}""".stripMargin
   }
 }
