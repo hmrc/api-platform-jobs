@@ -31,8 +31,9 @@ import scala.concurrent.{ExecutionContext, Future}
 abstract class TimedJob @Inject()(override val name: String,
                                   configuration: Configuration,
                                   mongo: ReactiveMongoComponent,
-                                  val logger: LoggerLike = Logger) extends ScheduledMongoJob with TimedJobConfigReaders {
+                                  override val logger: LoggerLike = Logger) extends ScheduledMongoJob with TimedJobConfigReaders with PrefixLogger {
 
+  override val logPrefix: String = s"[$name]"
   override val lockKeeper: LockKeeper = mongoLockKeeper(mongo)
 
   val jobConfig: TimedJobConfig = configuration.underlying.as[TimedJobConfig](name)
@@ -62,9 +63,9 @@ abstract class TimedJob @Inject()(override val name: String,
   }
 
   override final def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    logger.info(s"Starting scheduled job [$name].")
+    logInfo("Starting scheduled job...")
     val result = functionToExecute()
-    logger.info(s"Scheduled job [$name] complete.")
+    logInfo("Scheduled job complete.")
 
     result
   }
@@ -77,4 +78,14 @@ class ExecutionInterval(val interval: FiniteDuration) extends AnyVal
 
 case class TimedJobConfig(startTime: Option[StartTime], executionInterval: ExecutionInterval, enabled: Boolean) {
   override def toString = s"TimedJobConfig{startTime=${startTime.getOrElse("Not Specified")} interval=${executionInterval.interval} enabled=$enabled}"
+}
+
+trait PrefixLogger {
+  val logger: LoggerLike = Logger
+  val logPrefix: String
+
+  def logDebug(message: String) = logger.debug(s"$logPrefix $message")
+  def logInfo(message: String) = logger.info(s"$logPrefix $message")
+  def logWarn(message: String) = logger.warn(s"$logPrefix $message")
+  def logError(message: String) = logger.error(s"$logPrefix $message")
 }
