@@ -35,10 +35,11 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def deleteApplication(application: UnusedApplication): Future[Unit] = {
-      logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})]")
+      logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})] in TPA")
       thirdPartyApplicationConnector.deleteApplication(application.applicationId)
         .map(deleteSuccessful =>
           if (deleteSuccessful) {
+            logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
             unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, application.applicationId)
           } else {
             logWarn(s"Unable to delete application [${application.applicationName} (${application.applicationId})]")
