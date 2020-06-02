@@ -64,10 +64,7 @@ abstract class TimedJob @Inject()(override val name: String,
 
   override final def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
     logInfo("Starting scheduled job...")
-    val result = functionToExecute()
-    logInfo("Scheduled job complete.")
-
-    result
+    functionToExecute()
   }
 
   def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful]
