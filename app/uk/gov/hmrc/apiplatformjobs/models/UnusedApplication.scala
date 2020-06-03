@@ -49,7 +49,6 @@ case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
                                                     applicationName: String,
                                                     environmentName: String,
                                                     timeSinceLastUse: String,
-                                                    timeBeforeDeletion: String,
                                                     dateOfScheduledDeletion: String)
 
 object Environment extends Enumeration {

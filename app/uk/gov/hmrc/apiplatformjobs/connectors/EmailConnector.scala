@@ -55,7 +55,6 @@ class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(impl
           "applicationName" -> applicationToBeDeletedNotification.applicationName,
           "environmentName" -> applicationToBeDeletedNotification.environmentName,
           "timeSinceLastUse" -> applicationToBeDeletedNotification.timeSinceLastUse,
-          "timeBeforeDeletion" -> applicationToBeDeletedNotification.timeBeforeDeletion,
           "dateOfScheduledDeletion" -> applicationToBeDeletedNotification.dateOfScheduledDeletion)))
   }
 

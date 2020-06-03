@@ -70,12 +70,11 @@ class EmailConnectorSpec
       val userLastName = "Bloggs"
       val environmentName = "External Test"
       val timeSinceLastUse = "335 days"
-      val timeBeforeDeletion = "365 days"
       val dateOfScheduledDeletion = "20 June 2020"
 
       val notification =
         UnusedApplicationToBeDeletedNotification(
-          adminEmail, userFirstName, userLastName, applicationName, environmentName, timeSinceLastUse, timeBeforeDeletion, dateOfScheduledDeletion)
+          adminEmail, userFirstName, userLastName, applicationName, environmentName, timeSinceLastUse, dateOfScheduledDeletion)
 
       emailServiceWillReturn(Future(HttpResponse(OK)))
 
@@ -89,7 +88,6 @@ class EmailConnectorSpec
         "applicationName" -> applicationName,
         "environmentName" -> environmentName,
         "timeSinceLastUse" -> timeSinceLastUse,
-        "timeBeforeDeletion" -> timeBeforeDeletion,
         "dateOfScheduledDeletion" -> dateOfScheduledDeletion
       )
       verifyEmailServiceCalled(SendEmailRequest(expectedToEmails, expectedTemplateId, expectedParameters))
@@ -99,7 +97,7 @@ class EmailConnectorSpec
       emailServiceWillReturn(Future(HttpResponse(NOT_FOUND)))
 
       val successful = await(connector.sendApplicationToBeDeletedNotification(UnusedApplicationToBeDeletedNotification(
-        "adminEmail", "userFirstName", "userLastName", "applicationName", "environmentName", "timeSinceLastUse", "timeBeforeDeletion", "dateOfScheduledDeletion")))
+        "adminEmail", "userFirstName", "userLastName", "applicationName", "environmentName", "timeSinceLastUse", "dateOfScheduledDeletion")))
 
       successful should be (false)
     }
@@ -108,7 +106,7 @@ class EmailConnectorSpec
       emailServiceWillReturn(Future(HttpResponse(INTERNAL_SERVER_ERROR, Some(Json.obj("message" -> "error")))))
 
       val successful = await(connector.sendApplicationToBeDeletedNotification(UnusedApplicationToBeDeletedNotification(
-        "adminEmail", "userFirstName", "userLastName", "applicationName", "environmentName", "timeSinceLastUse", "timeBeforeDeletion", "dateOfScheduledDeletion")))
+        "adminEmail", "userFirstName", "userLastName", "applicationName", "environmentName", "timeSinceLastUse", "dateOfScheduledDeletion")))
 
       successful should be (false)
     }
