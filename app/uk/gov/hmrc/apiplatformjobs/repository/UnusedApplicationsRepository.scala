@@ -60,6 +60,9 @@ class UnusedApplicationsRepository @Inject()(mongo: ReactiveMongoComponent)(impl
 
   def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = find("environment" -> environment)
 
+  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: DateTime = DateTime.now) =
+    find("environment" -> environment, "scheduledNotificationDates" -> Json.obj("$lte" -> notificationDate))
+
   def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: DateTime = DateTime.now): Future[List[UnusedApplication]] =
     find("environment" -> environment, "scheduledDeletionDate" -> Json.obj("$lte" -> deletionDate))
 
