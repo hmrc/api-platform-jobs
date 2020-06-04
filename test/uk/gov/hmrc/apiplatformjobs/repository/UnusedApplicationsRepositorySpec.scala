@@ -199,6 +199,38 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     }
   }
 
+  "updateNotificationsSent" should {
+    "remove all scheduled notifications for SANDBOX apps prior to a specific date" in new Setup {
+      val applicationId = UUID.randomUUID
+      await(unusedApplicationRepository.insert(
+        sandboxApplication(
+          applicationId,
+          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1)))))
+
+      val result = await(unusedApplicationRepository.updateNotificationsSent(SANDBOX, applicationId))
+
+      result should be (true)
+      val updatedApplication: UnusedApplication = await(unusedApplicationRepository.find("applicationId" -> applicationId)).head
+      updatedApplication.scheduledNotificationDates.size should be (1)
+      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
+    }
+
+    "remove all scheduled notifications for PRODUCTION apps prior to a specific date" in new Setup {
+      val applicationId = UUID.randomUUID
+      await(unusedApplicationRepository.insert(
+        productionApplication(
+          applicationId,
+          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1)))))
+
+      val result = await(unusedApplicationRepository.updateNotificationsSent(PRODUCTION, applicationId))
+
+      result should be (true)
+      val updatedApplication: UnusedApplication = await(unusedApplicationRepository.find("applicationId" -> applicationId)).head
+      updatedApplication.scheduledNotificationDates.size should be (1)
+      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
+    }
+  }
+
   "applicationsToBeDeleted" should {
     "correctly retrieve SANDBOX applications that are scheduled to be deleted" in new Setup {
       val sandboxApplicationToBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))
