@@ -17,8 +17,8 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import javax.inject.{Inject, Singleton}
+import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, Days}
-import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.mvc.Http.Status._
