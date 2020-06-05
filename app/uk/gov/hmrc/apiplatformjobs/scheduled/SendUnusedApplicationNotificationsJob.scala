@@ -52,8 +52,6 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
 
 }
 
-case class SendUnusedApplicationNotificationsJobConfig(environmentName: String)
-
 @Singleton
 class SendUnusedSandboxApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,
                                                              emailConnector: EmailConnector,
