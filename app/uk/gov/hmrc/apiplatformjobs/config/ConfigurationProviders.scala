@@ -66,16 +66,20 @@ class ThirdPartyApplicationConnectorConfigProvider @Inject()(val sc: ServicesCon
 
   private def apiKey(serviceName: String) = sc.getConfString(s"$serviceName.api-key", "")
 
+  private def authorisationKey(serviceName: String) = sc.getConfString(s"$serviceName.authorisationKey", "")
+
   override def get(): ThirdPartyApplicationConnectorConfig = {
     ThirdPartyApplicationConnectorConfig(
       serviceUrl("third-party-application")("third-party-application-sandbox"),
       useProxy("third-party-application-sandbox"),
       bearerToken("third-party-application-sandbox"),
       apiKey("third-party-application-sandbox"),
+      authorisationKey("third-party-application-sandbox"),
       serviceUrl("third-party-application")("third-party-application-production"),
       useProxy("third-party-application-production"),
       bearerToken("third-party-application-production"),
-      apiKey("third-party-application-production")
+      apiKey("third-party-application-production"),
+      authorisationKey("third-party-application-production")
     )
   }
 }

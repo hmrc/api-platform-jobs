@@ -17,11 +17,13 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.net.URLEncoder.encode
+import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names
 import javax.inject.{Inject, Singleton}
+import org.apache.commons.codec.binary.Base64.encodeBase64String
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.http.Status
@@ -29,6 +31,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.Jso
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationResponse, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig, toDomain}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -49,6 +52,8 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   val useProxy: Boolean
   val bearerToken: String
   val apiKey: String
+  val authorisationKey: String
+
 
   def http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
 
@@ -71,7 +76,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   }
 
   def deleteApplication(applicationId: UUID): Future[Boolean] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authorisationKey)))
 
     http.POSTEmpty(s"$serviceBaseUrl/application/${applicationId.toString}/delete")
       .map(_.status == Status.NO_CONTENT)
@@ -106,8 +111,8 @@ object ThirdPartyApplicationConnector {
                                                                      matching: Int)
 
   case class ThirdPartyApplicationConnectorConfig(
-    applicationSandboxBaseUrl: String, applicationSandboxUseProxy: Boolean, applicationSandboxBearerToken: String, applicationSandboxApiKey: String,
-    applicationProductionBaseUrl: String, applicationProductionUseProxy: Boolean, applicationProductionBearerToken: String, applicationProductionApiKey: String
+    applicationSandboxBaseUrl: String, applicationSandboxUseProxy: Boolean, applicationSandboxBearerToken: String, applicationSandboxApiKey: String, sandboxAuthorisationKey: String,
+    applicationProductionBaseUrl: String, applicationProductionUseProxy: Boolean, applicationProductionBearerToken: String, applicationProductionApiKey: String, productionAuthorisationKey: String
   )
 
   object JsonFormatters {
@@ -141,6 +146,8 @@ class SandboxThirdPartyApplicationConnector @Inject()(val config: ThirdPartyAppl
   val useProxy = config.applicationSandboxUseProxy
   val bearerToken = config.applicationSandboxBearerToken
   val apiKey = config.applicationSandboxApiKey
+  val authorisationKey: String = encodeBase64String(config.sandboxAuthorisationKey.getBytes(UTF_8))
+
 }
 
 @Singleton
@@ -153,4 +160,6 @@ class ProductionThirdPartyApplicationConnector @Inject()(val config: ThirdPartyA
   val useProxy = config.applicationProductionUseProxy
   val bearerToken = config.applicationProductionBearerToken
   val apiKey = config.applicationProductionApiKey
+  val authorisationKey: String = encodeBase64String(config.productionAuthorisationKey.getBytes(UTF_8))
+
 }

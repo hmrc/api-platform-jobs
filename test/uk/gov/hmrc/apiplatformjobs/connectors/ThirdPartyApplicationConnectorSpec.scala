@@ -20,6 +20,7 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito.{verify, when}
 import org.scalatest.concurrent.ScalaFutures
@@ -29,6 +30,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -47,6 +49,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
     protected val mockProxiedHttpClient = mock[ProxiedHttpClient]
     val apiKeyTest = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
     val bearer = "TestBearerToken"
+    val authorisationKeyTest = "TestAuthorisationKey"
 
     val connector = new ThirdPartyApplicationConnector {
       val httpClient = mockHttpClient
@@ -55,6 +58,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val useProxy = proxyEnabled
       val bearerToken = "TestBearerToken"
       val apiKey = apiKeyTest
+      val authorisationKey = authorisationKeyTest
     }
   }
 
@@ -190,6 +194,20 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val response = await(connector.deleteApplication(applicationId))
 
       response should be (true)
+    }
+
+    "include authorisationKey in the authorisation header" in new Setup {
+
+      val headerCarrierCaptor: ArgumentCaptor[HeaderCarrier] = ArgumentCaptor.forClass(classOf[HeaderCarrier])
+
+      val applicationId = UUID.randomUUID()
+      val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
+
+      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), headerCarrierCaptor.capture(), any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
+
+      await(connector.deleteApplication(applicationId))
+
+      headerCarrierCaptor.getValue.authorization shouldBe Some(Authorization(authorisationKeyTest))
     }
 
     "return false if call to TPA fails" in new Setup {
