@@ -34,7 +34,9 @@ trait UnusedApplicationTestConfiguration {
   def jobConfiguration(deleteUnusedSandboxApplicationsAfter: Int = 365,
                        deleteUnusedProductionApplicationsAfter: Int = 365,
                        notifyDeletionPendingInAdvanceForSandbox: Seq[Int] = Seq(30),
-                       notifyDeletionPendingInAdvanceForProduction: Seq[Int] = Seq(30)): Configuration = {
+                       notifyDeletionPendingInAdvanceForProduction: Seq[Int] = Seq(30),
+                       sandboxEnvironmentName: String = "Sandbox",
+                       productionEnvironmentName: String = "Production"): Configuration = {
     val sandboxNotificationsString = notifyDeletionPendingInAdvanceForSandbox.mkString("", "d,", "d")
     val productionNotificationsString = notifyDeletionPendingInAdvanceForProduction.mkString("", "d,", "d")
 
@@ -45,11 +47,13 @@ trait UnusedApplicationTestConfiguration {
            |  SANDBOX {
            |    deleteUnusedApplicationsAfter = ${deleteUnusedSandboxApplicationsAfter}d
            |    sendNotificationsInAdvance = [$sandboxNotificationsString]
+           |    environmentName = "$sandboxEnvironmentName"
            |  }
            |
            |  PRODUCTION {
            |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
            |    sendNotificationsInAdvance = [$productionNotificationsString]
+           |    environmentName = "$productionEnvironmentName"
            |  }
            |}
            |

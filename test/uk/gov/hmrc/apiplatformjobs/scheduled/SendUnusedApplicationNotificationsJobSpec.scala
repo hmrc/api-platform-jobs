@@ -52,23 +52,25 @@ class SendUnusedApplicationNotificationsJobSpec extends PlaySpec
 
   trait SandboxSetup extends Setup {
     val environment: Environment = SANDBOX
+    val environmentName: String = "Sandbox"
 
     val underTest =
       new SendUnusedSandboxApplicationNotificationsJob(
         mockUnusedApplicationsRepository,
         mockEmailConnector,
-        defaultConfiguration,
+        jobConfiguration(sandboxEnvironmentName = environmentName),
         reactiveMongoComponent)
   }
 
   trait ProductionSetup extends Setup {
     val environment: Environment = PRODUCTION
+    val environmentName: String = "Production"
 
     val underTest =
       new SendUnusedProductionApplicationNotificationsJob(
         mockUnusedApplicationsRepository,
         mockEmailConnector,
-        defaultConfiguration,
+        jobConfiguration(productionEnvironmentName = environmentName),
         reactiveMongoComponent)
   }
 
@@ -77,12 +79,12 @@ class SendUnusedApplicationNotificationsJobSpec extends PlaySpec
       val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
-      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication)).thenReturn(successful(true))
+      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(true))
       when(mockUnusedApplicationsRepository.updateNotificationsSent(environment, unusedApplication.applicationId, FixedTime)).thenReturn(successful(true))
 
       await(underTest.runJob)
 
-      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication)
+      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
       verify(mockUnusedApplicationsRepository, times(1)).updateNotificationsSent(environment, unusedApplication.applicationId, FixedTime)
     }
 
@@ -90,11 +92,11 @@ class SendUnusedApplicationNotificationsJobSpec extends PlaySpec
       val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
-      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication)).thenReturn(successful(false))
+      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
 
       await(underTest.runJob)
 
-      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication)
+      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
       verify(mockUnusedApplicationsRepository, times(0)).updateNotificationsSent(*, *, *)
     }
   }
@@ -104,12 +106,12 @@ class SendUnusedApplicationNotificationsJobSpec extends PlaySpec
       val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
-      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication)).thenReturn(successful(true))
+      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(true))
       when(mockUnusedApplicationsRepository.updateNotificationsSent(environment, unusedApplication.applicationId, FixedTime)).thenReturn(successful(true))
 
       await(underTest.runJob)
 
-      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication)
+      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
       verify(mockUnusedApplicationsRepository, times(1)).updateNotificationsSent(environment, unusedApplication.applicationId, FixedTime)
     }
 
@@ -117,11 +119,11 @@ class SendUnusedApplicationNotificationsJobSpec extends PlaySpec
       val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
-      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication)).thenReturn(successful(false))
+      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
 
       await(underTest.runJob)
 
-      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication)
+      verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
       verify(mockUnusedApplicationsRepository, times(0)).updateNotificationsSent(*, *, *)
     }
   }

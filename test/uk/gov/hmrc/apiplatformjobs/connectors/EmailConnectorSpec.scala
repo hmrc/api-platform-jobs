@@ -64,7 +64,7 @@ class EmailConnectorSpec
     val applicationName = "Test Application"
     val userFirstName = "Fred"
     val userLastName = "Bloggs"
-    val environmentName = "SANDBOX"
+    val environmentName = "Sandbox"
     val timeSinceLastUse = "335 days"
 
     val lastAccessDate = DateTime.now.minusDays(335)
@@ -98,7 +98,7 @@ class EmailConnectorSpec
 
       when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *)).thenReturn(Future(HttpResponse(OK)))
 
-      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplication))
+      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName))
 
       successful should be (true)
       val expectedToEmails = Set(adminEmail)
@@ -118,7 +118,7 @@ class EmailConnectorSpec
         .thenReturn(Future(HttpResponse(OK)))
         .andThen(Future(HttpResponse(NOT_FOUND)))
 
-      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins))
+      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
       successful should be (true)
     }
@@ -126,7 +126,7 @@ class EmailConnectorSpec
     "return false if all notifications fail" in new Setup with ApplicationToBeDeletedNotificationDetails {
       when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *)).thenReturn(Future(HttpResponse(NOT_FOUND)))
 
-      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins))
+      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
       successful should be (false)
     }

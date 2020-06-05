@@ -28,7 +28,8 @@ abstract class UnusedApplicationsJob(jobName: String,
                                      mongo: ReactiveMongoComponent)
   extends TimedJob(s"$jobName.$environment", configuration, mongo) with UnusedApplicationsTimings {
 
-  override val timingsConfiguration: UnusedApplicationsConfiguration = configuration.underlying.as[UnusedApplicationsConfiguration]("UnusedApplications")
+  override val unusedApplicationsConfiguration: UnusedApplicationsConfiguration =
+    configuration.underlying.as[UnusedApplicationsConfiguration]("UnusedApplications")
 
   def jobSpecificConfiguration[C]()(implicit reader: ValueReader[C]): C = configuration.underlying.as[C](name)
 }

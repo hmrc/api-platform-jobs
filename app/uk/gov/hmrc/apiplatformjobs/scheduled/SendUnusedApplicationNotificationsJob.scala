@@ -39,7 +39,7 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
     for {
       appsToNotify <- unusedApplicationsRepository.unusedApplicationsToBeNotified(environment, notificationTime)
       _ <- Future.sequence(appsToNotify.map { app =>
-        emailConnector.sendApplicationToBeDeletedNotifications(app)
+        emailConnector.sendApplicationToBeDeletedNotifications(app, environmentName(environment))
           .map(success => if (success) {
             unusedApplicationsRepository.updateNotificationsSent(environment, app.applicationId, notificationTime)
           } else {
@@ -51,6 +51,8 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
   }
 
 }
+
+case class SendUnusedApplicationNotificationsJobConfig(environmentName: String)
 
 @Singleton
 class SendUnusedSandboxApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,

@@ -45,10 +45,10 @@ object SendEmailRequest {
 class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) {
   val serviceUrl = config.baseUrl
 
-  def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication): Future[Boolean] = {
+  def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    val notifications = toNotifications(unusedApplication)
+    val notifications = toNotifications(unusedApplication, environmentName)
 
     Future.sequence(
       notifications.map( notification =>
@@ -87,14 +87,14 @@ object EmailConnector {
   def daysSince(date: DateTime) = Days.daysBetween(date, DateTime.now)
   val dateFormatter = DateTimeFormat.longDate()
 
-  def toNotifications(unusedApplication: UnusedApplication): Seq[UnusedApplicationToBeDeletedNotification] =
+  def toNotifications(unusedApplication: UnusedApplication, environmentName: String): Seq[UnusedApplicationToBeDeletedNotification] =
     unusedApplication.administrators.map { administrator =>
       UnusedApplicationToBeDeletedNotification(
         administrator.emailAddress,
         administrator.firstName,
         administrator.lastName,
         unusedApplication.applicationName,
-        unusedApplication.environment.toString,
+        environmentName,
         s"${daysSince(unusedApplication.lastInteractionDate).getDays} days",
         dateFormatter.print(unusedApplication.scheduledDeletionDate))
     }
