@@ -30,6 +30,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -202,11 +203,11 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val applicationId = UUID.randomUUID()
       val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
 
-      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), headerCarrierCaptor.cap, any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
+      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), headerCarrierCaptor.capture(), any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
 
-      val response = await(connector.deleteApplication(applicationId))
+      await(connector.deleteApplication(applicationId))
 
-      response should be (true)
+      headerCarrierCaptor.getValue.authorization shouldBe Some(Authorization(authorisationKeyTest))
     }
 
     "return false if call to TPA fails" in new Setup {
