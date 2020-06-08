@@ -18,7 +18,6 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.util.UUID
 
-import org.joda.time.{DateTime, LocalDate}
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
@@ -26,14 +25,13 @@ import org.scalatestplus.play.PlaySpec
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
+import uk.gov.hmrc.apiplatformjobs.models.Environment
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Random
 
 class DeleteUnusedApplicationsJobSpec extends PlaySpec
    with UnusedApplicationTestConfiguration with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
@@ -126,14 +124,4 @@ class DeleteUnusedApplicationsJobSpec extends PlaySpec
       verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
     }
   }
-
-  def unusedApplicationRecord(applicationId: UUID, environment: Environment): UnusedApplication =
-    UnusedApplication(
-      applicationId,
-      Random.alphanumeric.take(10).mkString, //scalastyle:off magic.number
-      Seq.empty,
-      environment,
-      DateTime.now.minusYears(1),
-      List.empty,
-      LocalDate.now)
 }

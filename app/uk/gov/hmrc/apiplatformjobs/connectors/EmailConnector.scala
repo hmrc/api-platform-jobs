@@ -17,10 +17,13 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import javax.inject.{Inject, Singleton}
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.{DateTime, Days}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.mvc.Http.Status._
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplicationToBeDeletedNotification
+import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -42,21 +45,16 @@ object SendEmailRequest {
 class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) {
   val serviceUrl = config.baseUrl
 
-  def sendApplicationToBeDeletedNotification(applicationToBeDeletedNotification: UnusedApplicationToBeDeletedNotification): Future[Boolean] = {
+  def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
+    val emailTemplateName = "apiApplicationToBeDeletedNotification"
 
-    post(
-      SendEmailRequest(
-        Set(applicationToBeDeletedNotification.userEmailAddress),
-        "apiApplicationToBeDeletedNotification",
-        Map(
-          "userFirstName" -> applicationToBeDeletedNotification.userFirstName,
-          "userLastName" -> applicationToBeDeletedNotification.userLastName,
-          "applicationName" -> applicationToBeDeletedNotification.applicationName,
-          "environmentName" -> applicationToBeDeletedNotification.environmentName,
-          "timeSinceLastUse" -> applicationToBeDeletedNotification.timeSinceLastUse,
-          "timeBeforeDeletion" -> applicationToBeDeletedNotification.timeBeforeDeletion,
-          "dateOfScheduledDeletion" -> applicationToBeDeletedNotification.dateOfScheduledDeletion)))
+    val notifications = toNotifications(unusedApplication, environmentName)
+
+    Future.sequence(
+      notifications.map( notification =>
+        post(SendEmailRequest(Set(notification.userEmailAddress), emailTemplateName, notification.parameters()))))
+      .map(_.contains(true))
   }
 
   private def post(payload: SendEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
@@ -82,6 +80,42 @@ class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(impl
             false
         }
       }
+  }
+}
+
+object EmailConnector {
+
+  def daysSince(date: DateTime) = Days.daysBetween(date, DateTime.now)
+  val dateFormatter = DateTimeFormat.longDate()
+
+  def toNotifications(unusedApplication: UnusedApplication, environmentName: String): Seq[UnusedApplicationToBeDeletedNotification] =
+    unusedApplication.administrators.map { administrator =>
+      UnusedApplicationToBeDeletedNotification(
+        administrator.emailAddress,
+        administrator.firstName,
+        administrator.lastName,
+        unusedApplication.applicationName,
+        environmentName,
+        s"${daysSince(unusedApplication.lastInteractionDate).getDays} days",
+        dateFormatter.print(unusedApplication.scheduledDeletionDate))
+    }
+
+  private[connectors] case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
+                                                                          userFirstName: String,
+                                                                          userLastName: String,
+                                                                          applicationName: String,
+                                                                          environmentName: String,
+                                                                          timeSinceLastUse: String,
+                                                                          dateOfScheduledDeletion: String) {
+
+    def parameters(): Map[String, String] =
+      Map(
+        "userFirstName" -> userFirstName,
+        "userLastName" -> userLastName,
+        "applicationName" -> applicationName,
+        "environmentName" -> environmentName,
+        "timeSinceLastUse" -> timeSinceLastUse,
+        "dateOfScheduledDeletion" -> dateOfScheduledDeletion)
   }
 }
 

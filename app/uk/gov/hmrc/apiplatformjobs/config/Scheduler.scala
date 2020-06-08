@@ -34,8 +34,10 @@ class SchedulerModule extends AbstractModule {
 @Singleton
 class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
                           deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
-                          sandboxApplicationsToBeDeletedNotificationJob: UpdateUnusedSandboxApplicationRecordsJob,
-                          productionApplicationsToBeDeletedNotificationJob: UpdateUnusedProductionApplicationRecordsJob,
+                          updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordsJob,
+                          updateUnusedProductionApplicationRecordsJob: UpdateUnusedProductionApplicationRecordsJob,
+                          sendUnusedSandboxApplicationNotificationsJob: SendUnusedSandboxApplicationNotificationsJob,
+                          sendUnusedProductionApplicationNotificationsJob: SendUnusedProductionApplicationNotificationsJob,
                           deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
                           deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
                           override val applicationLifecycle: ApplicationLifecycle,
@@ -45,8 +47,10 @@ class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelop
     Seq(
       deleteUnverifiedDevelopersJob,
       deleteUnregisteredDevelopersJob,
-      sandboxApplicationsToBeDeletedNotificationJob,
-      productionApplicationsToBeDeletedNotificationJob,
+      updateUnusedSandboxApplicationRecordsJob,
+      updateUnusedProductionApplicationRecordsJob,
+      sendUnusedSandboxApplicationNotificationsJob,
+      sendUnusedProductionApplicationNotificationsJob,
       deleteUnusedSandboxApplicationsJob,
       deleteUnusedProductionApplicationsJob)
       .filter(_.isEnabled)

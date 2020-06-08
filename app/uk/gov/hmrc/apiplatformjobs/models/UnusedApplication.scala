@@ -43,15 +43,6 @@ case class UnusedApplication(applicationId: UUID,
                              scheduledNotificationDates: Seq[LocalDate],
                              scheduledDeletionDate: LocalDate)
 
-case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,
-                                                    userFirstName: String,
-                                                    userLastName: String,
-                                                    applicationName: String,
-                                                    environmentName: String,
-                                                    timeSinceLastUse: String,
-                                                    timeBeforeDeletion: String,
-                                                    dateOfScheduledDeletion: String)
-
 object Environment extends Enumeration {
   type Environment = Value
   val SANDBOX, PRODUCTION = Value

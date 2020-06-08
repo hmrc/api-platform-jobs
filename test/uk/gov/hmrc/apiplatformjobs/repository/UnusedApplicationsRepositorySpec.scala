@@ -133,6 +133,104 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     }
   }
 
+  "unusedApplicationsToBeNotified" should {
+    "retrieve SANDBOX application that is due a notification being sent" in new Setup {
+      val applicationId = UUID.randomUUID
+
+      await(unusedApplicationRepository
+        .bulkInsert(
+          Seq(
+            sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
+            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
+
+      results.size should be (1)
+      results.head.applicationId should be (applicationId)
+    }
+
+    "retrieve SANDBOX application that is due multiple notifications being sent only once" in new Setup {
+      val applicationId = UUID.randomUUID
+
+      await(unusedApplicationRepository
+        .bulkInsert(
+          Seq(
+            sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
+            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
+
+      results.size should be (1)
+      results.head.applicationId should be (applicationId)
+    }
+
+    "retrieve PRODUCTION application that is due a notification being sent" in new Setup {
+      val applicationId = UUID.randomUUID
+
+      await(unusedApplicationRepository
+        .bulkInsert(
+          Seq(
+            productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
+            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(PRODUCTION))
+
+      results.size should be (1)
+      results.head.applicationId should be (applicationId)
+    }
+
+    "retrieve PRODUCTION application that is due multiple notifications being sent only once" in new Setup {
+      val applicationId = UUID.randomUUID
+
+      await(unusedApplicationRepository
+        .bulkInsert(
+          Seq(
+            productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
+            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(PRODUCTION))
+
+      results.size should be (1)
+      results.head.applicationId should be (applicationId)
+    }
+  }
+
+  "updateNotificationsSent" should {
+    "remove all scheduled notifications for SANDBOX apps prior to a specific date" in new Setup {
+      val applicationId = UUID.randomUUID
+      await(unusedApplicationRepository.insert(
+        sandboxApplication(
+          applicationId,
+          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1)))))
+
+      val result = await(unusedApplicationRepository.updateNotificationsSent(SANDBOX, applicationId))
+
+      result should be (true)
+      val updatedApplication: UnusedApplication = await(unusedApplicationRepository.find("applicationId" -> applicationId)).head
+      updatedApplication.scheduledNotificationDates.size should be (1)
+      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
+    }
+
+    "remove all scheduled notifications for PRODUCTION apps prior to a specific date" in new Setup {
+      val applicationId = UUID.randomUUID
+      await(unusedApplicationRepository.insert(
+        productionApplication(
+          applicationId,
+          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1)))))
+
+      val result = await(unusedApplicationRepository.updateNotificationsSent(PRODUCTION, applicationId))
+
+      result should be (true)
+      val updatedApplication: UnusedApplication = await(unusedApplicationRepository.find("applicationId" -> applicationId)).head
+      updatedApplication.scheduledNotificationDates.size should be (1)
+      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
+    }
+  }
+
   "applicationsToBeDeleted" should {
     "correctly retrieve SANDBOX applications that are scheduled to be deleted" in new Setup {
       val sandboxApplicationToBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))

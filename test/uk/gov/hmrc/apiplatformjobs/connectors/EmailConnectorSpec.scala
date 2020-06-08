@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
+import java.util.UUID
+
+import org.joda.time.{DateTime, LocalDate}
 import org.mockito.ArgumentMatchersSugar
 import org.mockito.scalatest.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 import org.scalatestplus.play.WsScalaTestClient
 import play.api.http.Status._
-import play.api.libs.json.Json
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplicationToBeDeletedNotification
+import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApplication}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -50,36 +52,53 @@ class EmailConnectorSpec
 
     val expectedUrl = s"${config.baseUrl}/hmrc/email"
 
-    def emailServiceWillReturn(result: Future[HttpResponse]) = {
-      when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *)).thenReturn(result)
-    }
-
     def verifyEmailServiceCalled(request: SendEmailRequest) = {
       verify(mockHttpClient).POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), eqTo(request), *)(*, *, *, *)
     }
   }
 
+  trait ApplicationToBeDeletedNotificationDetails {
+    val expectedTemplateId = "apiApplicationToBeDeletedNotification"
+
+    val adminEmail = "admin1@example.com"
+    val applicationName = "Test Application"
+    val userFirstName = "Fred"
+    val userLastName = "Bloggs"
+    val environmentName = "Sandbox"
+    val timeSinceLastUse = "335 days"
+
+    val lastAccessDate = DateTime.now.minusDays(335)
+    val scheduledDeletionDate = LocalDate.now.plusDays(30)
+
+    val expectedDeletionDateString = scheduledDeletionDate.toString("dd MMMM yyyy")
+
+    val unusedApplication =
+      UnusedApplication(
+        UUID.randomUUID,
+        applicationName,
+        Seq(Administrator(adminEmail, userFirstName, userLastName)),
+        Environment.SANDBOX,
+        lastAccessDate,
+        Seq.empty,
+        scheduledDeletionDate)
+
+    val unusedApplicationWithMultipleAdmins =
+      UnusedApplication(
+        UUID.randomUUID,
+        applicationName,
+        Seq(Administrator(adminEmail, userFirstName, userLastName), Administrator(adminEmail, userFirstName, userLastName)),
+        Environment.SANDBOX,
+        lastAccessDate,
+        Seq.empty,
+        scheduledDeletionDate)
+  }
+
   "emailConnector" should {
-    "send unused application to be deleted email" in new Setup {
+    "send unused application to be deleted email" in new Setup with ApplicationToBeDeletedNotificationDetails {
 
-      val expectedTemplateId = "apiApplicationToBeDeletedNotification"
+      when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *)).thenReturn(Future(HttpResponse(OK)))
 
-      val adminEmail = "admin1@example.com"
-      val applicationName = "Test Application"
-      val userFirstName = "Fred"
-      val userLastName = "Bloggs"
-      val environmentName = "External Test"
-      val timeSinceLastUse = "335 days"
-      val timeBeforeDeletion = "365 days"
-      val dateOfScheduledDeletion = "20 June 2020"
-
-      val notification =
-        UnusedApplicationToBeDeletedNotification(
-          adminEmail, userFirstName, userLastName, applicationName, environmentName, timeSinceLastUse, timeBeforeDeletion, dateOfScheduledDeletion)
-
-      emailServiceWillReturn(Future(HttpResponse(OK)))
-
-      val successful = await(connector.sendApplicationToBeDeletedNotification(notification))
+      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName))
 
       successful should be (true)
       val expectedToEmails = Set(adminEmail)
@@ -89,26 +108,25 @@ class EmailConnectorSpec
         "applicationName" -> applicationName,
         "environmentName" -> environmentName,
         "timeSinceLastUse" -> timeSinceLastUse,
-        "timeBeforeDeletion" -> timeBeforeDeletion,
-        "dateOfScheduledDeletion" -> dateOfScheduledDeletion
+        "dateOfScheduledDeletion" -> expectedDeletionDateString
       )
       verifyEmailServiceCalled(SendEmailRequest(expectedToEmails, expectedTemplateId, expectedParameters))
     }
 
-    "return false if email service returns 404" in new Setup {
-      emailServiceWillReturn(Future(HttpResponse(NOT_FOUND)))
+    "return true if any notification succeeds" in new Setup with ApplicationToBeDeletedNotificationDetails {
+      when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *))
+        .thenReturn(Future(HttpResponse(OK)))
+        .andThen(Future(HttpResponse(NOT_FOUND)))
 
-      val successful = await(connector.sendApplicationToBeDeletedNotification(UnusedApplicationToBeDeletedNotification(
-        "adminEmail", "userFirstName", "userLastName", "applicationName", "environmentName", "timeSinceLastUse", "timeBeforeDeletion", "dateOfScheduledDeletion")))
+      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
-      successful should be (false)
+      successful should be (true)
     }
 
-    "return false for any other failure" in new Setup {
-      emailServiceWillReturn(Future(HttpResponse(INTERNAL_SERVER_ERROR, Some(Json.obj("message" -> "error")))))
+    "return false if all notifications fail" in new Setup with ApplicationToBeDeletedNotificationDetails {
+      when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *)).thenReturn(Future(HttpResponse(NOT_FOUND)))
 
-      val successful = await(connector.sendApplicationToBeDeletedNotification(UnusedApplicationToBeDeletedNotification(
-        "adminEmail", "userFirstName", "userLastName", "applicationName", "environmentName", "timeSinceLastUse", "timeBeforeDeletion", "dateOfScheduledDeletion")))
+      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
       successful should be (false)
     }

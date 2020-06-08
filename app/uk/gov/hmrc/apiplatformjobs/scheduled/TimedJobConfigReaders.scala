@@ -21,6 +21,7 @@ import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ValueReader
 import org.joda.time.LocalTime
 import uk.gov.hmrc.apiplatformjobs.models.Environment
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -49,7 +50,8 @@ trait TimedJobConfigReaders {
       def environmentConfiguration(environment: Environment.Value): UnusedApplicationsEnvironmentConfiguration =
         UnusedApplicationsEnvironmentConfiguration(
           config.as[FiniteDuration](s"$environment.deleteUnusedApplicationsAfter"),
-          config.as[Set[FiniteDuration]](s"$environment.sendNotificationsInAdvance"))
+          config.as[Set[FiniteDuration]](s"$environment.sendNotificationsInAdvance"),
+          config.as[String](s"$environment.environmentName"))
 
       UnusedApplicationsConfiguration(
         environmentConfiguration(Environment.SANDBOX),
