@@ -39,12 +39,10 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
     for {
       appsToNotify <- unusedApplicationsRepository.unusedApplicationsToBeNotified(environment, notificationTime)
       _ <- Future.sequence(appsToNotify.map { app =>
-        emailConnector.sendApplicationToBeDeletedNotifications(app, environmentName(environment))
-          .map(success => if (success) {
-            unusedApplicationsRepository.updateNotificationsSent(environment, app.applicationId, notificationTime)
-          } else {
-            logWarn(s"Unable to send notifications to any administrators of Application [${app.applicationName} (${app.applicationId})]")
-          })
+        emailConnector.sendApplicationToBeDeletedNotifications(app, environmentName(environment)) map {
+          case true => unusedApplicationsRepository.updateNotificationsSent(environment, app.applicationId, notificationTime)
+          case _ => logWarn(s"Unable to send notifications to any administrators of Application [${app.applicationName} (${app.applicationId})]")
+        }
       })
     } yield RunningOfJobSuccessful
 

@@ -47,12 +47,13 @@ class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(impl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
+    val emailTemplateName = "apiApplicationToBeDeletedNotification"
 
     val notifications = toNotifications(unusedApplication, environmentName)
 
     Future.sequence(
       notifications.map( notification =>
-        post(SendEmailRequest(Set(notification.userEmailAddress), "apiApplicationToBeDeletedNotification", notification.parameters()))))
+        post(SendEmailRequest(Set(notification.userEmailAddress), emailTemplateName, notification.parameters()))))
       .map(_.contains(true))
   }
 
