@@ -86,7 +86,7 @@ class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(impl
 object EmailConnector {
 
   def daysSince(date: DateTime) = Days.daysBetween(date, DateTime.now)
-  val dateFormatter = DateTimeFormat.longDate()
+  val dateFormatter = DateTimeFormat.forPattern("dd MMMM yyyy")
 
   def toNotifications(unusedApplication: UnusedApplication, environmentName: String): Seq[UnusedApplicationToBeDeletedNotification] =
     unusedApplication.administrators.map { administrator =>
