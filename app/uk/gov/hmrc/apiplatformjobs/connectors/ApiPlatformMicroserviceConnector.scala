@@ -28,7 +28,7 @@ class ApiPlatformMicroserviceConnector @Inject()(config: ApiPlatformMicroservice
 
   def fetchApiDefinitionsForCollaborator(collaboratorEmail: String)(implicit hc: HeaderCarrier): Future[Seq[APIDefinition]] = {
 
-    http.GET[Seq[APIDefinition]](s"${config.baseUrl}/", Seq("collaboratorEmail" -> collaboratorEmail))
+    http.GET[Seq[APIDefinition]](s"${config.baseUrl}/combined-api-definitions", Seq("collaboratorEmail" -> collaboratorEmail))
   }
 }
 

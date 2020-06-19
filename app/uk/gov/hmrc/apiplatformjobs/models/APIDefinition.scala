@@ -19,11 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.models
 import play.api.libs.json.{Format, Json}
 
 case class APIDefinition(serviceName: String,
-                         name: String,
-                         description: String,
-                         context: String,
-                         requiresTrust: Boolean = false,
-                         isTestSupport: Boolean = false,
                          categories: Seq[String] = Seq.empty)
 
 object APIDefinition {

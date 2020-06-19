@@ -39,6 +39,11 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
     result.map(_.map(_.email))
   }
 
+  def fetchAllDevelopers(implicit hc: HeaderCarrier): Future[Seq[String]] = {
+    val result = http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers")
+    result.map(_.map(_.email))
+  }
+
   def fetchExpiredUnregisteredDevelopers(limit: Int)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
     http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/unregistered-developer/expired", Seq("limit" -> limit.toString)).map(_.map(_.email))
   }

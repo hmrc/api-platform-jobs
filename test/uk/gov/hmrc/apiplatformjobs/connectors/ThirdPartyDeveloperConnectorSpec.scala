@@ -70,6 +70,26 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     }
   }
 
+  "fetchAllDevelopers" should {
+    "return all developer emails" in new Setup {
+      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers")))(any(), any(), any()))
+        .thenReturn(successful(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = true))))
+
+      val result: Seq[String] = await(connector.fetchAllDevelopers)
+
+      result shouldBe Seq(devEmail)
+    }
+
+    "propagate error when endpoint returns error" in new Setup {
+      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers"))) (any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+
+      intercept[NotFoundException] {
+        await(connector.fetchAllDevelopers)
+      }
+    }
+  }
+
+
   "fetchExpiredUnregisteredDevelopers" should {
     val limit = 10
     "return developer emails" in new Setup {
