@@ -22,6 +22,7 @@ import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json.{Format, JsValue, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.{formatDeleteDeveloperRequest, formatDeleteUnregisteredDevelopersRequest, formatDeveloperResponse}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.{DeleteDeveloperRequest, DeleteUnregisteredDevelopersRequest, DeveloperResponse, ThirdPartyDeveloperConnectorConfig}
+import uk.gov.hmrc.apiplatformjobs.models.EmailPreferences
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -57,6 +58,10 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
 
   def deleteUnregisteredDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
     http.POST(s"${config.baseUrl}/unregistered-developer/delete", DeleteUnregisteredDevelopersRequest(Seq(email))).map(_.status)
+  }
+
+  def updateEmailPreferences(email: String, emailPreferences: EmailPreferences)(implicit hc: HeaderCarrier) = {
+    http.PUT[EmailPreferences, HttpResponse](s"${config.baseUrl}/developer/$email/email-preferences", emailPreferences).map(_.status)
   }
 }
 
