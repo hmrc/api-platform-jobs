@@ -18,13 +18,15 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.Mockito._
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.OK
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.{formatDeleteDeveloperRequest, formatDeleteUnregisteredDevelopersRequest}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.{DeleteDeveloperRequest, DeleteUnregisteredDevelopersRequest, DeveloperResponse, ThirdPartyDeveloperConnectorConfig}
+import uk.gov.hmrc.apiplatformjobs.models.EmailTopic.RELEASE_SCHEDULES
+import uk.gov.hmrc.apiplatformjobs.models.{EmailPreferences, TaxRegimeInterests}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.test.UnitSpec
@@ -45,6 +47,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     def endpoint(path: String) = s"$baseUrl/$path"
 
     val connector = new ThirdPartyDeveloperConnector(config, mockHttp)
+
   }
 
   "fetchUnverifiedDevelopers" should {
@@ -67,6 +70,26 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
       }
     }
   }
+
+  "fetchAllDevelopers" should {
+    "return all developer emails" in new Setup {
+      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers")))(any(), any(), any()))
+        .thenReturn(successful(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = true))))
+
+      val result: Seq[String] = await(connector.fetchAllDevelopers)
+
+      result shouldBe Seq(devEmail)
+    }
+
+    "propagate error when endpoint returns error" in new Setup {
+      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers"))) (any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+
+      intercept[NotFoundException] {
+        await(connector.fetchAllDevelopers)
+      }
+    }
+  }
+
 
   "fetchExpiredUnregisteredDevelopers" should {
     val limit = 10
@@ -159,5 +182,30 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
         await(connector.deleteUnregisteredDeveloper(devEmail))
       }
     }
+  }
+
+  "updateEmailPreferences" should {
+
+    val email = "john.doe@example.com"
+    val emailPreferences = EmailPreferences(Seq(TaxRegimeInterests("agents", Set("agents authorisation"))), Set(RELEASE_SCHEDULES))
+
+    "update email preferences" in new Setup {
+
+      when(mockHttp.PUT(endpoint(s"developer/$email/email-preferences"), emailPreferences)).thenReturn(successful(HttpResponse(OK)))
+
+      val result: Int = await(connector.updateEmailPreferences(email, emailPreferences))
+
+      result shouldBe OK
+    }
+
+    "propagate error when endpoint returns error" in new Setup {
+      when(mockHttp.PUT(endpoint(s"developer/$email/email-preferences"), emailPreferences)).thenReturn(Future.failed(new NotFoundException("")))
+
+      intercept[NotFoundException] {
+        await(connector.updateEmailPreferences(email, emailPreferences))
+      }
+    }
+
+
   }
 }
