@@ -104,7 +104,7 @@ class MigrateEmailPreferencesJobSpec extends UnitSpec with MockitoSugar with Mon
 
       val result: underTest.Result = await(underTest.execute)
 
-      val expectedInterests = Seq(TaxRegimeInterests("VAT", Set("def 1")), TaxRegimeInterests("AGENTS", Set("def 1", "def 2")), TaxRegimeInterests("OTHER", Set("def 2")))
+      val expectedInterests = Seq(TaxRegimeInterests("AGENTS", Set("def 1", "def 2")), TaxRegimeInterests("OTHER", Set("def 2")), TaxRegimeInterests("VAT", Set("def 1")))
       val expectedTopics: Set[EmailTopic] = Set(BUSINESS_AND_POLICY, TECHNICAL, RELEASE_SCHEDULES, EVENT_INVITES)
       val expectedEmailPreferences = EmailPreferences(expectedInterests, expectedTopics)
       verify(mockThirdPartyDeveloperConnector, times(1)).updateEmailPreferences(meq("joe.bloggs@example.com"), meq(expectedEmailPreferences))(any())

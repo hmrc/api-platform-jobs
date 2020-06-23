@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import cats.implicits._
 import javax.inject.Inject
 import org.joda.time.Duration
 import play.api.Logger
@@ -62,17 +63,13 @@ class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmail
   private def migrateEmailPreferencesForDeveloper(email: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Int] = {
     for {
       apiDefinitions <- apiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(email)
-      interests = apiDefinitions.map(toInterests).fold(Map.empty)(combineInterests)
+      interests = apiDefinitions.map(toInterestsMap).fold(Map.empty)(_ combine _)
       result <- developerConnector.updateEmailPreferences(email, EmailPreferences(toTaxRegimeInterests(interests), EmailTopic.values.toSet))
     } yield result
   }
 
-  private def toInterests(api: APIDefinition): Map[String, Set[String]] = {
-    api.categories.map(_ -> Set(api.serviceName)).toMap
-  }
-
-  private def combineInterests(map1: Map[String, Set[String]], map2: Map[String, Set[String]]): Map[String, Set[String]] = {
-    map1 ++ map2.map { case (k, v) => k -> (v ++ map1.getOrElse(k, Set())) }
+  private def toInterestsMap(api: APIDefinition): Map[String, Set[String]] = {
+    api.categories.map(categoryName => categoryName -> Set(api.serviceName)).toMap
   }
 
   private def toTaxRegimeInterests(interests: Map[String, Set[String]]): Seq[TaxRegimeInterests] = {
