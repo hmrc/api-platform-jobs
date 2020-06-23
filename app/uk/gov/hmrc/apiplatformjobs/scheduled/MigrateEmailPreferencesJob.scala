@@ -20,8 +20,8 @@ import javax.inject.Inject
 import org.joda.time.Duration
 import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnector, ApiPlatformMicroserviceConnectorConfig, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.APIDefinition
+import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.models.{APIDefinition, EmailPreferences, EmailTopic, TaxRegimeInterests}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
 
@@ -30,7 +30,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: MigrateEmailPreferencesJobLockKeeper,
+class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmailPreferencesJobLockKeeper,
                                                 jobConfig: MigrateEmailPreferencesJobConfig,
                                                 developerConnector: ThirdPartyDeveloperConnector,
                                                 apiPlatformMicroserviceConnector: ApiPlatformMicroserviceConnector)
@@ -51,27 +51,34 @@ class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: Migrate
     (for {
       developerEmails <- developerConnector.fetchAllDevelopers
       _ = Logger.info(s"Found ${developerEmails.size} developers")
-
-
+      _ <- sequence(developerEmails.map(migrateEmailPreferencesForDeveloper))
     } yield RunningOfJobSuccessful) recoverWith {
       case NonFatal(e) =>
-        Logger.error("Could not delete unregistered developers", e)
+        Logger.error("Could not migrate email preferences", e)
         Future.failed(RunningOfJobFailed(name, e))
     }
   }
 
-  private def retrieveAPIDefinitionsFromDevelopers(email: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
-    val apiDefinitions = apiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(email)
+  private def migrateEmailPreferencesForDeveloper(email: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Int] = {
+    for {
+      apiDefinitions <- apiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(email)
+      interests = apiDefinitions.map(toInterests).fold(Map.empty)(combineInterests)
+      result <- developerConnector.updateEmailPreferences(email, EmailPreferences(toTaxRegimeInterests(interests), EmailTopic.values.map(_.entryName).toSet))
+    } yield result
   }
 
-  private def retrieveSingleDef(api: APIDefinition) = {
-    val a: Seq[(String, APIDefinition)] = api.categories.map(_ -> api)
-    val c: Map[String, APIDefinition] = a.toMap
+  private def toInterests(api: APIDefinition): Map[String, Set[String]] = {
+    api.categories.map(_ -> Set(api.serviceName)).toMap
   }
 
+  private def combineInterests(map1: Map[String, Set[String]], map2: Map[String, Set[String]]): Map[String, Set[String]] = {
+    map1 ++ map2.map { case (k, v) => k -> (v ++ map1.getOrElse(k, Set())) }
+  }
+
+  private def toTaxRegimeInterests(interests: Map[String, Set[String]]): Seq[TaxRegimeInterests] = {
+    interests.map { case (k, v) => TaxRegimeInterests(k, v)}.toSeq
+  }
 }
-
-
 
 class MigrateEmailPreferencesJobLockKeeper @Inject()(mongo: ReactiveMongoComponent) extends LockKeeper {
   override def repo: LockRepository = new LockRepository()(mongo.mongoConnector.db)

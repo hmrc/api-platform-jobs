@@ -25,7 +25,7 @@ import play.api.http.Status.OK
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.{formatDeleteDeveloperRequest, formatDeleteUnregisteredDevelopersRequest}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.{DeleteDeveloperRequest, DeleteUnregisteredDevelopersRequest, DeveloperResponse, ThirdPartyDeveloperConnectorConfig}
-import uk.gov.hmrc.apiplatformjobs.models.EmailPreferences
+import uk.gov.hmrc.apiplatformjobs.models.{EmailPreferences, TaxRegimeInterests}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.test.UnitSpec
@@ -186,7 +186,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
   "updateEmailPreferences" should {
 
     val email = "john.doe@example.com"
-    val emailPreferences = EmailPreferences(Map("agents" -> Set("agents authorisation")), Set("release schedules"))
+    val emailPreferences = EmailPreferences(Seq(TaxRegimeInterests("agents", Set("agents authorisation"))), Set("release schedules"))
 
     "update email preferences" in new Setup {
 

@@ -19,11 +19,16 @@ package uk.gov.hmrc.apiplatformjobs.models
 import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
 import play.api.libs.json.Json
 
-case class EmailPreferences(interests: Map[String, Set[String]], topics: Set[String])
+case class TaxRegimeInterests(regime: String, services: Set[String])
+object TaxRegimeInterests {
+  implicit val format = Json.format[TaxRegimeInterests]
+}
+
+case class EmailPreferences(interests: Seq[TaxRegimeInterests], topics: Set[String])
 object EmailPreferences {
   implicit val format = Json.format[EmailPreferences]
 
-  def noPreferences: EmailPreferences = EmailPreferences(Map.empty, Set.empty)
+  def noPreferences: EmailPreferences = EmailPreferences(List.empty, Set.empty)
 }
 
 sealed trait EmailTopic extends EnumEntry

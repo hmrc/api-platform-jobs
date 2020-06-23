@@ -21,10 +21,10 @@ import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import javax.inject.{Inject, Provider, Singleton}
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.apiplatformjobs.connectors.EmailConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
-import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig}
+import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig, MigrateEmailPreferencesJobConfig}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -33,12 +33,23 @@ class ConfigurationModule extends Module {
 
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
     Seq(
+      bind[ApiPlatformMicroserviceConnectorConfig].toProvider[ApiPlatformMicroserviceConnectorConfigProvider],
       bind[ThirdPartyDeveloperConnectorConfig].toProvider[ThirdPartyDeveloperConnectorConfigProvider],
       bind[ThirdPartyApplicationConnectorConfig].toProvider[ThirdPartyApplicationConnectorConfigProvider],
       bind[DeleteUnverifiedDevelopersJobConfig].toProvider[DeleteUnverifiedDevelopersJobConfigProvider],
       bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider],
+      bind[MigrateEmailPreferencesJobConfig].toProvider[MigrateEmailPreferencesJobConfigProvider],
       bind[EmailConfig].toProvider[EmailConfigProvider]
     )
+  }
+}
+
+@Singleton
+class ApiPlatformMicroserviceConnectorConfigProvider @Inject()(val sc: ServicesConfig)
+  extends Provider[ApiPlatformMicroserviceConnectorConfig] {
+
+  override def get(): ApiPlatformMicroserviceConnectorConfig = {
+    ApiPlatformMicroserviceConnectorConfig(sc.baseUrl("api-platform-microservice"))
   }
 }
 
@@ -111,6 +122,20 @@ class DeleteUnregisteredDevelopersJobConfigProvider @Inject()(configuration: Con
     val enabled = configuration.getOptional[Boolean]("deleteUnregisteredDevelopersJob.enabled").getOrElse(false)
     val limit = configuration.getOptional[Int]("deleteUnregisteredDevelopersJob.limit").getOrElse(10)
     DeleteUnregisteredDevelopersJobConfig(initialDelay, interval, enabled, limit)
+  }
+}
+
+@Singleton
+class MigrateEmailPreferencesJobConfigProvider @Inject()(configuration: Configuration)
+  extends Provider[MigrateEmailPreferencesJobConfig] {
+
+  override def get(): MigrateEmailPreferencesJobConfig = {
+    val initialDelay = configuration.getOptional[String]("migrateEmailPreferencesJob.initialDelay").map(Duration.create(_).asInstanceOf[FiniteDuration])
+      .getOrElse(FiniteDuration(180, SECONDS))
+    val interval = configuration.getOptional[String]("migrateEmailPreferencesJob.interval").map(Duration.create(_).asInstanceOf[FiniteDuration])
+      .getOrElse(FiniteDuration(24, HOURS))
+    val enabled = configuration.getOptional[Boolean]("migrateEmailPreferencesJob.enabled").getOrElse(false)
+    MigrateEmailPreferencesJobConfig(initialDelay, interval, enabled)
   }
 }
 
