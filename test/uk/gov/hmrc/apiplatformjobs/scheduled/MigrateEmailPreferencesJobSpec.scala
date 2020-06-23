@@ -25,7 +25,8 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.mockito.MockitoSugar
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.{APIDefinition, EmailPreferences, TaxRegimeInterests}
+import uk.gov.hmrc.apiplatformjobs.models.EmailTopic.{BUSINESS_AND_POLICY, EVENT_INVITES, RELEASE_SCHEDULES, TECHNICAL}
+import uk.gov.hmrc.apiplatformjobs.models.{APIDefinition, EmailPreferences, EmailTopic, TaxRegimeInterests}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
@@ -104,7 +105,7 @@ class MigrateEmailPreferencesJobSpec extends UnitSpec with MockitoSugar with Mon
       val result: underTest.Result = await(underTest.execute)
 
       val expectedInterests = Seq(TaxRegimeInterests("VAT", Set("def 1")), TaxRegimeInterests("AGENTS", Set("def 1", "def 2")), TaxRegimeInterests("OTHER", Set("def 2")))
-      val expectedTopics = Set("BUSINESS_AND_POLICY", "TECHNICAL", "RELEASE_SCHEDULES", "EVENT_INVITES")
+      val expectedTopics: Set[EmailTopic] = Set(BUSINESS_AND_POLICY, TECHNICAL, RELEASE_SCHEDULES, EVENT_INVITES)
       val expectedEmailPreferences = EmailPreferences(expectedInterests, expectedTopics)
       verify(mockThirdPartyDeveloperConnector, times(1)).updateEmailPreferences(meq("joe.bloggs@example.com"), meq(expectedEmailPreferences))(any())
       result.message shouldBe "MigrateEmailPreferencesJob Job ran successfully."

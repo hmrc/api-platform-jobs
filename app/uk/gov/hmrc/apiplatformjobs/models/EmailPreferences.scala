@@ -24,7 +24,7 @@ object TaxRegimeInterests {
   implicit val format = Json.format[TaxRegimeInterests]
 }
 
-case class EmailPreferences(interests: Seq[TaxRegimeInterests], topics: Set[String])
+case class EmailPreferences(interests: Seq[TaxRegimeInterests], topics: Set[EmailTopic])
 object EmailPreferences {
   implicit val format = Json.format[EmailPreferences]
 

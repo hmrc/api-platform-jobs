@@ -63,7 +63,7 @@ class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmail
     for {
       apiDefinitions <- apiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(email)
       interests = apiDefinitions.map(toInterests).fold(Map.empty)(combineInterests)
-      result <- developerConnector.updateEmailPreferences(email, EmailPreferences(toTaxRegimeInterests(interests), EmailTopic.values.map(_.entryName).toSet))
+      result <- developerConnector.updateEmailPreferences(email, EmailPreferences(toTaxRegimeInterests(interests), EmailTopic.values.toSet))
     } yield result
   }
 

@@ -18,13 +18,14 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.Mockito.{when, _}
+import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.OK
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.{formatDeleteDeveloperRequest, formatDeleteUnregisteredDevelopersRequest}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.{DeleteDeveloperRequest, DeleteUnregisteredDevelopersRequest, DeveloperResponse, ThirdPartyDeveloperConnectorConfig}
+import uk.gov.hmrc.apiplatformjobs.models.EmailTopic.RELEASE_SCHEDULES
 import uk.gov.hmrc.apiplatformjobs.models.{EmailPreferences, TaxRegimeInterests}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -186,7 +187,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
   "updateEmailPreferences" should {
 
     val email = "john.doe@example.com"
-    val emailPreferences = EmailPreferences(Seq(TaxRegimeInterests("agents", Set("agents authorisation"))), Set("release schedules"))
+    val emailPreferences = EmailPreferences(Seq(TaxRegimeInterests("agents", Set("agents authorisation"))), Set(RELEASE_SCHEDULES))
 
     "update email preferences" in new Setup {
 
