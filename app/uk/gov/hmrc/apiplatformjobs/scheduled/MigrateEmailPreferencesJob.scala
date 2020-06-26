@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import akka.stream.Materializer
+import akka.stream.scaladsl.{Sink, Source}
 import cats.implicits._
 import javax.inject.Inject
 import org.joda.time.Duration
@@ -26,7 +28,6 @@ import uk.gov.hmrc.apiplatformjobs.models.{APIDefinition, EmailPreferences, Emai
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
 
-import scala.concurrent.Future.sequence
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -35,6 +36,7 @@ class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmail
                                                 jobConfig: MigrateEmailPreferencesJobConfig,
                                                 developerConnector: ThirdPartyDeveloperConnector,
                                                 apiPlatformMicroserviceConnector: ApiPlatformMicroserviceConnector)
+                                          (implicit val mat: Materializer)
 
   extends ScheduledMongoJob {
 
@@ -49,10 +51,16 @@ class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmail
     Logger.info("Starting MigrateEmailPreferencesJob")
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
+    val parallelism = 10
+    val migrateUserPreferencesSink = Sink.foreachAsync[String](parallelism) { email =>
+      migrateEmailPreferencesForDeveloper(email).map(_ => ())
+    }
+
     (for {
       developerEmails <- developerConnector.fetchAllDevelopers
       _ = Logger.info(s"Found ${developerEmails.size} developers")
-      _ <- sequence(developerEmails.map(migrateEmailPreferencesForDeveloper))
+      sourceOfDevelopers = Source.fromIterator(() => developerEmails.toIterator)
+      _ <- sourceOfDevelopers.runWith(migrateUserPreferencesSink)
     } yield RunningOfJobSuccessful) recoverWith {
       case NonFatal(e) =>
         Logger.error("Could not migrate email preferences", e)

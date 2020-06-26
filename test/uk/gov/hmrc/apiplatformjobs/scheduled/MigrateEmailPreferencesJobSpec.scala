@@ -18,11 +18,14 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 
-import org.joda.time.{DateTime, DateTimeUtils, Duration}
+import akka.stream.Materializer
+import org.joda.time.Duration
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito.{never, times, verify, when}
-import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.EmailTopic.{BUSINESS_AND_POLICY, EVENT_INVITES, RELEASE_SCHEDULES, TECHNICAL}
@@ -31,23 +34,17 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.time.{DateTimeUtils => HmrcTime}
 
 import scala.concurrent.Future.{failed, successful}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
-class MigrateEmailPreferencesJobSpec extends UnitSpec with MockitoSugar with MongoSpecSupport with BeforeAndAfterAll {
+class MigrateEmailPreferencesJobSpec extends UnitSpec with MockitoSugar with MongoSpecSupport with GuiceOneAppPerSuite {
 
-  val FixedTimeNow: DateTime = HmrcTime.now
-
-  override def beforeAll(): Unit = {
-    DateTimeUtils.setCurrentMillisFixed(FixedTimeNow.toDate.getTime)
-  }
-
-  override  def afterAll() : Unit = {
-    DateTimeUtils.setCurrentMillisSystem()
-  }
+  implicit override lazy val app: Application = new GuiceApplicationBuilder()
+    .disable[com.kenshoo.play.metrics.PlayModule]
+    .configure("metrics.enabled" -> false).build()
+  implicit lazy val materializer: Materializer = app.materializer
 
   trait Setup {
     implicit val hc = HeaderCarrier()
