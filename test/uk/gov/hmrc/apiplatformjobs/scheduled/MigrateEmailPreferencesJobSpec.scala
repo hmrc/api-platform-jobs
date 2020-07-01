@@ -81,9 +81,9 @@ class MigrateEmailPreferencesJobSpec extends UnitSpec with MockitoSugar with Mon
     "migrate email preferences for all developers" in new Setup {
       val developers = Seq("joe.bloggs@example.com", "john.doe@example.com")
       when(mockThirdPartyDeveloperConnector.fetchAllDevelopers(any())).thenReturn(successful(developers))
-      when(mockApiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(meq("joe.bloggs@example.com"))(any()))
+      when(mockApiPlatformMicroserviceConnector.fetchSubscribedApiDefinitionsForCollaborator(meq("joe.bloggs@example.com"))(any()))
         .thenReturn(successful(Seq(APIDefinition("def 1", Seq("VAT")))))
-      when(mockApiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(meq("john.doe@example.com"))(any()))
+      when(mockApiPlatformMicroserviceConnector.fetchSubscribedApiDefinitionsForCollaborator(meq("john.doe@example.com"))(any()))
         .thenReturn(successful(Seq(APIDefinition("def 1", Seq("VAT")))))
 
       val result: underTest.Result = await(underTest.execute)
@@ -96,7 +96,7 @@ class MigrateEmailPreferencesJobSpec extends UnitSpec with MockitoSugar with Mon
     "combine APIs from the same category" in new Setup {
       val developer = "joe.bloggs@example.com"
       when(mockThirdPartyDeveloperConnector.fetchAllDevelopers(any())).thenReturn(successful(Seq(developer)))
-      when(mockApiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(meq(developer))(any()))
+      when(mockApiPlatformMicroserviceConnector.fetchSubscribedApiDefinitionsForCollaborator(meq(developer))(any()))
         .thenReturn(successful(Seq(APIDefinition("def 1", Seq("VAT", "AGENTS")), APIDefinition("def 2", Seq("AGENTS", "OTHER")))))
 
       val result: underTest.Result = await(underTest.execute)

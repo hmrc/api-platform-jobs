@@ -51,9 +51,13 @@ class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmail
     Logger.info("Starting MigrateEmailPreferencesJob")
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    val parallelism = 10
+    val parallelism = 5
     val migrateUserPreferencesSink = Sink.foreachAsync[String](parallelism) { email =>
-      migrateEmailPreferencesForDeveloper(email).map(_ => ())
+      migrateEmailPreferencesForDeveloper(email).map(_ => ()) recover {
+        case NonFatal(e) =>
+          Logger.error(s"Failed to migrate email preferences for $email with exception: $e")
+          throw e
+      }
     }
 
     (for {
@@ -70,7 +74,7 @@ class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmail
 
   private def migrateEmailPreferencesForDeveloper(email: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Int] = {
     for {
-      apiDefinitions <- apiPlatformMicroserviceConnector.fetchApiDefinitionsForCollaborator(email)
+      apiDefinitions <- apiPlatformMicroserviceConnector.fetchSubscribedApiDefinitionsForCollaborator(email)
       interests = apiDefinitions.map(toInterestsMap).fold(Map.empty)(_ combine _)
       result <- developerConnector.updateEmailPreferences(email, EmailPreferences(toTaxRegimeInterests(interests), EmailTopic.values.toSet))
     } yield result
