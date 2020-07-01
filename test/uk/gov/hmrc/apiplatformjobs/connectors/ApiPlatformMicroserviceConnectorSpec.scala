@@ -44,26 +44,26 @@ class ApiPlatformMicroserviceConnectorSpec extends UnitSpec with ScalaFutures wi
 
   }
 
-  "fetchAPIDefinitionsForCollaborator" should {
+  "fetchSubscribedApiDefinitionsForCollaborator" should {
     "fetch api definitions" in new Setup {
 
       val expectedAPIDefinitions = Seq(APIDefinition("Agent Authorisation", Seq("AGENTS")))
 
-      when(mockHttp.GET[Seq[APIDefinition]](meq(endpoint("combined-api-definitions")),
+      when(mockHttp.GET[Seq[APIDefinition]](meq(endpoint("combined-api-definitions/subscribed")),
         meq(Seq("collaboratorEmail" -> devEmail)))(any(), any(), any()))
         .thenReturn(successful(expectedAPIDefinitions))
 
-      val result: Seq[APIDefinition] = await(connector.fetchApiDefinitionsForCollaborator(devEmail))
+      val result: Seq[APIDefinition] = await(connector.fetchSubscribedApiDefinitionsForCollaborator(devEmail))
 
       result shouldBe expectedAPIDefinitions
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[APIDefinition]](meq(endpoint("combined-api-definitions")), any())(any(), any(), any()))
+      when(mockHttp.GET[Seq[APIDefinition]](meq(endpoint("combined-api-definitions/subscribed")), any())(any(), any(), any()))
         .thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
-        await(connector.fetchApiDefinitionsForCollaborator(devEmail))
+        await(connector.fetchSubscribedApiDefinitionsForCollaborator(devEmail))
       }
     }
   }

@@ -26,12 +26,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ApiPlatformMicroserviceConnector @Inject()(config: ApiPlatformMicroserviceConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) {
 
-  def fetchApiDefinitionsForCollaborator(collaboratorEmail: String)(implicit hc: HeaderCarrier): Future[Seq[APIDefinition]] = {
-
-    http.GET[Seq[APIDefinition]](s"${config.baseUrl}/combined-api-definitions", Seq("collaboratorEmail" -> collaboratorEmail))
+  def fetchSubscribedApiDefinitionsForCollaborator(collaboratorEmail: String)(implicit hc: HeaderCarrier): Future[Seq[APIDefinition]] = {
+    http.GET[Seq[APIDefinition]](s"${config.baseUrl}/combined-api-definitions/subscribed", Seq("collaboratorEmail" -> collaboratorEmail))
   }
 }
 
 case class ApiPlatformMicroserviceConnectorConfig(baseUrl: String)
-
-
