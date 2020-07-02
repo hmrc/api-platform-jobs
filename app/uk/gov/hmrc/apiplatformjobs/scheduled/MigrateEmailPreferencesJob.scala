@@ -51,7 +51,7 @@ class MigrateEmailPreferencesJob @Inject()(override val lockKeeper: MigrateEmail
     Logger.info("Starting MigrateEmailPreferencesJob")
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    val parallelism = 5
+    val parallelism = 1
     val migrateUserPreferencesSink = Sink.foreachAsync[String](parallelism) { email =>
       migrateEmailPreferencesForDeveloper(email).map(_ => ()) recover {
         case NonFatal(e) =>
