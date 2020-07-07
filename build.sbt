@@ -16,9 +16,9 @@ lazy val scoverageSettings = {
 }
 
 lazy val compileDeps = Seq(
-  "uk.gov.hmrc" %% "bootstrap-play-26" % "1.7.0",
-  "uk.gov.hmrc" %% "mongo-lock" % "6.18.0-play-26",
-  "uk.gov.hmrc" %% "simple-reactivemongo" % "7.23.0-play-26",
+  "uk.gov.hmrc" %% "bootstrap-play-26" % "1.13.0",
+  "uk.gov.hmrc" %% "mongo-lock" % "6.23.0-play-26",
+  "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-26",
   "uk.gov.hmrc" %% "play-scheduling" % "7.4.0-play-26",
   "com.typesafe.play" % "play-json-joda_2.12" % "2.6.0",
   "com.beachape" %% "enumeratum-play-json" % "1.6.0",
@@ -31,7 +31,7 @@ def testDeps(scope: String) = Seq(
   "org.mockito" % "mockito-core" % "3.1.0" % scope,
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.3" % scope,
   "org.mockito" %% "mockito-scala-scalatest" % "1.7.1" % scope,
-  "uk.gov.hmrc" %% "reactivemongo-test" % "4.16.0-play-26" % scope,
+  "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-26" % scope,
   "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
 )
 
