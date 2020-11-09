@@ -21,8 +21,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json.{Format, JsValue, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.{DeleteDeveloperRequest, DeleteUnregisteredDevelopersRequest, DeveloperResponse, ThirdPartyDeveloperConnectorConfig, UnregisteredDeveloperResponse}
-import uk.gov.hmrc.apiplatformjobs.models.EmailPreferences
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -39,14 +38,11 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
     result.map(_.map(_.email))
   }
 
-  def fetchAllDevelopers(implicit hc: HeaderCarrier): Future[Seq[String]] = {
-    val result = http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers")
-    result.map(_.map(_.email))
-  }
+  def fetchAllDevelopers(implicit hc: HeaderCarrier): Future[Seq[String]] =
+    http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers").map(_.map(_.email))
 
-  def fetchExpiredUnregisteredDevelopers(limit: Int)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
+  def fetchExpiredUnregisteredDevelopers(limit: Int)(implicit hc: HeaderCarrier): Future[Seq[String]] =
     http.GET[Seq[UnregisteredDeveloperResponse]](s"${config.baseUrl}/unregistered-developer/expired", Seq("limit" -> limit.toString)).map(_.map(_.email))
-  }
 
   def fetchVerifiedDevelopers(emailAddresses: Set[String]): Future[Seq[(String, String, String)]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -63,10 +59,6 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
 
   def deleteUnregisteredDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
     http.POST(s"${config.baseUrl}/unregistered-developer/delete", DeleteUnregisteredDevelopersRequest(Seq(email))).map(_.status)
-  }
-
-  def updateEmailPreferences(email: String, emailPreferences: EmailPreferences)(implicit hc: HeaderCarrier) = {
-    http.PUT[EmailPreferences, HttpResponse](s"${config.baseUrl}/developer/$email/email-preferences", emailPreferences).map(_.status)
   }
 }
 
