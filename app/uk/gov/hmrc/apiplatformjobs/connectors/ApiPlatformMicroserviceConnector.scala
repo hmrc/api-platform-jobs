@@ -17,18 +17,15 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.apiplatformjobs.models.APIDefinition
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
-class ApiPlatformMicroserviceConnector @Inject()(config: ApiPlatformMicroserviceConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) {
-
-  def fetchSubscribedApiDefinitionsForCollaborator(collaboratorEmail: String)(implicit hc: HeaderCarrier): Future[Seq[APIDefinition]] = {
-    http.GET[Seq[APIDefinition]](s"${config.baseUrl}/combined-api-definitions/subscribed", Seq("collaboratorEmail" -> collaboratorEmail))
-  }
+class ApiPlatformMicroserviceConnector @Inject()(config: ApiPlatformMicroserviceConnectorConfig)(implicit ec: ExecutionContext) {
+  /*
+   * APIS-5081: Connector was previously used as part of MigrateEmailPreferences job - that's no longer in use, but we're retaining the connector (and its
+   * associated configuration) as we're pretty sure we'll be needing it again in the near future.
+   */
 }
 
 case class ApiPlatformMicroserviceConnectorConfig(baseUrl: String)

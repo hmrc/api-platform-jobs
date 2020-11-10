@@ -40,7 +40,6 @@ class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelop
                           sendUnusedProductionApplicationNotificationsJob: SendUnusedProductionApplicationNotificationsJob,
                           deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
                           deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
-                          migrateEmailPreferencesJob: MigrateEmailPreferencesJob,
                           override val applicationLifecycle: ApplicationLifecycle,
                           override val application: Application)
                          (implicit val ec: ExecutionContext) extends RunningOfScheduledJobs {
@@ -53,7 +52,6 @@ class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelop
       sendUnusedSandboxApplicationNotificationsJob,
       sendUnusedProductionApplicationNotificationsJob,
       deleteUnusedSandboxApplicationsJob,
-      deleteUnusedProductionApplicationsJob,
-      migrateEmailPreferencesJob)
+      deleteUnusedProductionApplicationsJob)
       .filter(_.isEnabled)
 }
