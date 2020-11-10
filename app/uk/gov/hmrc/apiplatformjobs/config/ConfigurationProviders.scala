@@ -21,9 +21,9 @@ import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import javax.inject.{Inject, Provider, Singleton}
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.apiplatformjobs.connectors.EmailConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
+import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig}
 import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
@@ -33,12 +33,22 @@ class ConfigurationModule extends Module {
 
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
     Seq(
+      bind[ApiPlatformMicroserviceConnectorConfig].toProvider[ApiPlatformMicroserviceConnectorConfigProvider],
       bind[ThirdPartyDeveloperConnectorConfig].toProvider[ThirdPartyDeveloperConnectorConfigProvider],
       bind[ThirdPartyApplicationConnectorConfig].toProvider[ThirdPartyApplicationConnectorConfigProvider],
       bind[DeleteUnverifiedDevelopersJobConfig].toProvider[DeleteUnverifiedDevelopersJobConfigProvider],
       bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider],
       bind[EmailConfig].toProvider[EmailConfigProvider]
     )
+  }
+}
+
+@Singleton
+class ApiPlatformMicroserviceConnectorConfigProvider @Inject()(val sc: ServicesConfig)
+  extends Provider[ApiPlatformMicroserviceConnectorConfig] {
+
+  override def get(): ApiPlatformMicroserviceConnectorConfig = {
+    ApiPlatformMicroserviceConnectorConfig(sc.baseUrl("api-platform-microservice"))
   }
 }
 

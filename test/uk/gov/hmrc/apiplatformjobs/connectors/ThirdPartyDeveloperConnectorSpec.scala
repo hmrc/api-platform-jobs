@@ -42,7 +42,6 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     val baseUrl = "http://third-party-developer"
     val config = ThirdPartyDeveloperConnectorConfig(baseUrl)
     val devEmail = "joe.bloggs@example.com"
-
     def endpoint(path: String) = s"$baseUrl/$path"
 
     val connector = new ThirdPartyDeveloperConnector(config, mockHttp)
@@ -81,7 +80,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers")))(any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers"))) (any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
         await(connector.fetchAllDevelopers)
@@ -182,4 +181,5 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
       }
     }
   }
+
 }
