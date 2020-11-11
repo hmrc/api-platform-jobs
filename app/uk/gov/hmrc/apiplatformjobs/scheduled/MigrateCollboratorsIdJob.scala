@@ -35,11 +35,15 @@ import uk.gov.hmrc.apiplatformjobs.connectors.model.GetOrCreateUserIdRequest
 import uk.gov.hmrc.apiplatformjobs.connectors.model.FixCollaboratorRequest
 import uk.gov.hmrc.apiplatformjobs.models.Collaborator
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationId
+import uk.gov.hmrc.apiplatformjobs.connectors.ProductionThirdPartyApplicationConnector
+import uk.gov.hmrc.apiplatformjobs.models.Environment._
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 
 @deprecated("Remove once the migration is complete","?")
 @Singleton
 class MigrateCollaboratorsIdJob @Inject()(val lockKeeper: MigrateCollaboratorsIdJobLockKeeper,
-                                       applicationConnector: SandboxThirdPartyApplicationConnector,
+                                       subordinateApplicationConnector: SandboxThirdPartyApplicationConnector,
+                                       principalApplicationConnector: ProductionThirdPartyApplicationConnector,
                                        developerConnector: ThirdPartyDeveloperConnector,
                                        @Named("migrateCollaboratorsId") jobConfig: JobConfig)(implicit ec: ExecutionContext) extends ScheduledMongoJob {
 
@@ -49,7 +53,9 @@ class MigrateCollaboratorsIdJob @Inject()(val lockKeeper: MigrateCollaboratorsId
   override val interval: FiniteDuration = jobConfig.interval
   implicit val hc = HeaderCarrier()
 
-  private def processCollaborators(applicationId: ApplicationId, collaborators: List[Collaborator]): Future[Unit] = {
+  private def processCollaborators(applicationId: ApplicationId, deployedTo: Environment, collaborators: List[Collaborator]): Future[Unit] = {
+    val applicationConnector = if(deployedTo == PRODUCTION) principalApplicationConnector else subordinateApplicationConnector
+
     collaborators match {
       case Nil => Future.successful(())
       case head :: tail => 
@@ -58,25 +64,39 @@ class MigrateCollaboratorsIdJob @Inject()(val lockKeeper: MigrateCollaboratorsId
           fixed <- applicationConnector.fixCollaborator(applicationId, FixCollaboratorRequest(head.emailAddress, details.userId))
         } yield fixed
 
-        fixHead.flatMap(_ => processCollaborators(applicationId, tail))
+        fixHead.flatMap(_ => processCollaborators(applicationId, deployedTo, tail))
     }
   }
 
-  private def processApplications(apps: List[Application]): Future[Unit] = {
+  private def processApplications(apps: List[Application], connectionEnv: Environment): Future[Unit] = {
     apps match {
       case Nil => Future.successful(())
       case head :: tail =>
-        processCollaborators(head.id, head.collaborators.filterNot(_.userId.isDefined).toList).flatMap(_ => processApplications(tail))
+        processCollaborators(head.id, connectionEnv, head.collaborators.filter(_.userId.isEmpty).toList).flatMap(_ => processApplications(tail, connectionEnv))
     }
   }
 
-  override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    val actions = for {
+  private def processEnvironment(applicationConnector: ThirdPartyApplicationConnector, connectionEnv: Environment): Future[Unit] = {
+    Logger.info(s"Processing $connectionEnv environment")
+    val fapps = for {
       apps <- applicationConnector.fetchAllApplications(HeaderCarrier())
-      missingIds = apps.filterNot(_.collaborators.find(_.userId.isEmpty).isEmpty)
-    } yield processApplications(missingIds.toList)
-
+      missingIds = apps.filter(_.collaborators.find(_.userId.isEmpty).isDefined).toList
+    } yield missingIds
     
+    fapps.flatMap(appsToProcess => processApplications(appsToProcess, connectionEnv))
+  }
+
+  override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
+    Logger.info("Starting MigrateCollaboratorsIdJob")
+
+    val actions = 
+      processEnvironment(subordinateApplicationConnector, SANDBOX)
+      .flatMap(_ => processEnvironment(principalApplicationConnector, PRODUCTION))
+
+    actions.onComplete {
+      case _ => Logger.info("Finished MigrateCollaboratorsIdJob")
+    }
+
     actions.map(_ => RunningOfJobSuccessful)
       .recoverWith {
         case NonFatal(e) =>
