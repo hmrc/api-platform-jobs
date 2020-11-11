@@ -35,6 +35,11 @@ import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.apiplatformjobs.models.ApplicationId
+import uk.gov.hmrc.apiplatformjobs.connectors.model.FixCollaboratorRequest
+import uk.gov.hmrc.apiplatformjobs.models.Application
+import play.api.libs.json.Json
+import play.api.Logger
 
 class ThirdPartyApplicationConnectorModule extends AbstractModule {
   override def configure(): Unit = {
@@ -54,8 +59,20 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   val apiKey: String
   val authorisationKey: String
 
-
   def http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
+
+  def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] = 
+    http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
+
+  def fixCollaborator(applicationId: ApplicationId, collaboratorRequest: FixCollaboratorRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
+    http.PUT[FixCollaboratorRequest, HttpResponse](s"$serviceBaseUrl/application/${applicationId.value.toString}/collaborator", collaboratorRequest, Seq.empty)
+    .map(_ => ())
+    .recover {
+      case Upstream4xxResponse(_,409,_,_) => 
+        Logger.warn(s"Conflict for $applicationId, $collaboratorRequest")
+        Future.successful(())
+    }
+  }
 
   def fetchApplicationsByEmail(email: String)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
     http.GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/applications", Seq("emailAddress" -> email)).map(_.map(_.id))

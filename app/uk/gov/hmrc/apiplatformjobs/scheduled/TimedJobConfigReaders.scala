@@ -21,7 +21,6 @@ import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ValueReader
 import org.joda.time.LocalTime
 import uk.gov.hmrc.apiplatformjobs.models.Environment
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try

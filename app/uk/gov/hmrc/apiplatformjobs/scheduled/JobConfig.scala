@@ -22,14 +22,26 @@ import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
+import com.typesafe.config.Config
+import java.util.concurrent.TimeUnit
+import java.time.Duration
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
+
+object JobConfig {
+  private implicit class ToFiniteDuration(d: Duration) {
+    def finite(): FiniteDuration = FiniteDuration(d.toNanos(), TimeUnit.NANOSECONDS)
+  }
+  def fromConfig(config: Config): JobConfig = {
+    new JobConfig(config.getDuration("initialDelay").finite, config.getDuration("interval").finite, config.getBoolean("enabled"))
+  }
+}
 
 trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState {
 
   val lockKeeper: LockKeeper
 
-  val isEnabled: Boolean
+  def isEnabled: Boolean
 
   def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful]
 
