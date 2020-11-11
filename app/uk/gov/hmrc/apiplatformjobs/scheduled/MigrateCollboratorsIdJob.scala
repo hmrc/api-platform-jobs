@@ -73,7 +73,7 @@ class MigrateCollaboratorsIdJob @Inject()(val lockKeeper: MigrateCollaboratorsId
   override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
     val actions = for {
       apps <- applicationConnector.fetchAllApplications(HeaderCarrier())
-      missingIds = apps.filterNot(_.collaborators.find(_.userId.isEmpty).isEmpty).take(10)
+      missingIds = apps.filterNot(_.collaborators.find(_.userId.isEmpty).isEmpty)
     } yield processApplications(missingIds.toList)
 
     
