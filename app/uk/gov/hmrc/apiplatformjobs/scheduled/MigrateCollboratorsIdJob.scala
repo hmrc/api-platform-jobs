@@ -78,12 +78,11 @@ class MigrateCollaboratorsIdJob @Inject()(val lockKeeper: MigrateCollaboratorsId
 
   private def processEnvironment(applicationConnector: ThirdPartyApplicationConnector, connectionEnv: Environment): Future[Unit] = {
     Logger.info(s"Processing $connectionEnv environment")
-    val fapps = for {
+    for {
       apps <- applicationConnector.fetchAllApplications(HeaderCarrier())
       missingIds = apps.filter(_.collaborators.find(_.userId.isEmpty).isDefined).toList
-    } yield missingIds
-    
-    fapps.flatMap(appsToProcess => processApplications(appsToProcess, connectionEnv))
+      process <- processApplications(missingIds, connectionEnv)
+    } yield process
   }
 
   override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
