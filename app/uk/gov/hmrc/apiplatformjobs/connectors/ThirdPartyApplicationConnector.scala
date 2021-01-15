@@ -88,7 +88,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
     http.GET[PaginatedApplicationLastUseResponse](
       url = s"$serviceBaseUrl/applications",
-      queryParams = Seq("lastUseBefore" -> ISODateFormatter.withZoneUTC().print(lastUseDate)))
+      queryParams = Seq("lastUseBefore" -> ISODateFormatter.withZoneUTC().print(lastUseDate), "sort" -> "NO_SORT"))
       .map(page => toDomain(page.applications))
   }
 

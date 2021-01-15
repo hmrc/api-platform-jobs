@@ -156,7 +156,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
       when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
         meq( s"$baseUrl/applications"),
-        meq(Seq("lastUseBefore" -> dateString)))(any(), any(), any()))
+        meq(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(any(), any(), any()))
         .thenReturn(successful(paginatedResponse(List(oldApplication1, oldApplication2))))
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
@@ -175,7 +175,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
       when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
         meq( s"$baseUrl/applications"),
-        meq(Seq("lastUseBefore" -> dateString)))(any(), any(), any()))
+        meq(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(any(), any(), any()))
         .thenReturn(successful(paginatedResponse(List.empty)))
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
