@@ -54,6 +54,6 @@ class ProxiedHttpClient @Inject()(config: Configuration,
 
     val hcWithBearerAndAccept = hc.copy(authorization = authorization, extraHeaders = extraHeadersWithMaybeApiKeyHeader)
 
-    super.buildRequest(url)(hcWithBearerAndAccept)
+    super.buildRequest(url, headers)(hcWithBearerAndAccept)
   }
 }

@@ -27,6 +27,7 @@ import org.apache.commons.codec.binary.Base64.encodeBase64String
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.http.Status
+import play.api.http.HeaderNames.CONTENT_LENGTH
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationResponse, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig, toDomain}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
@@ -95,7 +96,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   def deleteApplication(applicationId: UUID): Future[Boolean] = {
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authorisationKey)))
 
-    http.POSTEmpty(s"$serviceBaseUrl/application/${applicationId.toString}/delete")
+    http.POSTEmpty(s"$serviceBaseUrl/application/${applicationId.toString}/delete", Seq(CONTENT_LENGTH -> "0"))
       .map(_.status == Status.NO_CONTENT)
   }
 
