@@ -25,6 +25,7 @@ import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                            unusedApplicationsRepository: UnusedApplicationsRepository,
@@ -33,23 +34,42 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
                                            mongo: ReactiveMongoComponent)
   extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, mongo) {
 
+  def batchFutures[I](fn: I => Future[Unit])(input: Seq[I])(implicit ec: ExecutionContext): Future[Unit] = {
+    input.splitAt(20) match {
+      case (Nil, Nil) => Future.successful(())
+      case (doNow: Seq[I], doLater: Seq[I]) => 
+        Future.sequence(doNow.map(fn)).flatMap( _ => {
+          logDebug("Done batch of items")
+          batchFutures(fn)(doLater)
+        })
+    }
+  }
+
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def deleteApplication(application: UnusedApplication): Future[Unit] = {
       logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})] in TPA")
-      thirdPartyApplicationConnector.deleteApplication(application.applicationId)
-        .map(deleteSuccessful =>
-          if (deleteSuccessful) {
-            logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
-            unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, application.applicationId)
-          } else {
-            logWarn(s"Unable to delete application [${application.applicationName} (${application.applicationId})]")
-          })
+      (for {
+        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId)
+        _: Unit <- if(deleteSuccessful) {
+          logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
+          unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, application.applicationId)
+          .map(_ => ())
+        } else {
+          logWarn(s"Unable to delete application [${application.applicationName} (${application.applicationId})]")
+          Future.successful(())
+        }
+      } yield ())
+      .recover {
+          case NonFatal(e) =>
+            logWarn(s"Unable to delete application [${application.applicationName} (${application.applicationId})]", e)
+            ()
+      }
     }
 
     for {
       applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment)
       _ = logInfo(s"Found [${applicationsToDelete.size}] applications to delete")
-      _ <- Future.sequence(applicationsToDelete.map(deleteApplication))
+      _ <- batchFutures(deleteApplication)(applicationsToDelete)
     } yield RunningOfJobSuccessful
   }
 }
