@@ -18,11 +18,6 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.util.UUID
 
-import org.mockito.ArgumentMatchersSugar
-import org.mockito.Mockito.{times, verify, when}
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
-import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment
@@ -32,10 +27,9 @@ import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class DeleteUnusedApplicationsJobSpec extends PlaySpec
-   with UnusedApplicationTestConfiguration with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
-
+class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with MongoSpecSupport {
   trait Setup {
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
       override def mongoConnector: MongoConnector = mongoConnectorForTest

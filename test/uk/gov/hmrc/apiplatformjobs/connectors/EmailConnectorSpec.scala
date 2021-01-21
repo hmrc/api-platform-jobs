@@ -19,28 +19,16 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import java.util.UUID
 
 import org.joda.time.{DateTime, LocalDate}
-import org.mockito.ArgumentMatchersSugar
-import org.mockito.scalatest.MockitoSugar
-import org.scalatest.{Matchers, OptionValues, WordSpec}
-import org.scalatestplus.play.WsScalaTestClient
 import play.api.http.Status._
-import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApplication}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class EmailConnectorSpec
-  extends WordSpec
-    with Matchers
-    with OptionValues
-    with WsScalaTestClient
-    with MockitoSugar
-    with ArgumentMatchersSugar
-    with DefaultAwaitTimeout
-    with FutureAwaits {
+class EmailConnectorSpec extends AsyncHmrcSpec {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   private val baseUrl = s"http://example.com"

@@ -19,11 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import org.joda.time.{DateTime, DateTimeUtils}
-import org.mockito.Mockito.{times, verify, when}
-import org.mockito.ArgumentMatchersSugar
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
-import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
@@ -34,9 +29,10 @@ import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class SendUnusedApplicationNotificationsJobSpec extends PlaySpec
-  with UnusedApplicationTestConfiguration with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
+class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
+  with UnusedApplicationTestConfiguration with MongoSpecSupport {
 
   val FixedTime = DateTime.now
   DateTimeUtils.setCurrentMillisFixed(FixedTime.getMillis)

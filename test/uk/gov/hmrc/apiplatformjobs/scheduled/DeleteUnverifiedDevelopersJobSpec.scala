@@ -19,24 +19,21 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 
 import org.joda.time.{DateTime, DateTimeUtils, Duration}
-import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.Mockito.{never, times, verify, when}
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.OK
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.time.{DateTimeUtils => HmrcTime}
 
 import scala.concurrent.Future.{failed, successful}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class DeleteUnverifiedDevelopersJobSpec extends UnitSpec with MockitoSugar with MongoSpecSupport with BeforeAndAfterAll {
+class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSupport with BeforeAndAfterAll {
 
   val FixedTimeNow: DateTime = HmrcTime.now
 
@@ -60,7 +57,7 @@ class DeleteUnverifiedDevelopersJobSpec extends UnitSpec with MockitoSugar with 
       override def repo: LockRepository = mock[LockRepository]
       override val forceLockReleaseAfter: Duration = Duration.standardMinutes(5) // scalastyle:off magic.number
       override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
-        if (lockKeeperSuccess()) body.map(value => successful(Some(value)))
+        if (lockKeeperSuccess()) body.map(value => Some(value))
         else successful(None)
     }
 
@@ -80,12 +77,12 @@ class DeleteUnverifiedDevelopersJobSpec extends UnitSpec with MockitoSugar with 
 
   trait SuccessfulSetup extends Setup {
     val developers = Seq("joe.bloggs@example.com", "john.doe@example.com")
-    when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(any(), any())(any())).thenReturn(successful(developers))
-    when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByEmail(any())(any())).thenReturn(successful(Seq("sandbox 1")))
-    when(mockSandboxThirdPartyApplicationConnector.removeCollaborator(any(), any())(any())).thenReturn(successful(OK))
-    when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByEmail(any())(any())).thenReturn(successful(Seq("prod 1")))
-    when(mockProductionThirdPartyApplicationConnector.removeCollaborator(any(), any())(any())).thenReturn(successful(OK))
-    when(mockThirdPartyDeveloperConnector.deleteDeveloper(any())(any())).thenReturn(successful(OK))
+    when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
+    when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByEmail(*)(*)).thenReturn(successful(Seq("sandbox 1")))
+    when(mockSandboxThirdPartyApplicationConnector.removeCollaborator(*, *)(*)).thenReturn(successful(OK))
+    when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByEmail(*)(*)).thenReturn(successful(Seq("prod 1")))
+    when(mockProductionThirdPartyApplicationConnector.removeCollaborator(*, *)(*)).thenReturn(successful(OK))
+    when(mockThirdPartyDeveloperConnector.deleteDeveloper(*)(*)).thenReturn(successful(OK))
   }
 
   "DeleteUnverifiedDevelopersJob" should {
@@ -94,18 +91,18 @@ class DeleteUnverifiedDevelopersJobSpec extends UnitSpec with MockitoSugar with 
     "delete unverified developers" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(meq("joe.bloggs@example.com"))(any())
-      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(meq("john.doe@example.com"))(any())
+      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(eqTo("joe.bloggs@example.com"))(*)
+      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(eqTo("john.doe@example.com"))(*)
       result.message shouldBe "DeleteUnverifiedDevelopersJob Job ran successfully."
     }
 
     "remove unverified developers as collaborators" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockSandboxThirdPartyApplicationConnector, times(1)).removeCollaborator(meq("sandbox 1"), meq("joe.bloggs@example.com"))(any())
-      verify(mockSandboxThirdPartyApplicationConnector, times(1)).removeCollaborator(meq("sandbox 1"), meq("john.doe@example.com"))(any())
-      verify(mockProductionThirdPartyApplicationConnector, times(1)).removeCollaborator(meq("prod 1"), meq("joe.bloggs@example.com"))(any())
-      verify(mockProductionThirdPartyApplicationConnector, times(1)).removeCollaborator(meq("prod 1"), meq("john.doe@example.com"))(any())
+      verify(mockSandboxThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("sandbox 1"), eqTo("joe.bloggs@example.com"))(*)
+      verify(mockSandboxThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("sandbox 1"), eqTo("john.doe@example.com"))(*)
+      verify(mockProductionThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("prod 1"), eqTo("joe.bloggs@example.com"))(*)
+      verify(mockProductionThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("prod 1"), eqTo("john.doe@example.com"))(*)
       result.message shouldBe "DeleteUnverifiedDevelopersJob Job ran successfully."
     }
 
@@ -114,16 +111,16 @@ class DeleteUnverifiedDevelopersJobSpec extends UnitSpec with MockitoSugar with 
 
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockThirdPartyDeveloperConnector, never).fetchUnverifiedDevelopers(any(), any())(any())
+      verify(mockThirdPartyDeveloperConnector, never).fetchUnverifiedDevelopers(*, *)(*)
       result.message shouldBe "DeleteUnverifiedDevelopersJob did not run because repository was locked by another instance of the scheduler."
     }
 
     "handle error when something fails" in new Setup {
-      when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(any(), any())(any())).thenReturn(failed(new RuntimeException("Failed")))
+      when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
 
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(any())(any())
+      verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(*)(*)
       result.message shouldBe "The execution of scheduled job DeleteUnverifiedDevelopersJob failed with error 'Failed'. " +
         "The next execution of the job will do retry."
     }

@@ -17,24 +17,23 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.Mockito.when
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.OK
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.{formatDeleteDeveloperRequest, formatDeleteUnregisteredDevelopersRequest}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.time.DateTimeUtils.now
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
-class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with MockitoSugar {
+import uk.gov.hmrc.http.HttpReads.Implicits
+
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+
+class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
 
   trait Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -45,14 +44,13 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     def endpoint(path: String) = s"$baseUrl/$path"
 
     val connector = new ThirdPartyDeveloperConnector(config, mockHttp)
-
   }
 
   "fetchUnverifiedDevelopers" should {
     val limit = 10
     "return developer emails" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers")),
-        meq(Seq("createdBefore" -> "20200201", "limit" -> s"$limit", "status" -> "UNVERIFIED")))(any(), any(), any()))
+      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers")),
+        eqTo(Seq("createdBefore" -> "20200201", "limit" -> s"$limit", "status" -> "UNVERIFIED")))(*, *, *))
         .thenReturn(successful(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = false))))
 
       val result: Seq[String] = await(connector.fetchUnverifiedDevelopers(new DateTime(2020, 2, 1, 0, 0), limit))
@@ -61,7 +59,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers")), any())(any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers")), *)(*, *, *)).thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
         await(connector.fetchUnverifiedDevelopers(now, limit))
@@ -71,7 +69,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
 
   "fetchAllDevelopers" should {
     "return all developer emails" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers")))(any(), any(), any()))
+      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers")))(*, *, *))
         .thenReturn(successful(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = true))))
 
       val result: Seq[String] = await(connector.fetchAllDevelopers)
@@ -80,7 +78,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](meq(endpoint("developers"))) (any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers"))) (*, *, *)).thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
         await(connector.fetchAllDevelopers)
@@ -92,7 +90,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
   "fetchExpiredUnregisteredDevelopers" should {
     val limit = 10
     "return developer emails" in new Setup {
-      when(mockHttp.GET[Seq[UnregisteredDeveloperResponse]](meq(endpoint("unregistered-developer/expired")), meq(Seq("limit" -> s"$limit")))(any(), any(), any()))
+      when(mockHttp.GET[Seq[UnregisteredDeveloperResponse]](eqTo(endpoint("unregistered-developer/expired")), eqTo(Seq("limit" -> s"$limit")))(*, *, *))
         .thenReturn(successful(Seq(UnregisteredDeveloperResponse(devEmail))))
 
       val result: Seq[String] = await(connector.fetchExpiredUnregisteredDevelopers(limit))
@@ -101,7 +99,7 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[UnregisteredDeveloperResponse]](meq(endpoint("unregistered-developer/expired")), any())(any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+      when(mockHttp.GET[Seq[UnregisteredDeveloperResponse]](eqTo(endpoint("unregistered-developer/expired")), *)(*, *, *)).thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
         await(connector.fetchExpiredUnregisteredDevelopers(limit))
@@ -117,9 +115,9 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
       val unverifiedUserEmail = "bar@baz.com"
 
       when(mockHttp.POST[JsValue, Seq[DeveloperResponse]](
-        meq(endpoint("developers/get-by-emails")),
-        meq(Json.toJson(Seq(verifiedUserEmail, unverifiedUserEmail))),
-        any())(any(), any(), any(), any()))
+        eqTo(endpoint("developers/get-by-emails")),
+        eqTo(Json.toJson(Seq(verifiedUserEmail, unverifiedUserEmail))),
+        *)(*, *, *, *))
         .thenReturn(
           successful(
             Seq(
@@ -135,9 +133,9 @@ class ThirdPartyDeveloperConnectorSpec extends UnitSpec with ScalaFutures with M
       val verifiedUserEmail = "foo@baz.com"
       val unverifiedUserEmail = "bar@baz.com"
       when(mockHttp.POST[JsValue, Seq[DeveloperResponse]](
-        meq(endpoint("developers/get-by-emails")),
-        meq(Json.toJson(Seq(verifiedUserEmail, unverifiedUserEmail))),
-        any())(any(), any(), any(), any()))
+        eqTo(endpoint("developers/get-by-emails")),
+        eqTo(Json.toJson(Seq(verifiedUserEmail, unverifiedUserEmail))),
+        *)(*, *, *, *))
         .thenReturn(Future.failed(new BadRequestException("")))
 
       intercept[BadRequestException] {

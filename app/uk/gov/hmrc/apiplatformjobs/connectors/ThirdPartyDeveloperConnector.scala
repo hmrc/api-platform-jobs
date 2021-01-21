@@ -30,6 +30,8 @@ import play.api.http.HeaderNames._
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
 
+// import uk.gov.hmrc.http.HttpReads.Implicits._
+
 @Singleton
 class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) {
 

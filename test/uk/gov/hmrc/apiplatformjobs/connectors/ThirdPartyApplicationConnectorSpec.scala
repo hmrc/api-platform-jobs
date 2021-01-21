@@ -21,10 +21,6 @@ import java.util.UUID
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.Mockito.{verify, when}
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.{BAD_REQUEST, NO_CONTENT, OK}
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
@@ -32,14 +28,14 @@ import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 import scala.util.Random
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with MockitoSugar {
+class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec {
 
   private val baseUrl = "https://example.com"
 
@@ -86,7 +82,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
     val applicationResponses = List(ApplicationResponse("app id 1"), ApplicationResponse("app id 2"))
 
     "return application Ids" in new Setup {
-      when(mockHttpClient.GET[Seq[ApplicationResponse]](meq(url), meq(Seq("emailAddress" -> email)))(any(), any(), any()))
+      when(mockHttpClient.GET[Seq[ApplicationResponse]](eqTo(url), eqTo(Seq("emailAddress" -> email)))(*, *, *))
         .thenReturn(Future.successful(applicationResponses))
 
       val result = await(connector.fetchApplicationsByEmail(email))
@@ -96,7 +92,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttpClient.GET[Seq[ApplicationResponse]](meq(url), meq(Seq("emailAddress" -> email)))(any(), any(), any()))
+      when(mockHttpClient.GET[Seq[ApplicationResponse]](eqTo(url), eqTo(Seq("emailAddress" -> email)))(*, *, *))
         .thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
@@ -111,7 +107,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
     val url = baseUrl + s"/application/$appId/collaborator/email%40example.com?notifyCollaborator=false&adminsToEmail="
 
     "remove collaborator" in new Setup {
-      when(mockHttpClient.DELETE[HttpResponse](meq(url), any())(any(), any(), any())).thenReturn(successful(HttpResponse(OK)))
+      when(mockHttpClient.DELETE[HttpResponse](eqTo(url), *)(*, *, *)).thenReturn(successful(HttpResponse(OK)))
 
       val result = await(connector.removeCollaborator(appId, email))
 
@@ -119,7 +115,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttpClient.DELETE[HttpResponse](meq(url), any())(any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+      when(mockHttpClient.DELETE[HttpResponse](eqTo(url), *)(*, *, *)).thenReturn(Future.failed(new NotFoundException("")))
 
       intercept[NotFoundException] {
         await(connector.removeCollaborator(appId, email))
@@ -155,8 +151,8 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
           Some(DateTime.now.minusMonths(14)))
 
       when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
-        meq( s"$baseUrl/applications"),
-        meq(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(any(), any(), any()))
+        eqTo( s"$baseUrl/applications"),
+        eqTo(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(*, *, *))
         .thenReturn(successful(paginatedResponse(List(oldApplication1, oldApplication2))))
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
@@ -174,8 +170,8 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val dateString: String = dateFormatter.withZoneUTC().print(lastUseDate)
 
       when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
-        meq( s"$baseUrl/applications"),
-        meq(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(any(), any(), any()))
+        eqTo( s"$baseUrl/applications"),
+        eqTo(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(*, *, *))
         .thenReturn(successful(paginatedResponse(List.empty)))
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
@@ -189,7 +185,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val applicationId = UUID.randomUUID()
       val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
 
-      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), any(), any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
+      when(mockHttpClient.POSTEmpty[HttpResponse](eqTo(expectedUrl), *)(*, *, *)).thenReturn(successful(HttpResponse(NO_CONTENT)))
 
       val response = await(connector.deleteApplication(applicationId))
 
@@ -203,7 +199,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val applicationId = UUID.randomUUID()
       val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
 
-      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), headerCarrierCaptor.capture(), any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
+      when(mockHttpClient.POSTEmpty[HttpResponse](eqTo(expectedUrl), *)(*, headerCarrierCaptor.capture(), *)).thenReturn(successful(HttpResponse(NO_CONTENT)))
 
       await(connector.deleteApplication(applicationId))
 
@@ -214,7 +210,7 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val applicationId = UUID.randomUUID()
       val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
 
-      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), any(), any()))
+      when(mockHttpClient.POSTEmpty[HttpResponse](eqTo(expectedUrl), *)(*, *, *))
         .thenReturn(successful(HttpResponse(BAD_REQUEST)))
 
       val response = await(connector.deleteApplication(applicationId))
