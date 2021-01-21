@@ -34,14 +34,28 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
                                            mongo: ReactiveMongoComponent)
   extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, mongo) {
 
-  def batchFutures[I](fn: I => Future[Unit])(input: Seq[I])(implicit ec: ExecutionContext): Future[Unit] = {
-    input.splitAt(20) match {
+  import scala.concurrent._
+
+  def sequentialFutures[I](fn: I => Future[Unit])(input: List[I])(implicit ec: ExecutionContext): Future[Unit] = input match {
+    case Nil => Future.successful(())
+    case head :: tail => 
+      fn(head)
+      .recover {
+        case NonFatal(e) => ()
+      }
+      .flatMap(_ => sequentialFutures(fn)(tail))
+  }
+
+  def batchFutures[I](batchSize: Int, batchPause: Long, fn: I => Future[Unit])(input: Seq[I])(implicit ec: ExecutionContext): Future[Unit] = {
+    input.splitAt(batchSize) match {
       case (Nil, Nil) => Future.successful(())
       case (doNow: Seq[I], doLater: Seq[I]) => 
-        Future.sequence(doNow.map(fn)).flatMap( _ => {
-          logDebug("Done batch of items")
-          batchFutures(fn)(doLater)
-        })
+        Future.sequence(doNow.map(fn)).flatMap( _ => 
+          Future(
+            blocking({logDebug("Done batch of items"); Thread.sleep(batchPause)})
+          )
+          .flatMap(_ => batchFutures(batchSize, batchPause, fn)(doLater))
+        )
     }
   }
 
@@ -69,7 +83,7 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
     for {
       applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment)
       _ = logInfo(s"Found [${applicationsToDelete.size}] applications to delete")
-      _ <- batchFutures(deleteApplication)(applicationsToDelete)
+      _ <- sequentialFutures(deleteApplication)(applicationsToDelete)
     } yield RunningOfJobSuccessful
   }
 }
