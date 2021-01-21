@@ -85,4 +85,6 @@ trait PrefixLogger {
   def logInfo(message: String) = logger.info(s"$logPrefix $message")
   def logWarn(message: String) = logger.warn(s"$logPrefix $message")
   def logError(message: String) = logger.error(s"$logPrefix $message")
+  def logWarn(message: String, error: => Throwable) = logger.warn(s"$logPrefix $message", error)
+  def logError(message: String, error: => Throwable) = logger.error(s"$logPrefix $message", error)
 }
