@@ -86,7 +86,7 @@ class ThirdPartyApplicationConnectorSpec
           .willReturn(
             aResponse()
               .withStatus(OK)
-              .withBody(Json.toJson(applicationResponses).toString)
+              .withJsonBody(applicationResponses)
           )
       )
 
@@ -185,7 +185,7 @@ class ThirdPartyApplicationConnectorSpec
           .willReturn(
             aResponse()
               .withStatus(OK)
-              .withBody(Json.toJson(paginatedResponse(List(oldApplication1, oldApplication2))).toString)
+              .withJsonBody(paginatedResponse(List(oldApplication1, oldApplication2)))
           )
       )
 
@@ -210,7 +210,7 @@ class ThirdPartyApplicationConnectorSpec
           .willReturn(
             aResponse()
               .withStatus(OK)
-              .withBody(Json.toJson(paginatedResponse(List.empty)).toString)
+              .withJsonBody(paginatedResponse(List.empty))
           )
       )
 
