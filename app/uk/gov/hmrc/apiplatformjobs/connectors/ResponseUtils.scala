@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.models
+package uk.gov.hmrc.apiplatformjobs.connectors
 
-import play.api.libs.json.Json
-import java.{util => ju}
+import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.http.HttpResponse
 
-case class ApplicationId(value: ju.UUID) extends AnyVal
+trait RepsonseUtils {
 
-object ApplicationId {
-  implicit val userIdFormat = Json.valueFormat[ApplicationId]
+  type ErrorOr[T] = Either[UpstreamErrorResponse, T]
 
-  def random: ApplicationId = ApplicationId(ju.UUID.randomUUID())
+  def mapOrThrow[T](fn: HttpResponse => T)(response: ErrorOr[HttpResponse]) : T = response match {
+    case Left(err) => throw err
+    case Right(r) => fn(r)
+  }
+
+  def statusOrThrow = mapOrThrow(_.status) _
 }

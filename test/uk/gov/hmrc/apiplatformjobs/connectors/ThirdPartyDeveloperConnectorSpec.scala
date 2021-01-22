@@ -18,50 +18,70 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import org.joda.time.DateTime
 import play.api.http.Status.OK
-import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.{formatDeleteDeveloperRequest, formatDeleteUnregisteredDevelopersRequest}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.time.DateTimeUtils.now
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.concurrent.Future.successful
-
-import uk.gov.hmrc.http.HttpReads.Implicits
-
+import com.github.tomakehurst.wiremock.client.WireMock._
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.http.Status._
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 
-class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
+class ThirdPartyDeveloperConnectorSpec 
+    extends AsyncHmrcSpec 
+    with GuiceOneAppPerSuite 
+    with WiremockSugar {
 
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder()
+      .configure("metrics.jvm" -> false)
+      .build()
+      
   trait Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val mockHttp: HttpClient = mock[HttpClient]
-    val baseUrl = "http://third-party-developer"
-    val config = ThirdPartyDeveloperConnectorConfig(baseUrl)
+    val httpClient = app.injector.instanceOf[HttpClient]
+    
+    val config = ThirdPartyDeveloperConnectorConfig(wireMockUrl)
     val devEmail = "joe.bloggs@example.com"
-    def endpoint(path: String) = s"$baseUrl/$path"
+    def endpoint(path: String) = s"$wireMockUrl/$path"
 
-    val connector = new ThirdPartyDeveloperConnector(config, mockHttp)
+    val connector = new ThirdPartyDeveloperConnector(config, httpClient)
   }
 
   "fetchUnverifiedDevelopers" should {
     val limit = 10
     "return developer emails" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers")),
-        eqTo(Seq("createdBefore" -> "20200201", "limit" -> s"$limit", "status" -> "UNVERIFIED")))(*, *, *))
-        .thenReturn(successful(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = false))))
 
+      stubFor(
+        get(urlPathEqualTo("/developers"))
+        .withQueryParam("createdBefore", equalTo("20200201"))
+        .withQueryParam("limit", equalTo(s"${limit}"))
+        .withQueryParam("status", equalTo("UNVERIFIED"))
+        .willReturn(
+          aResponse()
+          .withStatus(OK)
+          .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = false)))
+        )
+      )
       val result: Seq[String] = await(connector.fetchUnverifiedDevelopers(new DateTime(2020, 2, 1, 0, 0), limit))
 
       result shouldBe Seq(devEmail)
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers")), *)(*, *, *)).thenReturn(Future.failed(new NotFoundException("")))
-
-      intercept[NotFoundException] {
+      stubFor(
+        get(urlEqualTo("/developers"))
+        .willReturn(
+          aResponse()
+          .withStatus(NOT_FOUND)
+        )
+      )
+      intercept[UpstreamErrorResponse] {
         await(connector.fetchUnverifiedDevelopers(now, limit))
       }
     }
@@ -69,18 +89,29 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
 
   "fetchAllDevelopers" should {
     "return all developer emails" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers")))(*, *, *))
-        .thenReturn(successful(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = true))))
-
+      stubFor(
+        get(urlEqualTo("/developers"))
+        .willReturn(
+          aResponse()
+          .withStatus(OK)
+          .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = true)))
+        )
+      )
       val result: Seq[String] = await(connector.fetchAllDevelopers)
 
       result shouldBe Seq(devEmail)
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[DeveloperResponse]](eqTo(endpoint("developers"))) (*, *, *)).thenReturn(Future.failed(new NotFoundException("")))
+      stubFor(
+        get(urlEqualTo("/developers"))
+        .willReturn(
+          aResponse()
+          .withStatus(NOT_FOUND)
+        )
+      )   
 
-      intercept[NotFoundException] {
+      intercept[UpstreamErrorResponse] {
         await(connector.fetchAllDevelopers)
       }
     }
@@ -90,18 +121,31 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
   "fetchExpiredUnregisteredDevelopers" should {
     val limit = 10
     "return developer emails" in new Setup {
-      when(mockHttp.GET[Seq[UnregisteredDeveloperResponse]](eqTo(endpoint("unregistered-developer/expired")), eqTo(Seq("limit" -> s"$limit")))(*, *, *))
-        .thenReturn(successful(Seq(UnregisteredDeveloperResponse(devEmail))))
-
+      stubFor(
+        get(urlPathEqualTo("/unregistered-developer/expired"))
+        .withQueryParam("limit", equalTo(s"${limit}"))
+        .willReturn(
+          aResponse()
+          .withStatus(OK)
+          .withJsonBody(Seq(UnregisteredDeveloperResponse(devEmail)))
+        )
+      )   
       val result: Seq[String] = await(connector.fetchExpiredUnregisteredDevelopers(limit))
 
       result shouldBe Seq(devEmail)
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.GET[Seq[UnregisteredDeveloperResponse]](eqTo(endpoint("unregistered-developer/expired")), *)(*, *, *)).thenReturn(Future.failed(new NotFoundException("")))
+      stubFor(
+        get(urlPathEqualTo("/unregistered-developer/expired"))
+        .withQueryParam("limit", equalTo(s"${limit}"))
+        .willReturn(
+          aResponse()
+          .withStatus(NOT_FOUND)
+        )
+      )
 
-      intercept[NotFoundException] {
+      intercept[UpstreamErrorResponse] {
         await(connector.fetchExpiredUnregisteredDevelopers(limit))
       }
     }
@@ -114,15 +158,20 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
       val verifiedUserLastName = "Bloggs"
       val unverifiedUserEmail = "bar@baz.com"
 
-      when(mockHttp.POST[JsValue, Seq[DeveloperResponse]](
-        eqTo(endpoint("developers/get-by-emails")),
-        eqTo(Json.toJson(Seq(verifiedUserEmail, unverifiedUserEmail))),
-        *)(*, *, *, *))
-        .thenReturn(
-          successful(
+      stubFor(
+        post(urlEqualTo("/developers/get-by-emails"))
+        .withJsonRequestBody(Seq(verifiedUserEmail, unverifiedUserEmail))
+        .willReturn(
+          aResponse()
+          .withStatus(OK)
+          .withJsonBody(
             Seq(
               DeveloperResponse(verifiedUserEmail, verifiedUserFirstName, verifiedUserLastName, verified = true),
-              DeveloperResponse(unverifiedUserEmail, "", "", verified = false))))
+              DeveloperResponse(unverifiedUserEmail, "", "", verified = false)
+            )
+          )
+        )
+      )
 
       val result = await(connector.fetchVerifiedDevelopers(Set(verifiedUserEmail, unverifiedUserEmail)))
 
@@ -132,13 +181,16 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
     "propagate error when endpoint returns error" in new Setup {
       val verifiedUserEmail = "foo@baz.com"
       val unverifiedUserEmail = "bar@baz.com"
-      when(mockHttp.POST[JsValue, Seq[DeveloperResponse]](
-        eqTo(endpoint("developers/get-by-emails")),
-        eqTo(Json.toJson(Seq(verifiedUserEmail, unverifiedUserEmail))),
-        *)(*, *, *, *))
-        .thenReturn(Future.failed(new BadRequestException("")))
 
-      intercept[BadRequestException] {
+      stubFor(
+        post(urlEqualTo("/developers/get-by-emails"))
+        .withJsonRequestBody(Seq(verifiedUserEmail, unverifiedUserEmail))
+        .willReturn(
+          aResponse()
+          .withStatus(BAD_REQUEST)
+        )
+      )
+      intercept[UpstreamErrorResponse] {
         await(connector.fetchVerifiedDevelopers(Set(verifiedUserEmail, unverifiedUserEmail)))
       }
     }
@@ -146,17 +198,33 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
 
   "deleteDeveloper" should {
     "delete developer" in new Setup {
-      when(mockHttp.POST(endpoint("developer/delete?notifyDeveloper=false"), DeleteDeveloperRequest(devEmail))).thenReturn(successful(HttpResponse(OK)))
+      stubFor(
+        post(urlPathEqualTo("/developer/delete"))
+        .withQueryParam("notifyDeveloper", equalTo("false"))
+        .withJsonRequestBody(DeleteDeveloperRequest(devEmail))
+        .willReturn(
+          aResponse()
+          .withStatus(OK)
+        )
+      )
 
-      val result: Int = await(connector.deleteDeveloper(devEmail))
+      val result = await(connector.deleteDeveloper(devEmail))
 
       result shouldBe OK
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.POST(endpoint("developer/delete?notifyDeveloper=false"), DeleteDeveloperRequest(devEmail))).thenReturn(Future.failed(new NotFoundException("")))
+      stubFor(
+        post(urlPathEqualTo("/developer/delete"))
+        .withQueryParam("notifyDeveloper", equalTo("false"))
+        .withJsonRequestBody(DeleteDeveloperRequest(devEmail))
+        .willReturn(
+          aResponse()
+          .withStatus(INTERNAL_SERVER_ERROR)
+        )
+      )
 
-      intercept[NotFoundException] {
+      intercept[UpstreamErrorResponse] {
         await(connector.deleteDeveloper(devEmail))
       }
     }
@@ -164,17 +232,29 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec {
 
   "deleteUnregisteredDeveloper" should {
     "delete unregistered developer" in new Setup {
-      when(mockHttp.POST(endpoint("unregistered-developer/delete"), DeleteUnregisteredDevelopersRequest(Seq(devEmail)))).thenReturn(successful(HttpResponse(OK)))
-
+      stubFor(
+        post(urlEqualTo("/unregistered-developer/delete"))
+        .withJsonRequestBody(DeleteUnregisteredDevelopersRequest(Seq(devEmail)))
+        .willReturn(
+          aResponse()
+          .withStatus(OK)
+        )
+      )
       val result: Int = await(connector.deleteUnregisteredDeveloper(devEmail))
 
       result shouldBe OK
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttp.POST(endpoint("unregistered-developer/delete"), DeleteUnregisteredDevelopersRequest(Seq(devEmail)))).thenReturn(Future.failed(new NotFoundException("")))
-
-      intercept[NotFoundException] {
+      stubFor(
+        post(urlEqualTo("/unregistered-developer/delete"))
+        .withJsonRequestBody(DeleteUnregisteredDevelopersRequest(Seq(devEmail)))
+        .willReturn(
+          aResponse()
+          .withStatus(NOT_FOUND)
+        )
+      )
+      intercept[UpstreamErrorResponse] {
         await(connector.deleteUnregisteredDeveloper(devEmail))
       }
     }

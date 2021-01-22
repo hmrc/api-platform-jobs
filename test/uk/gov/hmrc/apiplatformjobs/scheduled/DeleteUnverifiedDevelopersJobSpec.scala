@@ -38,11 +38,13 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSupp
   val FixedTimeNow: DateTime = HmrcTime.now
 
   override def beforeAll(): Unit = {
+    super.beforeAll()
     DateTimeUtils.setCurrentMillisFixed(FixedTimeNow.toDate.getTime)
   }
 
   override  def afterAll() : Unit = {
     DateTimeUtils.setCurrentMillisSystem()
+    super.afterAll()
   }
 
   trait Setup {

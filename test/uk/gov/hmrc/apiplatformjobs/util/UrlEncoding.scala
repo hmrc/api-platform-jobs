@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.models
+package uk.gov.hmrc.apiplatformjobs.util
 
-import play.api.libs.json.Json
-import java.{util => ju}
+import java.net.URLEncoder
 
-case class ApplicationId(value: ju.UUID) extends AnyVal
-
-object ApplicationId {
-  implicit val userIdFormat = Json.valueFormat[ApplicationId]
-
-  def random: ApplicationId = ApplicationId(ju.UUID.randomUUID())
+trait UrlEncoding {
+  def encode(str: String) = URLEncoder.encode(str, "UTF-8")
 }

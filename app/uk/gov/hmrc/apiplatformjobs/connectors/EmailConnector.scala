@@ -27,8 +27,11 @@ import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
+import uk.gov.hmrc.http.HttpReads.Implicits._
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import uk.gov.hmrc.http.HttpErrorFunctions
 
 case class SendEmailRequest(to: Set[String],
                             templateId: String,
@@ -42,7 +45,7 @@ object SendEmailRequest {
 }
 
 @Singleton
-class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) {
+class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) extends RepsonseUtils {
   val serviceUrl = config.baseUrl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
@@ -68,18 +71,18 @@ class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(impl
     }
 
     httpClient.POST[SendEmailRequest, HttpResponse](url, payload)
-      .map { response =>
-        Logger.info(s"Sent '${payload.templateId}' to: ${payload.to.mkString(",")} with response: ${response.status}")
-        response.status match {
-          case status if status >= 200 && status <= 299 => true
-          case NOT_FOUND =>
-            Logger.error(s"Unable to send email. Downstream endpoint not found: $url")
-            false
-          case _ =>
-            Logger.error(extractError(response))
-            false
-        }
+    .map { response =>
+      Logger.info(s"Sent '${payload.templateId}' to: ${payload.to.mkString(",")} with response: ${response.status}")
+      response.status match {
+        case status if HttpErrorFunctions.is2xx(status) => true
+        case NOT_FOUND =>
+          Logger.error(s"Unable to send email. Downstream endpoint not found: $url")
+          false
+        case _ =>
+          Logger.error(extractError(response))
+          false
       }
+    }
   }
 }
 

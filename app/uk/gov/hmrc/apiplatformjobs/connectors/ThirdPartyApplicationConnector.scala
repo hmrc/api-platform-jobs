@@ -26,7 +26,7 @@ import javax.inject.{Inject, Singleton}
 import org.apache.commons.codec.binary.Base64.encodeBase64String
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
-import play.api.http.Status
+import play.api.http.Status._
 import play.api.http.HeaderNames.CONTENT_LENGTH
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationResponse, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig, toDomain}
@@ -34,6 +34,7 @@ import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationId
@@ -41,6 +42,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.model.FixCollaboratorRequest
 import uk.gov.hmrc.apiplatformjobs.models.Application
 import play.api.libs.json.Json
 import play.api.Logger
+import scala.util.control.NonFatal
 
 class ThirdPartyApplicationConnectorModule extends AbstractModule {
   override def configure(): Unit = {
@@ -49,7 +51,7 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
   }
 }
 
-abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) {
+abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends RepsonseUtils {
   val ISODateFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
   protected val httpClient: HttpClient
@@ -66,12 +68,13 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
 
   def fixCollaborator(applicationId: ApplicationId, collaboratorRequest: FixCollaboratorRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
-    http.PUT[FixCollaboratorRequest, HttpResponse](s"$serviceBaseUrl/application/${applicationId.value.toString}/collaborator", collaboratorRequest, Seq.empty)
-    .map(_ => ())
-    .recover {
-      case Upstream4xxResponse(_,409,_,_) => 
+    http.PUT[FixCollaboratorRequest, ErrorOr[Unit]](s"$serviceBaseUrl/application/${applicationId.value.toString}/collaborator", collaboratorRequest, Seq.empty)
+    .map {
+      case Right(_) =>         Future.successful(())
+      case Left(UpstreamErrorResponse(_, CONFLICT, _, _)) => 
         Logger.warn(s"Conflict for $applicationId, $collaboratorRequest")
         Future.successful(())
+      case Left(err) => throw err
     }
   }
 
@@ -80,8 +83,8 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   }
 
   def removeCollaborator(applicationId: String, emailAddress: String)(implicit hc: HeaderCarrier): Future[Int] = {
-    http.DELETE[HttpResponse](s"$serviceBaseUrl/application/$applicationId/collaborator/${urlEncode(emailAddress)}?notifyCollaborator=false&adminsToEmail=")
-      .map(_.status)
+    http.DELETE[ErrorOr[HttpResponse]](s"$serviceBaseUrl/application/$applicationId/collaborator/${urlEncode(emailAddress)}?notifyCollaborator=false&adminsToEmail=")
+      .map(statusOrThrow)
   }
 
   def applicationsLastUsedBefore(lastUseDate: DateTime): Future[List[ApplicationUsageDetails]] = {
@@ -96,8 +99,8 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   def deleteApplication(applicationId: UUID): Future[Boolean] = {
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authorisationKey)))
 
-    http.POSTEmpty(s"$serviceBaseUrl/application/${applicationId.toString}/delete", Seq(CONTENT_LENGTH -> "0"))
-      .map(_.status == Status.NO_CONTENT)
+    http.POSTEmpty[HttpResponse](s"$serviceBaseUrl/application/${applicationId.toString}/delete", Seq(CONTENT_LENGTH -> "0"))
+    .map(_.status == NO_CONTENT)
   }
 
   private def urlEncode(str: String, encoding: String = "UTF-8"): String = encode(str, encoding)

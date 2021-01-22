@@ -29,6 +29,7 @@ def testDeps(scope: String) = Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.3" % scope,
   "org.mockito" %% "mockito-scala-scalatest" % "1.7.1" % scope,
   "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-26" % scope,
+  "com.github.tomakehurst" % "wiremock" % "1.58" % scope
 )
 
 lazy val root = (project in file("."))
@@ -48,6 +49,9 @@ lazy val root = (project in file("."))
     libraryDependencies ++= compileDeps ++ testDeps("test"),
     publishingSettings,
     scoverageSettings,
+  )
+  .settings(
+    unmanagedResourceDirectories in Test += baseDirectory.value / "test" / "resources"
   )
   .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
   .disablePlugins(JUnitXmlReportPlugin)
