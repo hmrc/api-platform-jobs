@@ -36,7 +36,7 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
 
   import scala.concurrent._
 
-  def sequentialFutures[I](fn: I => Future[Unit])(input: List[I])(implicit ec: ExecutionContext): Future[Unit] = input match {
+  final def sequentialFutures[I](fn: I => Future[Unit])(input: List[I])(implicit ec: ExecutionContext): Future[Unit] = input match {
     case Nil => Future.successful(())
     case head :: tail => 
       fn(head)
@@ -46,18 +46,20 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
       .flatMap(_ => sequentialFutures(fn)(tail))
   }
 
-  def batchFutures[I](batchSize: Int, batchPause: Long, fn: I => Future[Unit])(input: Seq[I])(implicit ec: ExecutionContext): Future[Unit] = {
-    input.splitAt(batchSize) match {
-      case (Nil, Nil) => Future.successful(())
-      case (doNow: Seq[I], doLater: Seq[I]) => 
-        Future.sequence(doNow.map(fn)).flatMap( _ => 
-          Future(
-            blocking({logDebug("Done batch of items"); Thread.sleep(batchPause)})
-          )
-          .flatMap(_ => batchFutures(batchSize, batchPause, fn)(doLater))
-        )
-    }
-  }
+  // Not required currently. Retain for future reference
+  //
+  // final def batchFutures[I](batchSize: Int, batchPause: Long, fn: I => Future[Unit])(input: Seq[I])(implicit ec: ExecutionContext): Future[Unit] = {
+  //   input.splitAt(batchSize) match {
+  //     case (Nil, Nil) => Future.successful(())
+  //     case (doNow: Seq[I], doLater: Seq[I]) => 
+  //       Future.sequence(doNow.map(fn)).flatMap( _ => 
+  //         Future(
+  //           blocking({logDebug("Done batch of items"); Thread.sleep(batchPause)})
+  //         )
+  //         .flatMap(_ => batchFutures(batchSize, batchPause, fn)(doLater))
+  //       )
+  //   }
+  // }
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def deleteApplication(application: UnusedApplication): Future[Unit] = {
