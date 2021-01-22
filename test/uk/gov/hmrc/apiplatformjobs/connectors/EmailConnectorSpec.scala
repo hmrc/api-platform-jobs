@@ -21,28 +21,36 @@ import java.util.UUID
 import org.joda.time.{DateTime, LocalDate}
 import play.api.http.Status._
 import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApplication}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import com.github.tomakehurst.wiremock.client.WireMock._
 
-class EmailConnectorSpec extends AsyncHmrcSpec {
+import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.Application
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import uk.gov.hmrc.apiplatformjobs.util.UrlEncoding
+
+class EmailConnectorSpec
+  extends AsyncHmrcSpec
+  with RepsonseUtils
+  with GuiceOneAppPerSuite
+  with WiremockSugar
+  with UrlEncoding {
+
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder()
+      .configure("metrics.jvm" -> false)
+      .build()
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
-  private val baseUrl = s"http://example.com"
 
   trait Setup {
-    val mockHttpClient = mock[HttpClient]
-    val config = EmailConfig(baseUrl)
-    val connector = new EmailConnector(mockHttpClient, config)
-
-    val expectedUrl = s"${config.baseUrl}/hmrc/email"
-
-    def verifyEmailServiceCalled(request: SendEmailRequest) = {
-      verify(mockHttpClient).POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), eqTo(request), *)(*, *, *, *)
-    }
+    val http = app.injector.instanceOf[HttpClient]
+    val config = EmailConfig(wireMockUrl)
+    val connector = new EmailConnector(http, config)
   }
 
   trait ApplicationToBeDeletedNotificationDetails {
@@ -83,12 +91,6 @@ class EmailConnectorSpec extends AsyncHmrcSpec {
 
   "emailConnector" should {
     "send unused application to be deleted email" in new Setup with ApplicationToBeDeletedNotificationDetails {
-
-      when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *)).thenReturn(Future(HttpResponse(OK)))
-
-      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName))
-
-      successful should be (true)
       val expectedToEmails = Set(adminEmail)
       val expectedParameters: Map[String, String] = Map(
         "userFirstName" -> userFirstName,
@@ -98,22 +100,46 @@ class EmailConnectorSpec extends AsyncHmrcSpec {
         "timeSinceLastUse" -> timeSinceLastUse,
         "dateOfScheduledDeletion" -> expectedDeletionDateString
       )
-      verifyEmailServiceCalled(SendEmailRequest(expectedToEmails, expectedTemplateId, expectedParameters))
+ 
+      stubFor(
+        post(urlPathEqualTo("/hmrc/email"))
+          .withJsonRequestBody(SendEmailRequest(expectedToEmails, expectedTemplateId, expectedParameters))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+          )
+      )
+
+      val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName))
+
+      successful should be (true)
     }
 
     "return true if any notification succeeds" in new Setup with ApplicationToBeDeletedNotificationDetails {
-      when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *))
-        .thenReturn(Future(HttpResponse(OK)))
-        .andThen(Future(HttpResponse(NOT_FOUND)))
-
+      stubFor(
+        post(urlPathEqualTo("/hmrc/email"))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+          )
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+          )      
+      )
       val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
       successful should be (true)
     }
 
     "return false if all notifications fail" in new Setup with ApplicationToBeDeletedNotificationDetails {
-      when(mockHttpClient.POST[SendEmailRequest, HttpResponse](eqTo(expectedUrl), *, *)(*, *, *, *)).thenReturn(Future(HttpResponse(NOT_FOUND)))
-
+      stubFor(
+        post(urlPathEqualTo("/hmrc/email"))
+          .willReturn(
+            aResponse()
+              .withStatus(NOT_FOUND)
+          )
+      )
       val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
       successful should be (false)
