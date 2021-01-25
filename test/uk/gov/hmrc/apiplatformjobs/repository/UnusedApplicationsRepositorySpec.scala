@@ -32,6 +32,8 @@ import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
+import scala.concurrent.duration._
+import scala.concurrent.Await
 
 class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   with MongoSpecSupport
@@ -48,12 +50,15 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   private val unusedApplicationRepository = new UnusedApplicationsRepository(reactiveMongoComponent)
 
   override def beforeEach() {
+    super.beforeEach()
     await(unusedApplicationRepository.drop)
     await(unusedApplicationRepository.ensureIndexes)
   }
 
   override protected def afterAll() {
+    super.afterAll()
     await(unusedApplicationRepository.drop)
+    Await.ready(s.terminate, 5.seconds)
   }
 
   trait Setup {

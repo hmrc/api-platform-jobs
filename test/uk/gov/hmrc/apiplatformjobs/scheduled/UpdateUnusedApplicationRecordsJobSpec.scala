@@ -19,12 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.util.UUID
 
 import org.joda.time.{DateTime, DateTimeUtils, LocalDate}
-import org.mockito.Mockito.{times, verify, verifyNoInteractions, when}
-import org.mockito.{ArgumentCaptor, ArgumentMatchersSugar}
-import org.scalatest.Matchers._
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
-import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.MultiBulkWriteResult
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
@@ -36,9 +30,10 @@ import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import org.mockito.ArgumentCaptor
 
-class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
-  with UnusedApplicationTestConfiguration with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport with FutureAwaits with DefaultAwaitTimeout {
+class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with MongoSpecSupport {
 
   val BaselineTime = DateTime.now.getMillis
   DateTimeUtils.setCurrentMillisFixed(BaselineTime)
@@ -105,7 +100,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
 
       val calculatedCutoffDate = underTest.notificationCutoffDate()
 
-      calculatedCutoffDate.getMillis must be (expectedCutoffDate.getMillis)
+      calculatedCutoffDate.getMillis shouldBe (expectedCutoffDate.getMillis)
     }
   }
 
@@ -116,7 +111,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
 
       val calculatedNotificationDates = underTest.calculateNotificationDates(scheduledDeletionDate)
 
-      calculatedNotificationDates must contain allElementsOf (expectedNotificationDates)
+      calculatedNotificationDates should contain allElementsOf (expectedNotificationDates)
     }
   }
 
@@ -127,7 +122,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
 
       val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
 
-      calculatedDeletionDate must be (expectedDeletionDate)
+      calculatedDeletionDate shouldBe (expectedDeletionDate)
     }
   }
 
@@ -148,13 +143,13 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       await(underTest.runJob)
 
       val capturedInsertValue = insertCaptor.getValue
-      capturedInsertValue.size must be (1)
+      capturedInsertValue.size shouldBe (1)
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId must be (applicationWithLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName must be (applicationWithLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment must be (Environment.SANDBOX)
+      unusedApplicationRecord.applicationId shouldBe (applicationWithLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName shouldBe (applicationWithLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment shouldBe (Environment.SANDBOX)
 
-      verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
+      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
     }
 
     "add newly discovered unused applications with no last used dates to database" in new SandboxJobSetup {
@@ -172,13 +167,13 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       await(underTest.runJob)
 
       val capturedInsertValue = insertCaptor.getValue
-      capturedInsertValue.size must be (1)
+      capturedInsertValue.size shouldBe (1)
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId must be (applicationWithoutLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment must be (SANDBOX)
+      unusedApplicationRecord.applicationId shouldBe (applicationWithoutLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName shouldBe (applicationWithoutLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment shouldBe (SANDBOX)
 
-      verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
+      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
     }
 
     "not persist application details already stored in database" in new SandboxJobSetup {
@@ -192,8 +187,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       await(underTest.runJob)
 
       verify(mockUnusedApplicationsRepository, times(0)).bulkInsert(*)(*)
-      verifyNoInteractions(mockThirdPartyDeveloperConnector)
-      verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
+
+      verifyZeroInteractions(mockThirdPartyDeveloperConnector)
+      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
     }
 
     "remove applications that have been updated since last run" in new SandboxJobSetup {
@@ -209,8 +205,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(SANDBOX, application._2.applicationId)
 
       verify(mockUnusedApplicationsRepository, times(0)).bulkInsert(*)(*)
-      verifyNoInteractions(mockThirdPartyDeveloperConnector)
-      verifyNoInteractions(mockProductionThirdPartyApplicationConnector)
+
+      verifyZeroInteractions(mockThirdPartyDeveloperConnector)
+      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
     }
 
   }
@@ -232,13 +229,13 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       await(underTest.runJob)
 
       val capturedInsertValue = insertCaptor.getValue
-      capturedInsertValue.size must be (1)
+      capturedInsertValue.size shouldBe (1)
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId must be (applicationWithLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName must be (applicationWithLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment must be (PRODUCTION)
+      unusedApplicationRecord.applicationId shouldBe (applicationWithLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName shouldBe (applicationWithLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment shouldBe (PRODUCTION)
 
-      verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
+      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
     }
 
     "add newly discovered unused applications with no last used dates to database" in new ProductionJobSetup {
@@ -256,13 +253,13 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       await(underTest.runJob)
 
       val capturedInsertValue = insertCaptor.getValue
-      capturedInsertValue.size must be (1)
+      capturedInsertValue.size shouldBe (1)
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId must be (applicationWithoutLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName must be (applicationWithoutLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment must be (Environment.PRODUCTION)
+      unusedApplicationRecord.applicationId shouldBe (applicationWithoutLastUseDate._1.applicationId)
+      unusedApplicationRecord.applicationName shouldBe (applicationWithoutLastUseDate._1.applicationName)
+      unusedApplicationRecord.environment shouldBe (Environment.PRODUCTION)
 
-      verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
+      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
     }
 
     "not persist application details already stored in database" in new ProductionJobSetup {
@@ -276,8 +273,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       await(underTest.runJob)
 
       verify(mockUnusedApplicationsRepository, times(0)).bulkInsert(*)(*)
-      verifyNoInteractions(mockThirdPartyDeveloperConnector)
-      verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
+
+      verifyZeroInteractions(mockThirdPartyDeveloperConnector)
+      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
     }
 
     "remove applications that have been updated since last run" in new ProductionJobSetup {
@@ -293,8 +291,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends PlaySpec
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(PRODUCTION, application._2.applicationId)
 
       verify(mockUnusedApplicationsRepository, times(0)).bulkInsert(*)(*)
-      verifyNoInteractions(mockThirdPartyDeveloperConnector)
-      verifyNoInteractions(mockSandboxThirdPartyApplicationConnector)
+
+      verifyZeroInteractions(mockThirdPartyDeveloperConnector)
+      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
     }
   }
 

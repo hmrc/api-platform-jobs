@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import play.api.libs.json.{Format, JsValue, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
 import uk.gov.hmrc.http._
@@ -29,9 +29,10 @@ import play.api.http.HeaderNames._
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
-
+import uk.gov.hmrc.http.HttpReads.Implicits._
+  
 @Singleton
-class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) {
+class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) extends RepsonseUtils {
 
   val dateFormatter = ISODateTimeFormat.basicDate()
   
@@ -51,25 +52,29 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
   }
 
   def fetchExpiredUnregisteredDevelopers(limit: Int)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
-    http.GET[Seq[UnregisteredDeveloperResponse]](s"${config.baseUrl}/unregistered-developer/expired", Seq("limit" -> limit.toString)).map(_.map(_.email))
+    http.GET[Seq[UnregisteredDeveloperResponse]](s"${config.baseUrl}/unregistered-developer/expired", Seq("limit" -> limit.toString))
+    .map(_.map(_.email))
   }
 
   def fetchVerifiedDevelopers(emailAddresses: Set[String]): Future[Seq[(String, String, String)]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     for {
-      developerDetails <- http.POST[JsValue, Seq[DeveloperResponse]](s"${config.baseUrl}/developers/get-by-emails", Json.toJson(emailAddresses.toSeq))
+      developerDetails <- http.POST[Seq[String], Seq[DeveloperResponse]](s"${config.baseUrl}/developers/get-by-emails", emailAddresses.toSeq)
       verifiedDevelopers = developerDetails.filter(_.verified)
     } yield verifiedDevelopers.map(dev => (dev.email, dev.firstName, dev.lastName))
   }
 
   def deleteDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
-    http.POST(s"${config.baseUrl}/developer/delete?notifyDeveloper=false", DeleteDeveloperRequest(email)).map(_.status)
+    http.POST[DeleteDeveloperRequest,ErrorOr[HttpResponse]](s"${config.baseUrl}/developer/delete?notifyDeveloper=false", DeleteDeveloperRequest(email))
+    .map(statusOrThrow)
   }
 
   def deleteUnregisteredDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
-    http.POST(s"${config.baseUrl}/unregistered-developer/delete", DeleteUnregisteredDevelopersRequest(Seq(email))).map(_.status)
+    http.POST[DeleteUnregisteredDevelopersRequest,ErrorOr[HttpResponse]](s"${config.baseUrl}/unregistered-developer/delete", DeleteUnregisteredDevelopersRequest(Seq(email)))
+    .map(statusOrThrow)
   }
+
 
 }
 
@@ -81,6 +86,7 @@ object ThirdPartyDeveloperConnector {
   case class ThirdPartyDeveloperConnectorConfig(baseUrl: String)
 
   object JsonFormatters {
+    import play.api.libs.json.Format
     implicit val formatDeleteDeveloperRequest: Format[DeleteDeveloperRequest] = Json.format[DeleteDeveloperRequest]
     implicit val formatDeleteUnregisteredDevelopersRequest: Format[DeleteUnregisteredDevelopersRequest] = Json.format[DeleteUnregisteredDevelopersRequest]
     implicit val formatDeveloperResponse: Format[DeveloperResponse] = Json.format[DeveloperResponse]

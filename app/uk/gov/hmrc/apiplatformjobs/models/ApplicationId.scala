@@ -23,4 +23,6 @@ case class ApplicationId(value: ju.UUID) extends AnyVal
 
 object ApplicationId {
   implicit val userIdFormat = Json.valueFormat[ApplicationId]
+
+  def random: ApplicationId = ApplicationId(ju.UUID.randomUUID())
 }

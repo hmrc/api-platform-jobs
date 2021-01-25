@@ -16,78 +16,79 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.util.UUID
-
-import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.Mockito.{verify, when}
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
-import play.api.http.Status.{BAD_REQUEST, NO_CONTENT, OK}
+import play.api.http.Status._
+import play.api.http.HeaderNames._
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
-import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.test.UnitSpec
+
+import com.github.tomakehurst.wiremock.client.WireMock._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.concurrent.Future.successful
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.apiplatformjobs.util.UrlEncoding
+import uk.gov.hmrc.apiplatformjobs.models.ApplicationId
+import org.joda.time.format.DateTimeFormatter
+import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.DateTime
+import java.util.UUID
 import scala.util.Random
+import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 
-class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with MockitoSugar {
 
-  private val baseUrl = "https://example.com"
+class ThirdPartyApplicationConnectorSpec
+  extends AsyncHmrcSpec
+  with RepsonseUtils
+  with GuiceOneAppPerSuite
+  with WiremockSugar
+  with UrlEncoding {
+
+  override def fakeApplication(): Application =
+  GuiceApplicationBuilder()
+    .configure("metrics.jvm" -> false)
+    .build()
 
   class Setup(proxyEnabled: Boolean = false) {
     implicit val hc = HeaderCarrier()
-    protected val mockHttpClient = mock[HttpClient]
-    protected val mockProxiedHttpClient = mock[ProxiedHttpClient]
     val apiKeyTest = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
     val bearer = "TestBearerToken"
     val authorisationKeyTest = "TestAuthorisationKey"
 
-    val connector = new ThirdPartyApplicationConnector {
-      val httpClient = mockHttpClient
-      val proxiedHttpClient = mockProxiedHttpClient
-      val serviceBaseUrl = baseUrl
-      val useProxy = proxyEnabled
-      val bearerToken = "TestBearerToken"
-      val apiKey = apiKeyTest
-      val authorisationKey = authorisationKeyTest
-    }
-  }
+    val mockConfig = mock[ThirdPartyApplicationConnectorConfig]
+    when(mockConfig.applicationProductionBaseUrl).thenReturn(wireMockUrl)
+    when(mockConfig.applicationProductionUseProxy).thenReturn(proxyEnabled)
+    when(mockConfig.applicationProductionBearerToken).thenReturn("TestBearerToken")
+    when(mockConfig.applicationProductionApiKey).thenReturn(apiKeyTest)
+    when(mockConfig.productionAuthorisationKey).thenReturn(authorisationKeyTest)
 
-  "http" when {
-    "configured not to use the proxy" should {
-      "use the HttpClient" in new Setup(proxyEnabled = false) {
-        connector.http shouldBe mockHttpClient
-      }
-    }
-
-    "configured to use the proxy" should {
-      "use the ProxiedHttpClient with the correct authorisation" in new Setup(proxyEnabled = true) {
-        when(mockProxiedHttpClient.withHeaders(bearer, apiKeyTest)).thenReturn(mockProxiedHttpClient)
-
-        connector.http shouldBe mockProxiedHttpClient
-
-        verify(mockProxiedHttpClient).withHeaders(bearer, apiKeyTest)
-      }
-    }
+    val connector = new ProductionThirdPartyApplicationConnector(
+      mockConfig,
+      app.injector.instanceOf[HttpClient],
+      app.injector.instanceOf[ProxiedHttpClient]
+    )
   }
 
   "fetchApplicationsByEmail" should {
+    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatApplicationResponse
+
     val email = "email@example.com"
-    val url = baseUrl + "/developer/applications"
     val applicationResponses = List(ApplicationResponse("app id 1"), ApplicationResponse("app id 2"))
 
     "return application Ids" in new Setup {
-      when(mockHttpClient.GET[Seq[ApplicationResponse]](meq(url), meq(Seq("emailAddress" -> email)))(any(), any(), any()))
-        .thenReturn(Future.successful(applicationResponses))
+      stubFor(
+        get(urlPathEqualTo("/developer/applications"))
+        .withQueryParam("emailAddress", equalTo(encode(email)))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withJsonBody(applicationResponses)
+          )
+      )
 
       val result = await(connector.fetchApplicationsByEmail(email))
 
@@ -96,38 +97,61 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttpClient.GET[Seq[ApplicationResponse]](meq(url), meq(Seq("emailAddress" -> email)))(any(), any(), any()))
-        .thenReturn(Future.failed(new NotFoundException("")))
+      stubFor(
+        get(urlPathEqualTo("/developer/applications"))
+        .withQueryParam("emailAddress", equalTo(encode(email)))
+          .willReturn(
+            aResponse()
+              .withStatus(NOT_FOUND)
+          )
+      )
 
-      intercept[NotFoundException] {
+      intercept[UpstreamErrorResponse] {
         await(connector.fetchApplicationsByEmail(email))
-      }
+      }.statusCode shouldBe NOT_FOUND
     }
   }
 
   "removeCollaborator" should {
-    val appId = "app ID"
-    val email = "email@example.com"
-    val url = baseUrl + s"/application/$appId/collaborator/email%40example.com?notifyCollaborator=false&adminsToEmail="
+    val appId = ApplicationId.random
+    val email = "example.com"
 
     "remove collaborator" in new Setup {
-      when(mockHttpClient.DELETE[HttpResponse](meq(url), any())(any(), any(), any())).thenReturn(successful(HttpResponse(OK)))
+      stubFor(
+        delete(urlPathEqualTo(s"/application/${appId.value}/collaborator/$email"))
+        .withQueryParam("notifyCollaborator", equalTo("false"))
+        .withQueryParam("adminsToEmail", equalTo(""))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+          )
+      )
 
-      val result = await(connector.removeCollaborator(appId, email))
+      val result = await(connector.removeCollaborator(appId.value.toString(), email))
 
       result shouldBe OK
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      when(mockHttpClient.DELETE[HttpResponse](meq(url), any())(any(), any(), any())).thenReturn(Future.failed(new NotFoundException("")))
+      stubFor(
+        delete(urlPathEqualTo(s"/application/${appId.value}/collaborator/$email"))
+        .withQueryParam("notifyCollaborator", equalTo("false"))
+        .withQueryParam("adminsToEmail", equalTo(""))
+          .willReturn(
+            aResponse()
+              .withStatus(INTERNAL_SERVER_ERROR)
+          )
+      )
 
-      intercept[NotFoundException] {
-        await(connector.removeCollaborator(appId, email))
-      }
+      intercept[UpstreamErrorResponse] {
+        await(connector.removeCollaborator(appId.value.toString(), email))
+      }.statusCode shouldBe INTERNAL_SERVER_ERROR
     }
   }
 
   "applicationsLastUsedBefore" should {
+    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatPaginatedApplicationLastUseDate
+
     def paginatedResponse(lastUseDates: List[ApplicationLastUseDate]) =
       PaginatedApplicationLastUseResponse(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
@@ -154,10 +178,16 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
           DateTime.now.minusMonths(12),
           Some(DateTime.now.minusMonths(14)))
 
-      when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
-        meq( s"$baseUrl/applications"),
-        meq(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(any(), any(), any()))
-        .thenReturn(successful(paginatedResponse(List(oldApplication1, oldApplication2))))
+      stubFor(
+        get(urlPathEqualTo("/applications"))
+        .withQueryParam("lastUseBefore", equalTo(encode(dateString)))
+        .withQueryParam("sort", equalTo("NO_SORT"))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withJsonBody(paginatedResponse(List(oldApplication1, oldApplication2)))
+          )
+      )
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
 
@@ -173,10 +203,16 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
       val lastUseDate = DateTime.now.minusMonths(12)
       val dateString: String = dateFormatter.withZoneUTC().print(lastUseDate)
 
-      when(mockHttpClient.GET[PaginatedApplicationLastUseResponse](
-        meq( s"$baseUrl/applications"),
-        meq(Seq("lastUseBefore" -> dateString, "sort" -> "NO_SORT")))(any(), any(), any()))
-        .thenReturn(successful(paginatedResponse(List.empty)))
+      stubFor(
+        get(urlPathEqualTo("/applications"))
+        .withQueryParam("lastUseBefore", equalTo(encode(dateString)))
+        .withQueryParam("sort", equalTo("NO_SORT"))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withJsonBody(paginatedResponse(List.empty))
+          )
+      )
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
 
@@ -186,38 +222,51 @@ class ThirdPartyApplicationConnectorSpec extends UnitSpec with ScalaFutures with
 
   "deleteApplication" should {
     "return true if call to TPA is successful" in new Setup {
-      val applicationId = UUID.randomUUID()
-      val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
+      val applicationId = ApplicationId.random
 
-      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), any(), any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
+      stubFor(
+        post(urlPathEqualTo(s"/application/${applicationId.value}/delete"))
+          .willReturn(
+            aResponse()
+              .withStatus(NO_CONTENT)
+          )
+      )
 
-      val response = await(connector.deleteApplication(applicationId))
+      val response = await(connector.deleteApplication(applicationId.value))
 
       response should be (true)
     }
 
     "include authorisationKey in the authorisation header" in new Setup {
+      val applicationId = ApplicationId.random
+      val authorisationKeyAsItAppearsOnTheWire = connector.authorisationKey
 
-      val headerCarrierCaptor: ArgumentCaptor[HeaderCarrier] = ArgumentCaptor.forClass(classOf[HeaderCarrier])
+      stubFor(
+        post(urlPathEqualTo(s"/application/${applicationId.value}/delete"))
+          .withHeader(AUTHORIZATION, equalTo(authorisationKeyAsItAppearsOnTheWire))
+          .willReturn(
+            aResponse()
+              .withStatus(NO_CONTENT)
+          )
+      )
 
-      val applicationId = UUID.randomUUID()
-      val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
+      val response = await(connector.deleteApplication(applicationId.value))
 
-      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), headerCarrierCaptor.capture(), any())).thenReturn(successful(HttpResponse(NO_CONTENT)))
-
-      await(connector.deleteApplication(applicationId))
-
-      headerCarrierCaptor.getValue.authorization shouldBe Some(Authorization(authorisationKeyTest))
+      response should be (true)
     }
 
     "return false if call to TPA fails" in new Setup {
-      val applicationId = UUID.randomUUID()
-      val expectedUrl = s"$baseUrl/application/${applicationId.toString}/delete"
+      val applicationId = ApplicationId.random
 
-      when(mockHttpClient.POSTEmpty[HttpResponse](meq(expectedUrl), any())(any(), any(), any()))
-        .thenReturn(successful(HttpResponse(BAD_REQUEST)))
+      stubFor(
+        post(urlPathEqualTo(s"/application/${applicationId.value}/delete"))
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_REQUEST)
+          )
+      )
 
-      val response = await(connector.deleteApplication(applicationId))
+      val response = await(connector.deleteApplication(applicationId.value))
 
       response should be (false)
     }

@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.util
+package uk.gov.hmrc.apiplatformjobs.connectors
 
-import org.mockito.{MockitoSugar,ArgumentMatchersSugar}
-import org.scalatest.{Matchers, OptionValues, WordSpec}
-import org.scalatestplus.play.WsScalaTestClient
-import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
+import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.http.HttpResponse
 
-abstract class HmrcSpec extends WordSpec with Matchers with OptionValues with WsScalaTestClient with MockitoSugar with ArgumentMatchersSugar
+trait RepsonseUtils {
 
-abstract class AsyncHmrcSpec
-  extends HmrcSpec with DefaultAwaitTimeout with FutureAwaits {
+  type ErrorOr[T] = Either[UpstreamErrorResponse, T]
+
+  def mapOrThrow[T](fn: HttpResponse => T)(response: ErrorOr[HttpResponse]) : T = response match {
+    case Left(err) => throw err
+    case Right(r) => fn(r)
+  }
+
+  def statusOrThrow = mapOrThrow(_.status) _
 }

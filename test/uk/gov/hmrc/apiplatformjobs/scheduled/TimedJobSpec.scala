@@ -18,16 +18,14 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import com.typesafe.config.ConfigFactory
 import org.joda.time.{DateTime, DateTimeUtils, DateTimeZone, LocalTime}
-import org.mockito.ArgumentMatchersSugar
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatestplus.play.PlaySpec
 import play.api.{Configuration, LoggerLike}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class TimedJobSpec extends PlaySpec with MockitoSugar with ArgumentMatchersSugar with MongoSpecSupport {
+class TimedJobSpec extends AsyncHmrcSpec with MongoSpecSupport {
 
   trait TestJobSetup {
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
@@ -65,7 +63,7 @@ class TimedJobSpec extends PlaySpec with MockitoSugar with ArgumentMatchersSugar
 
       val jobToTest = testJob(futureTime.toString("HH:mm"), "1d")
 
-      jobToTest.initialDelay.toMillis must be (expectedDelay)
+      jobToTest.initialDelay.toMillis shouldBe (expectedDelay)
     }
 
     "correctly calculate time until first run if time is earlier today" in new TestJobSetup with FixedTime {
@@ -74,7 +72,7 @@ class TimedJobSpec extends PlaySpec with MockitoSugar with ArgumentMatchersSugar
 
       val jobToTest = testJob(pastTime.toString("HH:mm"), "1d")
 
-      jobToTest.initialDelay.toMillis must be (expectedDelay)
+      jobToTest.initialDelay.toMillis shouldBe (expectedDelay)
     }
   }
 }
