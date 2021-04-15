@@ -20,7 +20,7 @@ import play.api.http.Status._
 import play.api.http.HeaderNames._
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{UserId => _, _}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -39,6 +39,7 @@ import org.joda.time.DateTime
 import java.util.UUID
 import scala.util.Random
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
+import uk.gov.hmrc.apiplatformjobs.models.UserId
 
 
 class ThirdPartyApplicationConnectorSpec
@@ -73,16 +74,16 @@ class ThirdPartyApplicationConnectorSpec
     )
   }
 
-  "fetchApplicationsByEmail" should {
+  "fetchApplicationsByUserId" should {
     import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatApplicationResponse
 
-    val email = "email@example.com"
+    val userId = UserId.random
     val applicationResponses = List(ApplicationResponse("app id 1"), ApplicationResponse("app id 2"))
 
     "return application Ids" in new Setup {
       stubFor(
         get(urlPathEqualTo("/developer/applications"))
-        .withQueryParam("emailAddress", equalTo(encode(email)))
+        .withQueryParam("developerId", equalTo(userId.asQueryParam))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -90,7 +91,7 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val result = await(connector.fetchApplicationsByEmail(email))
+      val result = await(connector.fetchApplicationsByUserId(userId))
 
       result.size shouldBe 2
       result should contain allOf ("app id 1", "app id 2")
@@ -99,7 +100,7 @@ class ThirdPartyApplicationConnectorSpec
     "propagate error when endpoint returns error" in new Setup {
       stubFor(
         get(urlPathEqualTo("/developer/applications"))
-        .withQueryParam("emailAddress", equalTo(encode(email)))
+        .withQueryParam("developerId", equalTo(userId.asQueryParam))
           .willReturn(
             aResponse()
               .withStatus(NOT_FOUND)
@@ -107,24 +108,27 @@ class ThirdPartyApplicationConnectorSpec
       )
 
       intercept[UpstreamErrorResponse] {
-        await(connector.fetchApplicationsByEmail(email))
+        await(connector.fetchApplicationsByUserId(userId))
       }.statusCode shouldBe NOT_FOUND
     }
   }
 
   "removeCollaborator" should {
+    import ThirdPartyApplicationConnector.DeleteCollaboratorRequest
+    import ThirdPartyApplicationConnector.JsonFormatters._
+
     val appId = ApplicationId.random
     val email = "example.com"
 
     "remove collaborator" in new Setup {
+      val request = DeleteCollaboratorRequest(email, adminsToEmail = Set(), notifyCollaborator = false)
       stubFor(
-        delete(urlPathEqualTo(s"/application/${appId.value}/collaborator/$email"))
-        .withQueryParam("notifyCollaborator", equalTo("false"))
-        .withQueryParam("adminsToEmail", equalTo(""))
-          .willReturn(
-            aResponse()
-              .withStatus(OK)
-          )
+        post(urlPathEqualTo(s"/application/${appId.value}/collaborator/delete"))
+        .withJsonRequestBody(request)
+        .willReturn(
+          aResponse()
+            .withStatus(OK)
+        )
       )
 
       val result = await(connector.removeCollaborator(appId.value.toString(), email))
@@ -134,9 +138,7 @@ class ThirdPartyApplicationConnectorSpec
 
     "propagate error when endpoint returns error" in new Setup {
       stubFor(
-        delete(urlPathEqualTo(s"/application/${appId.value}/collaborator/$email"))
-        .withQueryParam("notifyCollaborator", equalTo("false"))
-        .withQueryParam("adminsToEmail", equalTo(""))
+        post(urlPathEqualTo(s"/application/${appId.value}/collaborator/delete"))
           .willReturn(
             aResponse()
               .withStatus(INTERNAL_SERVER_ERROR)

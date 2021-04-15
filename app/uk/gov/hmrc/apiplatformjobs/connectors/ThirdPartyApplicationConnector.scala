@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.net.URLEncoder.encode
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 
@@ -29,9 +28,9 @@ import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.http.Status._
 import play.api.http.HeaderNames.CONTENT_LENGTH
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationResponse, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig, toDomain}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{UserId => _, _}
 import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.http.HttpReads.Implicits._
@@ -42,7 +41,65 @@ import uk.gov.hmrc.apiplatformjobs.connectors.model.FixCollaboratorRequest
 import uk.gov.hmrc.apiplatformjobs.models.Application
 import play.api.libs.json.Json
 import play.api.Logger
-import scala.util.control.NonFatal
+import uk.gov.hmrc.apiplatformjobs.models.UserId
+
+object ThirdPartyApplicationConnector {
+  def toDomain(applications: List[ApplicationLastUseDate]): List[ApplicationUsageDetails] =
+    applications.map(app => {
+      val admins =
+        app.collaborators
+          .filter(_.role == "ADMINISTRATOR")
+          .map(_.emailAddress)
+
+      ApplicationUsageDetails(app.id, app.name, admins, app.createdOn, app.lastAccess)
+    })
+
+  case class DeleteCollaboratorRequest(
+                                        email: String,
+                                        adminsToEmail: Set[String],
+                                        notifyCollaborator: Boolean
+                                      )
+
+  private[connectors] case class ApplicationResponse(id: String)
+  private[connectors] case class Collaborator(emailAddress: String, role: String)
+  private[connectors] case class ApplicationLastUseDate(id: UUID,
+                                                        name: String,
+                                                        collaborators: Set[Collaborator],
+                                                        createdOn: DateTime,
+                                                        lastAccess: Option[DateTime])
+  private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate],
+                                                                     page: Int,
+                                                                     pageSize: Int,
+                                                                     total: Int,
+                                                                     matching: Int)
+
+  case class ThirdPartyApplicationConnectorConfig(
+    applicationSandboxBaseUrl: String, applicationSandboxUseProxy: Boolean, applicationSandboxBearerToken: String, applicationSandboxApiKey: String, sandboxAuthorisationKey: String,
+    applicationProductionBaseUrl: String, applicationProductionUseProxy: Boolean, applicationProductionBearerToken: String, applicationProductionApiKey: String, productionAuthorisationKey: String
+  )
+
+  object JsonFormatters {
+    import org.joda.time.DateTime
+    import play.api.libs.json.JodaWrites._
+    import play.api.libs.json._
+
+    implicit val dateTimeWriter: Writes[DateTime] = JodaDateTimeNumberWrites
+
+    implicit val dateTimeReader: Reads[DateTime] = {
+      case JsNumber(n) => JsSuccess(new DateTime(n.toLong))
+      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
+    }
+
+    implicit val writesDeleteCollaboratorRequest = Json.writes[DeleteCollaboratorRequest]
+
+    implicit val dateTimeFormat: Format[DateTime] = Format(dateTimeReader, dateTimeWriter)
+
+    implicit val formatApplicationResponse: Format[ApplicationResponse] = Json.format[ApplicationResponse]
+    implicit val formatCollaborator: Format[Collaborator] = Json.format[Collaborator]
+    implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate] = Json.format[ApplicationLastUseDate]
+    implicit val formatPaginatedApplicationLastUseDate: Format[PaginatedApplicationLastUseResponse] = Json.format[PaginatedApplicationLastUseResponse]
+  }
+}
 
 class ThirdPartyApplicationConnectorModule extends AbstractModule {
   override def configure(): Unit = {
@@ -78,12 +135,14 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     }
   }
 
-  def fetchApplicationsByEmail(email: String)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
-    http.GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/applications", Seq("emailAddress" -> email)).map(_.map(_.id))
+  def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
+    http.GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/applications", Seq("developerId" -> userId.asQueryParam))
+    .map(_.map(_.id))
   }
 
-  def removeCollaborator(applicationId: String, emailAddress: String)(implicit hc: HeaderCarrier): Future[Int] = {
-    http.DELETE[ErrorOr[HttpResponse]](s"$serviceBaseUrl/application/$applicationId/collaborator/${urlEncode(emailAddress)}?notifyCollaborator=false&adminsToEmail=")
+  def removeCollaborator(applicationId: String, email: String)(implicit hc: HeaderCarrier): Future[Int] = {
+    val request = DeleteCollaboratorRequest(email = email, adminsToEmail = Set(), notifyCollaborator = false)
+    http.POST[DeleteCollaboratorRequest, ErrorOr[HttpResponse]](s"$serviceBaseUrl/application/$applicationId/collaborator/delete", request)
       .map(statusOrThrow)
   }
 
@@ -101,59 +160,6 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
     http.POSTEmpty[HttpResponse](s"$serviceBaseUrl/application/${applicationId.toString}/delete", Seq(CONTENT_LENGTH -> "0"))
     .map(_.status == NO_CONTENT)
-  }
-
-  private def urlEncode(str: String, encoding: String = "UTF-8"): String = encode(str, encoding)
-}
-
-object ThirdPartyApplicationConnector {
-  def toDomain(applications: List[ApplicationLastUseDate]): List[ApplicationUsageDetails] =
-    applications.map(app => {
-      val admins =
-        app.collaborators
-          .filter(_.role == "ADMINISTRATOR")
-          .map(_.emailAddress)
-
-      ApplicationUsageDetails(app.id, app.name, admins, app.createdOn, app.lastAccess)
-    })
-
-
-  private[connectors] case class ApplicationResponse(id: String)
-  private[connectors] case class Collaborator(emailAddress: String, role: String)
-  private[connectors] case class ApplicationLastUseDate(id: UUID,
-                                                        name: String,
-                                                        collaborators: Set[Collaborator],
-                                                        createdOn: DateTime,
-                                                        lastAccess: Option[DateTime])
-  private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate],
-                                                                     page: Int,
-                                                                     pageSize: Int,
-                                                                     total: Int,
-                                                                     matching: Int)
-
-  case class ThirdPartyApplicationConnectorConfig(
-    applicationSandboxBaseUrl: String, applicationSandboxUseProxy: Boolean, applicationSandboxBearerToken: String, applicationSandboxApiKey: String, sandboxAuthorisationKey: String,
-    applicationProductionBaseUrl: String, applicationProductionUseProxy: Boolean, applicationProductionBearerToken: String, applicationProductionApiKey: String, productionAuthorisationKey: String
-  )
-
-  object JsonFormatters {
-    import org.joda.time.DateTime
-    import play.api.libs.json.JodaWrites._
-    import play.api.libs.json._
-
-    implicit val dateTimeWriter: Writes[DateTime] = JodaDateTimeNumberWrites
-
-    implicit val dateTimeReader: Reads[DateTime] = {
-      case JsNumber(n) => JsSuccess(new DateTime(n.toLong))
-      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
-    }
-
-    implicit val dateTimeFormat: Format[DateTime] = Format(dateTimeReader, dateTimeWriter)
-
-    implicit val formatApplicationResponse: Format[ApplicationResponse] = Json.format[ApplicationResponse]
-    implicit val formatCollaborator: Format[Collaborator] = Json.format[Collaborator]
-    implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate] = Json.format[ApplicationLastUseDate]
-    implicit val formatPaginatedApplicationLastUseDate: Format[PaginatedApplicationLastUseResponse] = Json.format[PaginatedApplicationLastUseResponse]
   }
 }
 

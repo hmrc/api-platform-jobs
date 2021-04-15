@@ -21,20 +21,23 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.Future.sequence
-
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 trait DeleteDeveloper {
 
-  val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector
-  val productionApplicationConnector: ProductionThirdPartyApplicationConnector
+  def sandboxApplicationConnector: SandboxThirdPartyApplicationConnector
+  def productionApplicationConnector: ProductionThirdPartyApplicationConnector
+  def developerConnector: ThirdPartyDeveloperConnector
+
   val deleteFunction: (String) => Future[Int]
 
-  def deleteDeveloper(developerEmail: String)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[String] = {
+  def deleteDeveloper(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[CoreUserDetails] = {
     for {
-      sandboxAppIds <- sandboxApplicationConnector.fetchApplicationsByEmail(developerEmail)
-      productionAppIds <- productionApplicationConnector.fetchApplicationsByEmail(developerEmail)
-      _ <- sequence(sandboxAppIds.map(sandboxApplicationConnector.removeCollaborator(_, developerEmail)))
-      _ <- sequence(productionAppIds.map(productionApplicationConnector.removeCollaborator(_, developerEmail)))
-      _ <- deleteFunction(developerEmail)
-    } yield developerEmail
+      sandboxAppIds <- sandboxApplicationConnector.fetchApplicationsByUserId(developer.id)
+      productionAppIds <- productionApplicationConnector.fetchApplicationsByUserId(developer.id)
+      _ <- sequence(sandboxAppIds.map(sandboxApplicationConnector.removeCollaborator(_, developer.email)))
+      _ <- sequence(productionAppIds.map(productionApplicationConnector.removeCollaborator(_, developer.email)))
+      _ <- deleteFunction(developer.email)
+    } yield developer
   }
 }

@@ -23,6 +23,7 @@ import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
@@ -32,6 +33,7 @@ import scala.concurrent.Future.{failed, successful}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.models.UserId
 
 class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSupport with BeforeAndAfterAll {
 
@@ -78,11 +80,11 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSu
   }
 
   trait SuccessfulSetup extends Setup {
-    val developers = Seq("joe.bloggs@example.com", "john.doe@example.com")
+    val developers = Seq(CoreUserDetails("joe.bloggs@example.com", UserId.random), CoreUserDetails("john.doe@example.com", UserId.random))
     when(mockThirdPartyDeveloperConnector.fetchExpiredUnregisteredDevelopers(*)(*)).thenReturn(successful(developers))
-    when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByEmail(*)(*)).thenReturn(successful(Seq("sandbox 1")))
+    when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq("sandbox 1")))
     when(mockSandboxThirdPartyApplicationConnector.removeCollaborator(*, *)(*)).thenReturn(successful(OK))
-    when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByEmail(*)(*)).thenReturn(successful(Seq("prod 1")))
+    when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq("prod 1")))
     when(mockProductionThirdPartyApplicationConnector.removeCollaborator(*, *)(*)).thenReturn(successful(OK))
     when(mockThirdPartyDeveloperConnector.deleteUnregisteredDeveloper(*)(*)).thenReturn(successful(OK))
   }
