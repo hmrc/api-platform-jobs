@@ -22,47 +22,78 @@ import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{UserId => _, _}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import play.api.http.ContentTypes._
 import play.api.http.HeaderNames._
+import uk.gov.hmrc.apiplatformjobs.models.UserId    // Disambiguate with http.UserId
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-  
+
+object ThirdPartyDeveloperConnector {
+
+  case class CoreUserDetails(email: String, id: UserId)
+
+  private[connectors] case class FindUserIdRequest(email: String)
+  private[connectors] case class FindUserIdResponse(userId: UserId)
+  private[connectors] case class DeleteDeveloperRequest(emailAddress: String)
+  private[connectors] case class DeleteUnregisteredDevelopersRequest(emails: Seq[String])
+  case class DeveloperResponse(email: String, firstName: String, lastName: String, verified: Boolean, userId: UserId)
+  private[connectors] case class UnregisteredDeveloperResponse(email: String, userId: UserId)
+
+  case class ThirdPartyDeveloperConnectorConfig(baseUrl: String)
+
+  object JsonFormatters {
+    import play.api.libs.json.Format
+    implicit val FindUserIdResponseReads = Json.reads[FindUserIdResponse]
+    implicit val FindUserIdRequestWrite = Json.writes[FindUserIdRequest]
+    implicit val formatDeleteDeveloperRequest: Format[DeleteDeveloperRequest] = Json.format[DeleteDeveloperRequest]
+    implicit val formatDeleteUnregisteredDevelopersRequest: Format[DeleteUnregisteredDevelopersRequest] = Json.format[DeleteUnregisteredDevelopersRequest]
+    implicit val formatDeveloperResponse: Format[DeveloperResponse] = Json.format[DeveloperResponse]
+    implicit val formatUnregisteredDeveloperResponse: Format[UnregisteredDeveloperResponse] = Json.format[UnregisteredDeveloperResponse]
+  }
+}
+
 @Singleton
 class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) extends RepsonseUtils {
+  import ThirdPartyDeveloperConnector._
 
   val dateFormatter = ISODateTimeFormat.basicDate()
   
+  def fetchUserId(email: String)(implicit hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
+    http.POST[FindUserIdRequest, Option[FindUserIdResponse]](s"${config.baseUrl}/developers/find-user-id", FindUserIdRequest(email))
+    .map(_.map(userIdResponse => CoreUserDetails(email, userIdResponse.userId)))
+  }
+
   def getOrCreateUserId(getOrCreateUserIdRequest: GetOrCreateUserIdRequest)(implicit hc: HeaderCarrier): Future[GetOrCreateUserIdResponse] = {
       http.POST[GetOrCreateUserIdRequest, GetOrCreateUserIdResponse](s"${config.baseUrl}/developers/user-id", getOrCreateUserIdRequest, Seq(CONTENT_TYPE -> JSON))
   }
 
-  def fetchUnverifiedDevelopers(createdBefore: DateTime, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
+  def fetchUnverifiedDevelopers(createdBefore: DateTime, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
     val queryParams = Seq("createdBefore" -> dateFormatter.print(createdBefore), "limit" -> limit.toString, "status" -> "UNVERIFIED")
-    val result = http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers", queryParams)
-    result.map(_.map(_.email))
+    http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers", queryParams)
+    .map(_.map(d => CoreUserDetails(d.email, d.userId)))
   }
 
-  def fetchAllDevelopers(implicit hc: HeaderCarrier): Future[Seq[String]] = {
-    val result = http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers")
-    result.map(_.map(_.email))
+  def fetchAllDevelopers(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
+    http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers")
+    .map(_.map(d => CoreUserDetails(d.email, d.userId)))
   }
 
-  def fetchExpiredUnregisteredDevelopers(limit: Int)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
+  def fetchExpiredUnregisteredDevelopers(limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
     http.GET[Seq[UnregisteredDeveloperResponse]](s"${config.baseUrl}/unregistered-developer/expired", Seq("limit" -> limit.toString))
-    .map(_.map(_.email))
+    .map(_.map(u => CoreUserDetails(u.email, u.userId)))
   }
 
-  def fetchVerifiedDevelopers(emailAddresses: Set[String]): Future[Seq[(String, String, String)]] = {
+  def fetchVerifiedDevelopers(emailAddresses: Set[String]): Future[Seq[DeveloperResponse]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     for {
       developerDetails <- http.POST[Seq[String], Seq[DeveloperResponse]](s"${config.baseUrl}/developers/get-by-emails", emailAddresses.toSeq)
       verifiedDevelopers = developerDetails.filter(_.verified)
-    } yield verifiedDevelopers.map(dev => (dev.email, dev.firstName, dev.lastName))
+    } yield verifiedDevelopers
   }
 
   def deleteDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
@@ -78,18 +109,3 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
 
 }
 
-object ThirdPartyDeveloperConnector {
-  private[connectors] case class DeleteDeveloperRequest(emailAddress: String)
-  private[connectors] case class DeleteUnregisteredDevelopersRequest(emails: Seq[String])
-  private[connectors] case class DeveloperResponse(email: String, firstName: String, lastName: String, verified: Boolean)
-  private[connectors] case class UnregisteredDeveloperResponse(email: String)
-  case class ThirdPartyDeveloperConnectorConfig(baseUrl: String)
-
-  object JsonFormatters {
-    import play.api.libs.json.Format
-    implicit val formatDeleteDeveloperRequest: Format[DeleteDeveloperRequest] = Json.format[DeleteDeveloperRequest]
-    implicit val formatDeleteUnregisteredDevelopersRequest: Format[DeleteUnregisteredDevelopersRequest] = Json.format[DeleteUnregisteredDevelopersRequest]
-    implicit val formatDeveloperResponse: Format[DeveloperResponse] = Json.format[DeveloperResponse]
-    implicit val formatUnregisteredDeveloperResponse: Format[UnregisteredDeveloperResponse] = Json.format[UnregisteredDeveloperResponse]
-  }
-}

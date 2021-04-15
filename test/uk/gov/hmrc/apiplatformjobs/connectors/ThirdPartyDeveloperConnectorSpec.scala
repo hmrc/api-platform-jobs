@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.http.Status.OK
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{UserId => _, _}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.time.DateTimeUtils.now
 
@@ -31,6 +31,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status._
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.apiplatformjobs.models.UserId
 
 class ThirdPartyDeveloperConnectorSpec 
     extends AsyncHmrcSpec 
@@ -48,6 +49,7 @@ class ThirdPartyDeveloperConnectorSpec
     
     val config = ThirdPartyDeveloperConnectorConfig(wireMockUrl)
     val devEmail = "joe.bloggs@example.com"
+    val userId = UserId.random
     def endpoint(path: String) = s"$wireMockUrl/$path"
 
     val connector = new ThirdPartyDeveloperConnector(config, httpClient)
@@ -65,12 +67,12 @@ class ThirdPartyDeveloperConnectorSpec
         .willReturn(
           aResponse()
           .withStatus(OK)
-          .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = false)))
+          .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = false, userId)))
         )
       )
-      val result: Seq[String] = await(connector.fetchUnverifiedDevelopers(new DateTime(2020, 2, 1, 0, 0), limit))
+      val result = await(connector.fetchUnverifiedDevelopers(new DateTime(2020, 2, 1, 0, 0), limit))
 
-      result shouldBe Seq(devEmail)
+      result shouldBe Seq(CoreUserDetails(devEmail, userId))
     }
 
     "propagate error when endpoint returns error" in new Setup {
@@ -94,12 +96,12 @@ class ThirdPartyDeveloperConnectorSpec
         .willReturn(
           aResponse()
           .withStatus(OK)
-          .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = true)))
+          .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = true, userId)))
         )
       )
-      val result: Seq[String] = await(connector.fetchAllDevelopers)
+      val result = await(connector.fetchAllDevelopers)
 
-      result shouldBe Seq(devEmail)
+      result.map(_.email) shouldBe Seq(devEmail)
     }
 
     "propagate error when endpoint returns error" in new Setup {
@@ -120,19 +122,22 @@ class ThirdPartyDeveloperConnectorSpec
 
   "fetchExpiredUnregisteredDevelopers" should {
     val limit = 10
+
     "return developer emails" in new Setup {
+      val devResponse1 = UnregisteredDeveloperResponse(devEmail, userId)
+
       stubFor(
         get(urlPathEqualTo("/unregistered-developer/expired"))
         .withQueryParam("limit", equalTo(s"${limit}"))
         .willReturn(
           aResponse()
           .withStatus(OK)
-          .withJsonBody(Seq(UnregisteredDeveloperResponse(devEmail)))
+          .withJsonBody(Seq(devResponse1))
         )
       )   
-      val result: Seq[String] = await(connector.fetchExpiredUnregisteredDevelopers(limit))
+      val result = await(connector.fetchExpiredUnregisteredDevelopers(limit))
 
-      result shouldBe Seq(devEmail)
+      result shouldBe Seq(CoreUserDetails(devEmail, userId))
     }
 
     "propagate error when endpoint returns error" in new Setup {
@@ -157,6 +162,10 @@ class ThirdPartyDeveloperConnectorSpec
       val verifiedUserFirstName = "Fred"
       val verifiedUserLastName = "Bloggs"
       val unverifiedUserEmail = "bar@baz.com"
+      val unverifiedId = UserId.random
+
+      val dr1 = DeveloperResponse(verifiedUserEmail, verifiedUserFirstName, verifiedUserLastName, verified = true, userId)
+      val dr2 = DeveloperResponse(unverifiedUserEmail, "", "", verified = false, userId = unverifiedId)
 
       stubFor(
         post(urlEqualTo("/developers/get-by-emails"))
@@ -165,17 +174,14 @@ class ThirdPartyDeveloperConnectorSpec
           aResponse()
           .withStatus(OK)
           .withJsonBody(
-            Seq(
-              DeveloperResponse(verifiedUserEmail, verifiedUserFirstName, verifiedUserLastName, verified = true),
-              DeveloperResponse(unverifiedUserEmail, "", "", verified = false)
-            )
+            Seq(dr1, dr2)
           )
         )
       )
 
       val result = await(connector.fetchVerifiedDevelopers(Set(verifiedUserEmail, unverifiedUserEmail)))
 
-      result shouldBe Seq((verifiedUserEmail, verifiedUserFirstName, verifiedUserLastName))
+      result shouldBe Seq(dr1)
     }
 
     "propagate error when endpoint returns error" in new Setup {

@@ -76,7 +76,7 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
       } else {
         for {
           verifiedAdmins <- thirdPartyDeveloperConnector.fetchVerifiedDevelopers(adminEmails)
-        } yield verifiedAdmins.map(admin => admin._1 -> Administrator(admin._1, admin._2, admin._3)).toMap
+        } yield verifiedAdmins.map(admin => admin.email -> Administrator(emailAddress = admin.email, firstName = admin.firstName, lastName = admin.lastName)).toMap
       }
     }
 

@@ -31,9 +31,9 @@ import scala.util.control.NonFatal
 
 class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: DeleteUnregisteredDevelopersJobLockKeeper,
                                                 jobConfig: DeleteUnregisteredDevelopersJobConfig,
-                                                developerConnector: ThirdPartyDeveloperConnector,
-                                                override val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
-                                                override val productionApplicationConnector: ProductionThirdPartyApplicationConnector)
+                                                val developerConnector: ThirdPartyDeveloperConnector,
+                                                val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
+                                                val productionApplicationConnector: ProductionThirdPartyApplicationConnector)
   extends ScheduledMongoJob with DeleteDeveloper {
 
   override def name: String = "DeleteUnregisteredDevelopersJob"
@@ -49,9 +49,9 @@ class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: DeleteU
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     (for {
-      developerEmails <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
-      _ = Logger.info(s"Found ${developerEmails.size} unregistered developers")
-      _ <- sequence(developerEmails.map(deleteDeveloper(_)))
+      developerDetails <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
+      _ = Logger.info(s"Found ${developerDetails.size} unregistered developers")
+      _ <- sequence(developerDetails.map(deleteDeveloper))
     } yield RunningOfJobSuccessful) recoverWith {
       case NonFatal(e) =>
         Logger.error("Could not delete unregistered developers", e)
