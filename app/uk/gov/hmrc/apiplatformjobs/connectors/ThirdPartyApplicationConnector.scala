@@ -136,8 +136,8 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   }
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
-    http.GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/applications", Seq("developerId" -> userId.asQueryParam))
-    .map(_.map(_.id))
+    http.GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.toString}/applications")
+      .map(_.map(_.id))
   }
 
   def removeCollaborator(applicationId: String, email: String)(implicit hc: HeaderCarrier): Future[Int] = {
