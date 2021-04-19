@@ -36,15 +36,12 @@ lazy val root = (project in file("."))
   .settings(
     name := "api-platform-jobs",
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.10",
+    scalaVersion := "2.12.12",
     scalacOptions += "-Ypartial-unification",
     majorVersion := 0,
     PlayKeys.playDefaultPort := 6700,
-    resolvers := Seq(
-      Resolver.bintrayRepo("hmrc", "releases"),
-      Resolver.bintrayRepo("hmrc", "release-candidates"),
-      Resolver.typesafeRepo("releases"),
-      Resolver.jcenterRepo
+    resolvers ++= Seq(
+      Resolver.typesafeRepo("releases")
     ),
     libraryDependencies ++= compileDeps ++ testDeps("test"),
     publishingSettings,
