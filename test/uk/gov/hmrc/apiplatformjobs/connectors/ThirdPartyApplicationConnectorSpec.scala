@@ -82,8 +82,7 @@ class ThirdPartyApplicationConnectorSpec
 
     "return application Ids" in new Setup {
       stubFor(
-        get(urlPathEqualTo("/developer/applications"))
-        .withQueryParam("developerId", equalTo(userId.asQueryParam))
+        get(urlPathEqualTo(s"/developer/${userId}/applications"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -99,8 +98,7 @@ class ThirdPartyApplicationConnectorSpec
 
     "propagate error when endpoint returns error" in new Setup {
       stubFor(
-        get(urlPathEqualTo("/developer/applications"))
-        .withQueryParam("developerId", equalTo(userId.asQueryParam))
+        get(urlPathEqualTo(s"/developer/${userId}/applications"))
           .willReturn(
             aResponse()
               .withStatus(NOT_FOUND)
