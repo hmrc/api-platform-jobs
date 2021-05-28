@@ -20,7 +20,7 @@ import org.joda.time.DateTime
 import play.api.http.Status.OK
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.http.{UserId => _, _}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.time.DateTimeUtils.now
 

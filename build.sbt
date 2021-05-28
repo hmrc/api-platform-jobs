@@ -3,34 +3,7 @@ import sbt.Tests.{Group, SubProcess}
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import uk.gov.hmrc.SbtAutoBuildPlugin
 
-lazy val scoverageSettings = {
-  import scoverage.ScoverageKeys
-  Seq(
-    // Semicolon-separated list of regexs matching classes to exclude
-    ScoverageKeys.coverageExcludedPackages := """uk\.gov\.hmrc\.BuildInfo;.*\.Routes;.*\.RoutesPrefix;.*Filters?;MicroserviceAuditConnector;Module;GraphiteStartUp;.*\.Reverse[^.]*""",
-    ScoverageKeys.coverageMinimum := 75,
-    ScoverageKeys.coverageFailOnMinimum := true,
-    ScoverageKeys.coverageHighlighting := true,
-    parallelExecution in Test := false
-  )
-}
-
-lazy val compileDeps = Seq(
-  "uk.gov.hmrc" %% "bootstrap-play-26" % "1.16.0",
-  "uk.gov.hmrc" %% "mongo-lock" % "6.23.0-play-26",
-  "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-26",
-  "uk.gov.hmrc" %% "play-scheduling" % "7.4.0-play-26",
-  "com.typesafe.play" % "play-json-joda_2.12" % "2.6.0",
-  "com.beachape" %% "enumeratum-play-json" % "1.6.0",
-  "org.typelevel" %% "cats-core" % "2.1.1"
-)
-
-def testDeps(scope: String) = Seq(
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.3" % scope,
-  "org.mockito" %% "mockito-scala-scalatest" % "1.7.1" % scope,
-  "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-26" % scope,
-  "com.github.tomakehurst" % "wiremock" % "1.58" % scope
-)
+import bloop.integrations.sbt.BloopDefaults
 
 lazy val root = (project in file("."))
   .settings(
@@ -43,14 +16,18 @@ lazy val root = (project in file("."))
     resolvers ++= Seq(
       Resolver.typesafeRepo("releases")
     ),
-    libraryDependencies ++= compileDeps ++ testDeps("test"),
+    libraryDependencies ++= AppDependencies(),
     publishingSettings,
-    scoverageSettings,
   )
+  .settings(ScoverageSettings())
   .settings(
-    unmanagedResourceDirectories in Test += baseDirectory.value / "test" / "resources"
+    inConfig(Test)(BloopDefaults.configSettings),
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-eT"),
+    Test / fork := false,
+    Test / parallelExecution := false,
+    Test / unmanagedResourceDirectories += baseDirectory.value / "test" / "resources"
   )
-  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
+  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)
 
 def oneForkedJvmPerTest(tests: Seq[TestDefinition]) = {

@@ -22,7 +22,7 @@ import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.http.{UserId => _, _}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import play.api.http.ContentTypes._
 import play.api.http.HeaderNames._

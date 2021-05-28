@@ -18,10 +18,8 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import javax.inject.{Inject, Singleton}
 
-import scala.concurrent.ExecutionContext
-
 @Singleton
-class ApiPlatformMicroserviceConnector @Inject()(config: ApiPlatformMicroserviceConnectorConfig)(implicit ec: ExecutionContext) {
+class ApiPlatformMicroserviceConnector @Inject()(config: ApiPlatformMicroserviceConnectorConfig) {
   /*
    * APIS-5081: Connector was previously used as part of MigrateEmailPreferences job - that's no longer in use, but we're retaining the connector (and its
    * associated configuration) as we're pretty sure we'll be needing it again in the near future.
