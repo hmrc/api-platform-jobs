@@ -1,21 +1,22 @@
-import play.core.PlayVersion.current
-import play.sbt.PlayImport._
-import sbt.Keys.libraryDependencies
 import sbt._
 
 object AppDependencies {
+  def apply(): Seq[ModuleID] = compileDeps ++ testDeps("test")
 
-  val compile = Seq(
-
-    "uk.gov.hmrc"             %% "bootstrap-play-26"        % "1.7.0"
+  private lazy val compileDeps = Seq(
+    "uk.gov.hmrc" %% "bootstrap-play-26" % "4.0.0",
+    "uk.gov.hmrc" %% "mongo-lock" % "6.23.0-play-26",
+    "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-26",
+    "uk.gov.hmrc" %% "play-scheduling" % "7.4.0-play-26",
+    "com.typesafe.play" % "play-json-joda_2.12" % "2.6.0",
+    "com.beachape" %% "enumeratum-play-json" % "1.6.0",
+    "org.typelevel" %% "cats-core" % "2.1.1"
   )
 
-  val test = Seq(
-    "uk.gov.hmrc"             %% "bootstrap-play-26"        % "1.7.0" % Test classifier "tests",
-    "org.scalatest"           %% "scalatest"                % "3.0.8"                 % "test",
-    "com.typesafe.play"       %% "play-test"                % current                 % "test",
-    "org.pegdown"             %  "pegdown"                  % "1.6.0"                 % "test, it",
-    "org.scalatestplus.play"  %% "scalatestplus-play"       % "3.1.2"                 % "test, it"
+  private def testDeps(scope: String) = Seq(
+    "org.scalatestplus.play"      %% "scalatestplus-play"         % "3.1.3"           % scope,
+    "org.mockito"                 %% "mockito-scala-scalatest"    % "1.7.1"           % scope,
+    "uk.gov.hmrc"                 %% "reactivemongo-test"         % "4.21.0-play-26"  % scope,
+    "com.github.tomakehurst"      %  "wiremock-jre8-standalone"   % "2.27.1"          % scope
   )
-
 }

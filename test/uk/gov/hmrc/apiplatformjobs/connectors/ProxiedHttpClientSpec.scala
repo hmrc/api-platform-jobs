@@ -21,7 +21,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import play.api.Configuration
 import play.api.libs.ws.{WSClient, WSRequest}
-import uk.gov.hmrc.http.logging.Authorization
+import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
@@ -47,7 +47,7 @@ class ProxiedHttpClientSpec extends AsyncHmrcSpec {
       private val result = underTest.withHeaders(bearerToken, apiKey)
 
       result.authorization shouldBe Some(Authorization(s"Bearer $bearerToken"))
-      result.apiKeyHeader shouldBe Some("x-api-key" -> apiKey)
+      result.apiKeyHeader shouldBe Some(apiKey)
     }
 
     "when apiKey is empty String, apiKey header is None" in new Setup {

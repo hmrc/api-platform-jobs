@@ -20,7 +20,7 @@ import play.api.http.Status._
 import play.api.http.HeaderNames._
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
-import uk.gov.hmrc.http.{UserId => _, _}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -180,7 +180,7 @@ class ThirdPartyApplicationConnectorSpec
 
       stubFor(
         get(urlPathEqualTo("/applications"))
-        .withQueryParam("lastUseBefore", equalTo(encode(dateString)))
+        .withQueryParam("lastUseBefore", equalTo(dateString))
         .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
@@ -205,7 +205,7 @@ class ThirdPartyApplicationConnectorSpec
 
       stubFor(
         get(urlPathEqualTo("/applications"))
-        .withQueryParam("lastUseBefore", equalTo(encode(dateString)))
+        .withQueryParam("lastUseBefore", equalTo(dateString))
         .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()

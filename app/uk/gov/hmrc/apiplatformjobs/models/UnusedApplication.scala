@@ -66,7 +66,7 @@ object MongoFormat {
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
     )(UnusedApplication.apply _)
 
-  def environmentReads[Environment](): Reads[Environment.Value] = {
+  def environmentReads(): Reads[Environment.Value] = {
     case JsString("SANDBOX") => JsSuccess(Environment.SANDBOX)
     case JsString("PRODUCTION") => JsSuccess(Environment.PRODUCTION)
     case JsString(s) =>
