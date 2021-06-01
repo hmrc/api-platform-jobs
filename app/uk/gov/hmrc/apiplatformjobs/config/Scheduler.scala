@@ -52,7 +52,7 @@ class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelop
       sendUnusedSandboxApplicationNotificationsJob,
       sendUnusedProductionApplicationNotificationsJob,
       deleteUnusedSandboxApplicationsJob,
-      deleteUnusedProductionApplicationsJob,
+      deleteUnusedProductionApplicationsJob
       )
       .filter(_.isEnabled)
 }
