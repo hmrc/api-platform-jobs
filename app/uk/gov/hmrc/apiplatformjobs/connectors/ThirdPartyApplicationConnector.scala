@@ -123,17 +123,6 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] = 
     http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
 
-  def fixCollaborator(applicationId: ApplicationId, collaboratorRequest: FixCollaboratorRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
-    http.PUT[FixCollaboratorRequest, ErrorOr[Unit]](s"$serviceBaseUrl/application/${applicationId.value.toString}/collaborator", collaboratorRequest, Seq.empty)
-    .map {
-      case Right(_) =>         Future.successful(())
-      case Left(UpstreamErrorResponse(_, CONFLICT, _, _)) => 
-        Logger.warn(s"Conflict for $applicationId, $collaboratorRequest")
-        Future.successful(())
-      case Left(err) => throw err
-    }
-  }
-
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
     http.GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.toString}/applications")
       .map(_.map(_.id))
