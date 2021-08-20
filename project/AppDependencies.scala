@@ -4,13 +4,13 @@ object AppDependencies {
   def apply(): Seq[ModuleID] = compileDeps ++ testDeps("test")
 
   private lazy val compileDeps = Seq(
-    "uk.gov.hmrc" %% "bootstrap-play-26" % "4.0.0",
-    "uk.gov.hmrc" %% "mongo-lock" % "6.23.0-play-26",
-    "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-26",
-    "uk.gov.hmrc" %% "play-scheduling" % "7.4.0-play-26",
-    "com.typesafe.play" % "play-json-joda_2.12" % "2.6.0",
-    "com.beachape" %% "enumeratum-play-json" % "1.6.0",
-    "org.typelevel" %% "cats-core" % "2.1.1"
+    "uk.gov.hmrc"                 %% "bootstrap-play-26"          % "4.0.0",
+    "uk.gov.hmrc"                 %% "mongo-lock"                 % "6.23.0-play-26",
+    "uk.gov.hmrc"                 %% "simple-reactivemongo"       % "7.30.0-play-26",
+    "uk.gov.hmrc"                 %% "play-scheduling"            % "7.4.0-play-26",
+    "com.typesafe.play"           %  "play-json-joda_2.12"        % "2.6.0",
+    "com.beachape"                %% "enumeratum-play-json"       % "1.6.0",
+    "org.typelevel"               %% "cats-core"                  % "2.1.1"
   )
 
   private def testDeps(scope: String) = Seq(

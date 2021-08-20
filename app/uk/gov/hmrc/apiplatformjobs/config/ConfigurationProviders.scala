@@ -28,7 +28,6 @@ import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobCon
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
-import uk.gov.hmrc.apiplatformjobs.scheduled.JobConfig
 
 class ConfigurationModule extends Module {
 
@@ -39,11 +38,7 @@ class ConfigurationModule extends Module {
       bind[ThirdPartyApplicationConnectorConfig].toProvider[ThirdPartyApplicationConnectorConfigProvider],
       bind[DeleteUnverifiedDevelopersJobConfig].toProvider[DeleteUnverifiedDevelopersJobConfigProvider],
       bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider],
-      bind[EmailConfig].toProvider[EmailConfigProvider],
-      bind[JobConfig]
-        .qualifiedWith("migrateCollaboratorsId")
-        .toProvider(classOf[MigrateCollaboratorsIdJobConfigProvider])
-        .in(classOf[Singleton])
+      bind[EmailConfig].toProvider[EmailConfigProvider]
     )
   }
 }
