@@ -16,22 +16,18 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.util.UUID
-
-import org.joda.time.{DateTime, LocalDate}
-import play.api.http.Status._
-import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApplication}
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
-
 import com.github.tomakehurst.wiremock.client.WireMock._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.Application
+import org.joda.time.{DateTime, LocalDate}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.apiplatformjobs.util.UrlEncoding
+import play.api.Application
+import play.api.http.Status._
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
+
+import java.util.UUID
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class EmailConnectorSpec
   extends AsyncHmrcSpec

@@ -20,7 +20,6 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, 
 
 import scala.concurrent.duration.FiniteDuration
 
-
 trait UnusedApplicationsTimings {
   val unusedApplicationsConfiguration: UnusedApplicationsConfiguration
 

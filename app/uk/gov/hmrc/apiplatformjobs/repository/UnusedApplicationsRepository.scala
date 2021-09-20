@@ -16,10 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.util.UUID
-
 import akka.stream.Materializer
-import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -31,6 +28,8 @@ import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
+import java.util.UUID
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

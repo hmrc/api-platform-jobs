@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import scala.util.matching.Regex
+import play.api.libs.json.Json
+
 import java.util.UUID
 import scala.util.Try
-import play.api.libs.json.Json
+import scala.util.matching.Regex
 
 trait DeveloperIdentifier {
   def asText: String = DeveloperIdentifier.asText(this)

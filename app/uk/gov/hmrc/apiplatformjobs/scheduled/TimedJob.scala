@@ -16,22 +16,21 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.util.concurrent.TimeUnit
-
-import javax.inject.Inject
 import net.ceedubs.ficus.Ficus._
 import org.joda.time.{DateTime, DateTimeZone, Duration, LocalTime}
-import play.api.{Configuration, Logger, LoggerLike}
+import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
+import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
 
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class TimedJob @Inject()(override val name: String,
                                   configuration: Configuration,
-                                  mongo: ReactiveMongoComponent,
-                                  override val logger: LoggerLike = Logger) extends ScheduledMongoJob with TimedJobConfigReaders with PrefixLogger {
+                                  mongo: ReactiveMongoComponent) extends ScheduledMongoJob with TimedJobConfigReaders with PrefixLogger {
 
   override val logPrefix: String = s"[$name]"
   override val lockKeeper: LockKeeper = mongoLockKeeper(mongo)
@@ -77,8 +76,7 @@ case class TimedJobConfig(startTime: Option[StartTime], executionInterval: Execu
   override def toString = s"TimedJobConfig{startTime=${startTime.getOrElse("Not Specified")} interval=${executionInterval.interval} enabled=$enabled}"
 }
 
-trait PrefixLogger {
-  val logger: LoggerLike = Logger
+trait PrefixLogger extends ApplicationLogger {
   val logPrefix: String
 
   def logDebug(message: String) = logger.debug(s"$logPrefix $message")

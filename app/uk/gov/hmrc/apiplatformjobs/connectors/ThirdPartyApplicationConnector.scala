@@ -16,31 +16,23 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.nio.charset.StandardCharsets.UTF_8
-import java.util.UUID
-
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names
-import javax.inject.{Inject, Singleton}
 import org.apache.commons.codec.binary.Base64.encodeBase64String
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.http.Status._
+import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
-import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.Authorization
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.apiplatformjobs.models.{Application, ApplicationUsageDetails, UserId}
 import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{Authorization, HttpClient, _}
 
+import java.nio.charset.StandardCharsets.UTF_8
+import java.util.UUID
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.apiplatformjobs.models.ApplicationId
-import uk.gov.hmrc.apiplatformjobs.connectors.model.FixCollaboratorRequest
-import uk.gov.hmrc.apiplatformjobs.models.Application
-import play.api.libs.json.Json
-import play.api.Logger
-import uk.gov.hmrc.apiplatformjobs.models.UserId
 
 object ThirdPartyApplicationConnector {
   def toDomain(applications: List[ApplicationLastUseDate]): List[ApplicationUsageDetails] =

@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import uk.gov.hmrc.http.UpstreamErrorResponse
-import uk.gov.hmrc.http.HttpResponse
+import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 
 trait RepsonseUtils {
 

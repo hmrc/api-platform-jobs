@@ -16,32 +16,27 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.util.UUID
-
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.testkit.NoMaterializer
 import org.joda.time.{DateTime, LocalDate}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models.Environment._
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
-import scala.concurrent.duration._
-import scala.concurrent.Await
 
 class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   with MongoSpecSupport
   with BeforeAndAfterEach with BeforeAndAfterAll
   with IndexVerification {
 
-  implicit var s : ActorSystem = ActorSystem("test")
-  implicit var m : Materializer = ActorMaterializer()
+  implicit val materializer = NoMaterializer
 
   private val reactiveMongoComponent = new ReactiveMongoComponent {
     override def mongoConnector: MongoConnector = mongoConnectorForTest
@@ -58,7 +53,6 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   override protected def afterAll() {
     super.afterAll()
     await(unusedApplicationRepository.drop)
-    Await.ready(s.terminate, 5.seconds)
   }
 
   trait Setup {

@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import java.util.UUID
-
-import org.joda.time.{DateTime, LocalDate}
+import org.joda.time.DateTime
+import org.joda.time.LocalDate
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+
+import java.util.UUID
 
 case class ApplicationUsageDetails(applicationId: UUID,
                                    applicationName: String,

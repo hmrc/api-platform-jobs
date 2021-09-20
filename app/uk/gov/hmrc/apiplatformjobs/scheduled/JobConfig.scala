@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import play.api.Logger
-import uk.gov.hmrc.lock.LockKeeper
-import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
-
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.FiniteDuration
 import com.typesafe.config.Config
-import java.util.concurrent.TimeUnit
+import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
+import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+import uk.gov.hmrc.lock.LockKeeper
+
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
 
@@ -37,7 +37,7 @@ object JobConfig {
   }
 }
 
-trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState {
+trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState with ApplicationLogger {
 
   val lockKeeper: LockKeeper
 
@@ -53,7 +53,7 @@ trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState {
       case _ => Result(s"$name did not run because repository was locked by another instance of the scheduler.")
     } recover {
       case failure: RunningOfJobFailed =>
-        Logger.error("The execution of the job failed.", failure.wrappedCause)
+        logger.error("The execution of the job failed.", failure.wrappedCause)
         failure.asResult
     }
   }
