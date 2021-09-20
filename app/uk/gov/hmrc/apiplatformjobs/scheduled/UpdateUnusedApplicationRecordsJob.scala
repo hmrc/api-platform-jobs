@@ -15,9 +15,6 @@
  */
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
-import java.util.UUID
-
-import javax.inject.{Inject, Named, Singleton}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.{DateTime, LocalDate}
 import play.api.Configuration
@@ -27,6 +24,8 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, 
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
+import java.util.UUID
+import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,

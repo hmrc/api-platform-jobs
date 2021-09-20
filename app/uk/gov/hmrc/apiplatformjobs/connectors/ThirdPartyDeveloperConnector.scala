@@ -16,21 +16,20 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import play.api.http.ContentTypes._
+import play.api.http.HeaderNames._
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import play.api.http.ContentTypes._
-import play.api.http.HeaderNames._
-import uk.gov.hmrc.apiplatformjobs.models.UserId    // Disambiguate with http.UserId
-
-import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
+import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{HttpClient, _}
+
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 object ThirdPartyDeveloperConnector {
 

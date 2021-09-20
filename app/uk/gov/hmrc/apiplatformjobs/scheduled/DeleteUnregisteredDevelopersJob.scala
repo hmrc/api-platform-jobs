@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import javax.inject.Inject
 import org.joda.time.Duration
-import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
 
+import javax.inject.Inject
 import scala.concurrent.Future.sequence
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,7 +34,7 @@ class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: DeleteU
                                                 val developerConnector: ThirdPartyDeveloperConnector,
                                                 val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
                                                 val productionApplicationConnector: ProductionThirdPartyApplicationConnector)
-  extends ScheduledMongoJob with DeleteDeveloper {
+  extends ScheduledMongoJob with DeleteDeveloper with ApplicationLogger {
 
   override def name: String = "DeleteUnregisteredDevelopersJob"
   override def interval: FiniteDuration = jobConfig.interval
@@ -45,16 +45,16 @@ class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: DeleteU
   override val deleteFunction: (String) => Future[Int] = developerConnector.deleteUnregisteredDeveloper
 
   override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    Logger.info("Starting DeleteUnregisteredDevelopersJob")
+    logger.info("Starting DeleteUnregisteredDevelopersJob")
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     (for {
       developerDetails <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
-      _ = Logger.info(s"Found ${developerDetails.size} unregistered developers")
+      _ = logger.info(s"Found ${developerDetails.size} unregistered developers")
       _ <- sequence(developerDetails.map(deleteDeveloper))
     } yield RunningOfJobSuccessful) recoverWith {
       case NonFatal(e) =>
-        Logger.error("Could not delete unregistered developers", e)
+        logger.error("Could not delete unregistered developers", e)
         Future.failed(RunningOfJobFailed(name, e))
     }
   }

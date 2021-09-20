@@ -17,14 +17,15 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import akka.actor.ActorSystem
-import javax.inject.{Inject, Singleton}
 import play.api.Configuration
+import play.api.http.HeaderNames
 import play.api.libs.ws.{WSClient, WSProxyServer, WSRequest => PlayWSRequest}
 import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 import uk.gov.hmrc.play.http.ws.{WSProxy, WSProxyConfiguration}
-import play.api.http.HeaderNames
+
+import javax.inject.{Inject, Singleton}
 
 @Singleton
 class ProxiedHttpClient @Inject()(config: Configuration,

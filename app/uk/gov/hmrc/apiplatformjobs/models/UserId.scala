@@ -17,9 +17,10 @@
 package uk.gov.hmrc.apiplatformjobs.models
 
 import play.api.libs.json.Json
-import java.{util => ju}
-import java.util.UUID
+
 import java.net.URLEncoder
+import java.util.UUID
+import java.{util => ju}
 
 case class UserId(value: ju.UUID) extends AnyVal {
   override def toString = value.toString

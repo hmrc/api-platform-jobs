@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import javax.inject.Inject
 import org.joda.time.Duration
-import play.api.Logger
 import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
 import uk.gov.hmrc.time.DateTimeUtils.now
 
+import javax.inject.Inject
 import scala.concurrent.Future.sequence
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,7 +35,7 @@ class DeleteUnverifiedDevelopersJob @Inject()(override val lockKeeper: DeleteUnv
                                               val developerConnector: ThirdPartyDeveloperConnector,
                                               val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
                                               val productionApplicationConnector: ProductionThirdPartyApplicationConnector)
-  extends ScheduledMongoJob with DeleteDeveloper{
+  extends ScheduledMongoJob with DeleteDeveloper with ApplicationLogger {
 
   override def name: String = "DeleteUnverifiedDevelopersJob"
   override def interval: FiniteDuration = jobConfig.interval
@@ -46,15 +46,15 @@ class DeleteUnverifiedDevelopersJob @Inject()(override val lockKeeper: DeleteUnv
   val createdBeforeInDays = 30
 
   override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    Logger.info("Starting DeleteUnverifiedDevelopersJob")
+    logger.info("Starting DeleteUnverifiedDevelopersJob")
 
     (for {
       developerDetails <- developerConnector.fetchUnverifiedDevelopers(now.minusDays(createdBeforeInDays), jobConfig.limit)
-      _ = Logger.info(s"Found ${developerDetails.size} unverified developers")
+      _ = logger.info(s"Found ${developerDetails.size} unverified developers")
       _ <- sequence(developerDetails.map(deleteDeveloper))
     } yield RunningOfJobSuccessful) recoverWith {
       case NonFatal(e) =>
-        Logger.error("Could not delete unverified developers", e)
+        logger.error("Could not delete unverified developers", e)
         Future.failed(RunningOfJobFailed(name, e))
     }
   }

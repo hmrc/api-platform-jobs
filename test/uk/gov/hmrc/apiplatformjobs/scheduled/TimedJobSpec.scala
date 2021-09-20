@@ -20,10 +20,10 @@ import com.typesafe.config.ConfigFactory
 import org.joda.time.{DateTime, DateTimeUtils, DateTimeZone, LocalTime}
 import play.api.{Configuration, LoggerLike}
 import play.modules.reactivemongo.ReactiveMongoComponent
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class TimedJobSpec extends AsyncHmrcSpec with MongoSpecSupport {
 
@@ -44,7 +44,7 @@ class TimedJobSpec extends AsyncHmrcSpec with MongoSpecSupport {
           |    enabled = $enabled
           |  }""".stripMargin))
 
-      new TimedJob(jobName, configuration, reactiveMongoComponent, mockLogger) {
+      new TimedJob(jobName, configuration, reactiveMongoComponent) {
         override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] =
           Future.successful(RunningOfJobSuccessful)
       }

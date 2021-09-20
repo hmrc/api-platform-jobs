@@ -16,14 +16,13 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.util.UUID
-
 import com.typesafe.config.ConfigFactory
 import org.joda.time.{DateTime, LocalDate}
 import play.api.Configuration
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
+import java.util.UUID
 import scala.util.Random
 
 trait UnusedApplicationTestConfiguration {

@@ -16,20 +16,19 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.util.UUID
-
 import org.joda.time.{DateTime, DateTimeUtils}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
   with UnusedApplicationTestConfiguration with MongoSpecSupport {

@@ -17,12 +17,12 @@
 package uk.gov.hmrc.apiplatformjobs.config
 
 import com.google.inject.AbstractModule
-import javax.inject.{Inject, Singleton}
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.apiplatformjobs.scheduled._
-import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
+import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 class SchedulerModule extends AbstractModule {

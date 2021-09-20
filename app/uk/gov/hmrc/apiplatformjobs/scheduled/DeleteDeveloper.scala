@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.Future.sequence
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
+import scala.concurrent.{ExecutionContext, Future}
 trait DeleteDeveloper {
 
   def sandboxApplicationConnector: SandboxThirdPartyApplicationConnector

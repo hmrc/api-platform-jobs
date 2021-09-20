@@ -16,24 +16,23 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
-
 import org.joda.time.{DateTime, DateTimeUtils, Duration}
 import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
 import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.models.UserId
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.lock.LockRepository
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.time.{DateTimeUtils => HmrcTime}
 
-import scala.concurrent.Future.{failed, successful}
+import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
+import scala.concurrent.Future._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.apiplatformjobs.models.UserId
 
 class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSupport with BeforeAndAfterAll {
 

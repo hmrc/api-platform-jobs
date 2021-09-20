@@ -16,24 +16,23 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.util.UUID
-
 import org.joda.time.{DateTime, DateTimeUtils, LocalDate}
+import org.mockito.ArgumentCaptor
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.MultiBulkWriteResult
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.DeveloperResponse
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, _}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 import scala.util.Random
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import org.mockito.ArgumentCaptor
 
 class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with MongoSpecSupport {
 

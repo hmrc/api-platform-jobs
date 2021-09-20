@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.models
+package uk.gov.hmrc.apiplatformjobs.util
 
-import play.api.libs.json.Format
-import play.api.libs.json.Json
+import play.api.Logger
 
-case class APIDefinition(serviceName: String,
-                         categories: Seq[String] = Seq.empty)
-
-object APIDefinition {
-  implicit val formatAPIDefinition: Format[APIDefinition] = Json.format[APIDefinition]
-
+trait ApplicationLogger {
+  val logger = Logger("application")
 }

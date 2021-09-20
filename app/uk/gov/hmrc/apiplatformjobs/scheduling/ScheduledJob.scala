@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.models
+package uk.gov.hmrc.apiplatformjobs.scheduling
 
-import play.api.libs.json.Format
-import play.api.libs.json.Json
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 
-case class APIDefinition(serviceName: String,
-                         categories: Seq[String] = Seq.empty)
+trait ScheduledJob {
+  def name: String
+  def execute(implicit ec: ExecutionContext): Future[Result]
+  def isRunning: Future[Boolean]
 
-object APIDefinition {
-  implicit val formatAPIDefinition: Format[APIDefinition] = Json.format[APIDefinition]
+  case class Result(message: String)
 
+  def configKey: String = name
+
+  def initialDelay: FiniteDuration
+
+  def interval: FiniteDuration
+
+  override def toString() = s"$name after $initialDelay every $interval"
 }

@@ -16,31 +16,23 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import play.api.http.Status._
-import play.api.http.HeaderNames._
-import play.api.libs.json.Json
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse}
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
-
 import com.github.tomakehurst.wiremock.client.WireMock._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.apiplatformjobs.util.UrlEncoding
-import uk.gov.hmrc.apiplatformjobs.models.ApplicationId
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
-import java.util.UUID
-import scala.util.Random
-import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
-import uk.gov.hmrc.apiplatformjobs.models.UserId
+import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.http.HeaderNames._
+import play.api.http.Status._
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUsageDetails, UserId}
+import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.http._
 
+import java.util.UUID
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Random
 
 class ThirdPartyApplicationConnectorSpec
   extends AsyncHmrcSpec

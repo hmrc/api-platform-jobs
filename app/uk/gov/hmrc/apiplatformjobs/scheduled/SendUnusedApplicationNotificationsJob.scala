@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -24,6 +23,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepository: UnusedApplicationsRepository,
