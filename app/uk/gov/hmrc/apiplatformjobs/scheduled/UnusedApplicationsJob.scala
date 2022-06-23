@@ -19,14 +19,14 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ValueReader
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.mongo.lock.LockRepository
 
 abstract class UnusedApplicationsJob(jobName: String,
                                      environment: Environment,
                                      configuration: Configuration,
-                                     mongo: ReactiveMongoComponent)
-  extends TimedJob(s"$jobName.$environment", configuration, mongo) with UnusedApplicationsTimings {
+                                     lockRepository: LockRepository)
+  extends TimedJob(s"$jobName.$environment", configuration, lockRepository) with UnusedApplicationsTimings {
 
   override val unusedApplicationsConfiguration: UnusedApplicationsConfiguration =
     configuration.underlying.as[UnusedApplicationsConfiguration]("UnusedApplications")

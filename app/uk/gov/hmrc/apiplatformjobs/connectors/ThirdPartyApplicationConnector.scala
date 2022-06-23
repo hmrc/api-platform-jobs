@@ -19,8 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names
 import org.apache.commons.codec.binary.Base64.encodeBase64String
-import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import play.api.http.Status._
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
@@ -28,8 +26,11 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models.{Application, ApplicationUsageDetails, UserId}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{Authorization, HttpClient, _}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.nio.charset.StandardCharsets.UTF_8
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,19 +46,17 @@ object ThirdPartyApplicationConnector {
       ApplicationUsageDetails(app.id, app.name, admins, app.createdOn, app.lastAccess)
     })
 
-  case class DeleteCollaboratorRequest(
-                                        email: String,
-                                        adminsToEmail: Set[String],
-                                        notifyCollaborator: Boolean
-                                      )
+  case class DeleteCollaboratorRequest(email: String,
+                                       adminsToEmail: Set[String],
+                                       notifyCollaborator: Boolean)
 
   private[connectors] case class ApplicationResponse(id: String)
   private[connectors] case class Collaborator(emailAddress: String, role: String)
   private[connectors] case class ApplicationLastUseDate(id: UUID,
                                                         name: String,
                                                         collaborators: Set[Collaborator],
-                                                        createdOn: DateTime,
-                                                        lastAccess: Option[DateTime])
+                                                        createdOn: LocalDateTime,
+                                                        lastAccess: Option[LocalDateTime])
   private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate],
                                                                      page: Int,
                                                                      pageSize: Int,
@@ -70,20 +69,14 @@ object ThirdPartyApplicationConnector {
   )
 
   object JsonFormatters {
-    import org.joda.time.DateTime
-    import play.api.libs.json.JodaWrites._
     import play.api.libs.json._
 
-    implicit val dateTimeWriter: Writes[DateTime] = JodaDateTimeNumberWrites
+    implicit val dateTimeWriter: Writes[LocalDateTime] = MongoJavatimeFormats.localDateTimeWrites
+    implicit val dateTimeReader: Reads[LocalDateTime] = MongoJavatimeFormats.localDateTimeReads
 
-    implicit val dateTimeReader: Reads[DateTime] = {
-      case JsNumber(n) => JsSuccess(new DateTime(n.toLong))
-      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
-    }
+    implicit val writesDeleteCollaboratorRequest: OWrites[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
 
-    implicit val writesDeleteCollaboratorRequest = Json.writes[DeleteCollaboratorRequest]
-
-    implicit val dateTimeFormat: Format[DateTime] = Format(dateTimeReader, dateTimeWriter)
+    implicit val dateTimeFormat: Format[LocalDateTime] = Format(dateTimeReader, dateTimeWriter)
 
     implicit val formatApplicationResponse: Format[ApplicationResponse] = Json.format[ApplicationResponse]
     implicit val formatCollaborator: Format[Collaborator] = Json.format[Collaborator]
@@ -100,7 +93,6 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
 }
 
 abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends RepsonseUtils {
-  val ISODateFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
   protected val httpClient: HttpClient
   protected val proxiedHttpClient: ProxiedHttpClient
@@ -126,12 +118,12 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       .map(statusOrThrow)
   }
 
-  def applicationsLastUsedBefore(lastUseDate: DateTime): Future[List[ApplicationUsageDetails]] = {
+  def applicationsLastUsedBefore(lastUseDate: LocalDateTime): Future[List[ApplicationUsageDetails]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     http.GET[PaginatedApplicationLastUseResponse](
       url = s"$serviceBaseUrl/applications",
-      queryParams = Seq("lastUseBefore" -> ISODateFormatter.withZoneUTC().print(lastUseDate), "sort" -> "NO_SORT"))
+      queryParams = Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(lastUseDate), "sort" -> "NO_SORT"))
       .map(page => toDomain(page.applications))
   }
 

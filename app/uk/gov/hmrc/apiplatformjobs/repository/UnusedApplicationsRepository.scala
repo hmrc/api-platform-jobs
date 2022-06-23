@@ -16,64 +16,83 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import akka.stream.Materializer
-import org.joda.time.DateTime
-import play.api.libs.json.{Format, Json}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.bson.BSONObjectID
+import java.time.Clock
+import com.mongodb.client.model.{FindOneAndUpdateOptions, ReturnDocument}
+import org.mongodb.scala.bson.collection.immutable.Document
+import org.mongodb.scala.model.Filters.{and, equal}
+import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions}
+import org.mongodb.scala.model.Indexes.ascending
+import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.LocalDateTime
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UnusedApplicationsRepository @Inject()(mongo: ReactiveMongoComponent)(implicit val mat: Materializer, val ec: ExecutionContext)
-  extends ReactiveRepository[UnusedApplication, BSONObjectID]("unusedApplications", mongo.mongoConnector.db,
-    MongoFormat.unusedApplicationFormat, ReactiveMongoFormats.objectIdFormats) {
+class UnusedApplicationsRepository @Inject()(mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
+  extends PlayMongoRepository[UnusedApplication](
+    collectionName = "unusedApplications",
+    mongoComponent = mongo,
+    domainFormat = MongoFormat.unusedApplicationFormat,
+    indexes = Seq(
+      IndexModel(ascending("environment", "applicationId"), IndexOptions()
+        .name("applicationIdIndex")
+        .unique(true)
+        .background(true)
+      ),
+      IndexModel(ascending("environment", "scheduledNotificationDates"), IndexOptions()
+        .name("scheduledNotificationDatesIndex")
+        .unique(false)
+        .background(true)
+      ),
+      IndexModel(ascending("environment", "scheduledDeletionDate"), IndexOptions()
+        .name("scheduledDeletionDateIndex")
+        .unique(false)
+        .background(true)
+      )
+    ),
+    replaceIndexes = true
+  ) with MongoJavatimeFormats.Implicits {
 
-  implicit val mongoDateFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+  def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = {
+    collection.find(equal("environment", Codecs.toBson(environment)))
+      .toFuture()
+  }
 
-  override def indexes = List(
-    Index(
-      key = List("environment" -> Ascending, "applicationId" -> Ascending),
-      name = Some("applicationIdIndex"),
-      unique = true,
-      background = true),
-    Index(
-      key = List("environment" -> Ascending, "scheduledNotificationDates" -> Ascending),
-      name = Some("scheduledNotificationDatesIndex"),
-      unique = false,
-      background = true),
-    Index(
-      key = List("environment" -> Ascending, "scheduledDeletionDate" -> Ascending),
-      name = Some("scheduledDeletionDateIndex"),
-      unique = false,
-      background = true)
-  )
+  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
+    collection.find(and(
+      equal("environment", Codecs.toBson(environment)),
+      lte("scheduledNotificationDates", Codecs.toBson(notificationDate))
+      )
+    ).toFuture()
+  }
 
-  def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = find("environment" -> environment)
+  def updateNotificationsSent(environment: Environment, applicationId: UUID, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[Boolean] = {
+    val query = Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId))
 
-  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: DateTime = DateTime.now): Future[List[UnusedApplication]] =
-    find("environment" -> environment, "scheduledNotificationDates" -> Json.obj("$lte" -> notificationDate))
-
-  def updateNotificationsSent(environment: Environment, applicationId: UUID, notificationDate: DateTime = DateTime.now()): Future[Boolean] = {
-    findAndUpdate(
-      Json.obj("environment" -> environment, "applicationId" -> applicationId),
-      Json.obj("$pull" -> Json.obj("scheduledNotificationDates" -> Json.obj("$lte" -> notificationDate))), fetchNewObject = true)
+    collection.findOneAndUpdate(
+      filter = query,
+      update = Updates.pullByFilter(lte("scheduledNotificationDates", Codecs.toBson(notificationDate))),
+      option = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
+    ).toFuture()
       .map(_.result[UnusedApplication].head)
       .map(!_.scheduledNotificationDates.exists(_.toDateTimeAtStartOfDay.isBefore(notificationDate))) // No notification dates prior to specified date
   }
 
-  def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: DateTime = DateTime.now): Future[List[UnusedApplication]] =
-    find("environment" -> environment, "scheduledDeletionDate" -> Json.obj("$lte" -> deletionDate))
+  def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
+    collection.find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", Codecs.toBson(deletionDate))))
+      .toFuture()
+  }
 
-  def deleteUnusedApplicationRecord(environment: Environment, applicationId: UUID): Future[Boolean] =
-    remove("environment" -> environment, "applicationId" -> applicationId)
+  def deleteUnusedApplicationRecord(environment: Environment, applicationId: UUID): Future[Boolean] = {
+    collection.deleteOne(Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId)))
+      .toFuture()
       .map(_.ok)
+  }
 }

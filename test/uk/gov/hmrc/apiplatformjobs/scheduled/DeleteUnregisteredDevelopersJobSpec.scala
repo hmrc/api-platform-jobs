@@ -55,7 +55,7 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSu
       override def mongoConnector: MongoConnector = mongoConnectorForTest
     }
 
-    val mockLockKeeper: DeleteUnregisteredDevelopersJobLockKeeper = new DeleteUnregisteredDevelopersJobLockKeeper(reactiveMongoComponent) {
+    val mockLockKeeper: DeleteUnregisteredDevelopersJobLockService = new DeleteUnregisteredDevelopersJobLockService(reactiveMongoComponent) {
       override def lockId: String = "testLock"
       override def repo: LockRepository = mock[LockRepository]
       override val forceLockReleaseAfter: Duration = Duration.standardMinutes(5) // scalastyle:off magic.number

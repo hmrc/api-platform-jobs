@@ -15,15 +15,15 @@
  */
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
-import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
-import org.joda.time.{DateTime, LocalDate}
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.mongo.lock.LockRepository
 
+import java.time.temporal.ChronoUnit
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import java.util.UUID
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,19 +33,17 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
                                                  unusedApplicationsRepository: UnusedApplicationsRepository,
                                                  environment: Environment,
                                                  configuration: Configuration,
-                                                 mongo: ReactiveMongoComponent)
-  extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, mongo) {
-
-  lazy val DateFormatter: DateTimeFormatter = DateTimeFormat.longDate()
+                                                 lockRepository: LockRepository)
+  extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, lockRepository) {
 
   /**
    * The date we should use to find applications that have not been used since.
    * This should be far enough in advance that all required notifications can be sent out.
    */
-  def notificationCutoffDate(): DateTime =
-    DateTime.now
-      .minus(deleteUnusedApplicationsAfter(environment).toMillis)
-      .plus(firstNotificationInAdvance(environment).toMillis)
+  def notificationCutoffDate(): LocalDateTime =
+    LocalDateTime.now(ZoneOffset.UTC)
+      .minus(deleteUnusedApplicationsAfter(environment).toMillis, ChronoUnit.MILLIS)
+      .plus(firstNotificationInAdvance(environment).toMillis, ChronoUnit.MILLIS)
 
   /** The dates we will be sending notifications out to Admins */
   def calculateNotificationDates(scheduledDeletionDate: LocalDate): Seq[LocalDate] =
@@ -54,9 +52,9 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
       .toSeq
 
   /** The date we will be deleting the application */
-  def calculateScheduledDeletionDate(lastInteractionDate: DateTime): LocalDate =
+  def calculateScheduledDeletionDate(lastInteractionDate: LocalDateTime): LocalDate =
     lastInteractionDate
-      .plus(deleteUnusedApplicationsAfter(environment).toMillis)
+      .plus(deleteUnusedApplicationsAfter(environment).toMillis, ChronoUnit.MILLIS)
       .toLocalDate
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
@@ -119,14 +117,14 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject()(@Named("tpa-sandbox") t
                                                          thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
                                                          unusedApplicationsRepository: UnusedApplicationsRepository,
                                                          configuration: Configuration,
-                                                         mongo: ReactiveMongoComponent)
+                                                         lockRepository: LockRepository)
   extends UpdateUnusedApplicationRecordsJob(
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
     SANDBOX,
     configuration,
-    mongo)
+    lockRepository)
 
 
 @Singleton
@@ -134,11 +132,11 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject()(@Named("tpa-producti
                                                             thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
                                                             unusedApplicationsRepository: UnusedApplicationsRepository,
                                                             configuration: Configuration,
-                                                            mongo: ReactiveMongoComponent)
+                                                            lockRepository: LockRepository)
   extends UpdateUnusedApplicationRecordsJob(
     thirdPartyApplicationConnector,
     thirdPartyDeveloperConnector,
     unusedApplicationsRepository,
     PRODUCTION,
     configuration,
-    mongo)
+    lockRepository)

@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.joda.time.DateTime
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.mongo.lock.LockRepository
 
+import java.time.{LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -30,11 +30,11 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
                                                      emailConnector: EmailConnector,
                                                      environment: Environment,
                                                      configuration: Configuration,
-                                                     mongo: ReactiveMongoComponent)
-  extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, mongo) {
+                                                     lockRepository: LockRepository)
+  extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, lockRepository) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    val notificationTime = DateTime.now
+    val notificationTime = LocalDateTime.now(ZoneOffset.UTC)
 
     for {
       appsToNotify <- unusedApplicationsRepository.unusedApplicationsToBeNotified(environment, notificationTime)
@@ -54,13 +54,13 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
 class SendUnusedSandboxApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,
                                                              emailConnector: EmailConnector,
                                                              configuration: Configuration,
-                                                             mongo: ReactiveMongoComponent)
-  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, mongo)
+                                                             lockRepository: LockRepository)
+  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, lockRepository)
 
 
 @Singleton
 class SendUnusedProductionApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,
                                                                 emailConnector: EmailConnector,
                                                                 configuration: Configuration,
-                                                                mongo: ReactiveMongoComponent)
-  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, mongo)
+                                                                lockRepository: LockRepository)
+  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, lockRepository)

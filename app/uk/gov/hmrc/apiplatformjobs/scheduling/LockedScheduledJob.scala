@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduling
 
-import org.joda.time.Duration
-import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future, duration}
 
 trait LockedScheduledJob extends ScheduledJob {
 
@@ -27,22 +27,23 @@ trait LockedScheduledJob extends ScheduledJob {
 
   val releaseLockAfter: Duration
 
-  val lockRepository: LockRepository
+  val repository: LockRepository
 
-  lazy val lockKeeper = new LockKeeper {
-    override def repo: LockRepository = lockRepository
-    override def lockId: String  = s"$name-scheduled-job-lock"
-    override val forceLockReleaseAfter: Duration = releaseLockAfter
+  lazy val lockService: LockService = new LockService {
+
+    override val lockRepository: LockRepository = repository
+    override val lockId: String = s"$name-scheduled-job-lock"
+    override val ttl: duration.Duration = releaseLockAfter
   }
 
-  def isRunning: Future[Boolean] = lockKeeper.isLocked
+  def isRunning: Future[Boolean] = lockService.lockRepository.isLocked(lockId = lockService.lockId, lockService.lockId)
 
   final def execute(implicit ec: ExecutionContext): Future[Result] =
-    lockKeeper.tryLock {
+    lockService.withLock {
       executeInLock
     } map {
       case Some(Result(msg)) => Result(s"Job with $name run and completed with result $msg")
-      case None              => Result(s"Job with $name cannot aquire mongo lock, not running")
+      case None              => Result(s"Job with $name cannot acquire mongo lock, not running")
     }
 
 }

@@ -16,21 +16,19 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.joda.time.Duration
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
-import uk.gov.hmrc.time.DateTimeUtils.now
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
+import java.time.{LocalDateTime, ZoneOffset}
 import javax.inject.Inject
 import scala.concurrent.Future.sequence
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
 
-class DeleteUnverifiedDevelopersJob @Inject()(override val lockKeeper: DeleteUnverifiedDevelopersJobLockKeeper,
+class DeleteUnverifiedDevelopersJob @Inject()(override val lockService: DeleteUnverifiedDevelopersJobLockService,
                                               jobConfig: DeleteUnverifiedDevelopersJobConfig,
                                               val developerConnector: ThirdPartyDeveloperConnector,
                                               val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
@@ -49,7 +47,7 @@ class DeleteUnverifiedDevelopersJob @Inject()(override val lockKeeper: DeleteUnv
     logger.info("Starting DeleteUnverifiedDevelopersJob")
 
     (for {
-      developerDetails <- developerConnector.fetchUnverifiedDevelopers(now.minusDays(createdBeforeInDays), jobConfig.limit)
+      developerDetails <- developerConnector.fetchUnverifiedDevelopers(LocalDateTime.now(ZoneOffset.UTC).minusDays(createdBeforeInDays), jobConfig.limit)
       _ = logger.info(s"Found ${developerDetails.size} unverified developers")
       _ <- sequence(developerDetails.map(deleteDeveloper))
     } yield RunningOfJobSuccessful) recoverWith {
@@ -60,12 +58,11 @@ class DeleteUnverifiedDevelopersJob @Inject()(override val lockKeeper: DeleteUnv
   }
 }
 
-class DeleteUnverifiedDevelopersJobLockKeeper @Inject()(mongo: ReactiveMongoComponent) extends LockKeeper {
-  override def repo: LockRepository = new LockRepository()(mongo.mongoConnector.db)
+class DeleteUnverifiedDevelopersJobLockService @Inject()(repository: LockRepository) extends LockService {
 
-  override def lockId: String = "DeleteUnverifiedDevelopersJob"
-
-  override val forceLockReleaseAfter: Duration = Duration.standardHours(1)
+  override val lockRepository: LockRepository = repository
+  override val lockId: String = "DeleteUnverifiedDevelopersJob"
+  override val ttl: duration.Duration = 1.hours
 }
 
 case class DeleteUnverifiedDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int)
