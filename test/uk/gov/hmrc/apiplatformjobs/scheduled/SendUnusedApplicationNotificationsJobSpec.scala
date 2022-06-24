@@ -16,30 +16,28 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.joda.time.{DateTime, DateTimeUtils}
-import play.modules.reactivemongo.ReactiveMongoComponent
+
+
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.lock.LockRepository
 
+import java.time.{LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
 class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
-  with UnusedApplicationTestConfiguration with MongoSpecSupport {
+  with UnusedApplicationTestConfiguration  {
 
-  val FixedTime = DateTime.now
-  DateTimeUtils.setCurrentMillisFixed(FixedTime.getMillis)
+  val FixedTime = LocalDateTime.now(ZoneOffset.UTC)
 
-  trait Setup {
-    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-      override def mongoConnector: MongoConnector = mongoConnectorForTest
-    }
+
+  trait Setup extends BaseSetup {
 
     val mockEmailConnector: EmailConnector = mock[EmailConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
@@ -54,7 +52,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
         mockUnusedApplicationsRepository,
         mockEmailConnector,
         jobConfiguration(sandboxEnvironmentName = environmentName),
-        reactiveMongoComponent)
+        mockLockRepository)
   }
 
   trait ProductionSetup extends Setup {
@@ -66,7 +64,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
         mockUnusedApplicationsRepository,
         mockEmailConnector,
         jobConfiguration(productionEnvironmentName = environmentName),
-        reactiveMongoComponent)
+        mockLockRepository)
   }
 
   "SANDBOX job" should {

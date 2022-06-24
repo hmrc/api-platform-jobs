@@ -17,9 +17,9 @@
 package uk.gov.hmrc.apiplatformjobs.repository
 
 import java.time.Clock
-import com.mongodb.client.model.{FindOneAndUpdateOptions, ReturnDocument}
+
 import org.mongodb.scala.bson.collection.immutable.Document
-import org.mongodb.scala.model.Filters.{and, equal}
+import org.mongodb.scala.model.Filters.{and, equal, lte}
 import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions}
 import org.mongodb.scala.model.Indexes.ascending
 import play.api.libs.json.Json
@@ -33,6 +33,8 @@ import java.time.LocalDateTime
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import org.mongodb.scala.model.Updates
+import com.mongodb.client.model.ReturnDocument
 
 @Singleton
 class UnusedApplicationsRepository @Inject()(mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
@@ -62,7 +64,7 @@ class UnusedApplicationsRepository @Inject()(mongo: MongoComponent, val clock: C
 
   def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = {
     collection.find(equal("environment", Codecs.toBson(environment)))
-      .toFuture()
+      .toFuture().map(_.toList)
   }
 
   def unusedApplicationsToBeNotified(environment: Environment, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
@@ -70,7 +72,7 @@ class UnusedApplicationsRepository @Inject()(mongo: MongoComponent, val clock: C
       equal("environment", Codecs.toBson(environment)),
       lte("scheduledNotificationDates", Codecs.toBson(notificationDate))
       )
-    ).toFuture()
+    ).toFuture().map(_.toList)
   }
 
   def updateNotificationsSent(environment: Environment, applicationId: UUID, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[Boolean] = {
@@ -79,20 +81,19 @@ class UnusedApplicationsRepository @Inject()(mongo: MongoComponent, val clock: C
     collection.findOneAndUpdate(
       filter = query,
       update = Updates.pullByFilter(lte("scheduledNotificationDates", Codecs.toBson(notificationDate))),
-      option = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
+      options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
     ).toFuture()
-      .map(_.result[UnusedApplication].head)
-      .map(!_.scheduledNotificationDates.exists(_.toDateTimeAtStartOfDay.isBefore(notificationDate))) // No notification dates prior to specified date
+      .map(!_.scheduledNotificationDates.exists(y => y.atStartOfDay.isBefore(notificationDate))) // No notification dates prior to specified date
   }
 
   def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
     collection.find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", Codecs.toBson(deletionDate))))
-      .toFuture()
+      .toFuture().map(_.toList)
   }
 
   def deleteUnusedApplicationRecord(environment: Environment, applicationId: UUID): Future[Boolean] = {
     collection.deleteOne(Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId)))
-      .toFuture()
-      .map(_.ok)
+      .toFuture().map(_.wasAcknowledged())
+
   }
 }

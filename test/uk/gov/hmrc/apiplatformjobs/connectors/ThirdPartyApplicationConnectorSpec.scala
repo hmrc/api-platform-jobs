@@ -17,8 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.HeaderNames._
@@ -30,6 +28,8 @@ import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUsageDetail
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 import uk.gov.hmrc.http._
 
+import java.time.{LocalDateTime, ZoneOffset}
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
@@ -147,11 +147,11 @@ class ThirdPartyApplicationConnectorSpec
     def paginatedResponse(lastUseDates: List[ApplicationLastUseDate]) =
       PaginatedApplicationLastUseResponse(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
-    val dateFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
+    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
-      val lastUseDate = DateTime.now.minusMonths(12)
-      val dateString: String = dateFormatter.withZoneUTC().print(lastUseDate)
+      val lastUseDate = LocalDateTime.now.minusMonths(12)
+      val dateString: String = dateFormatter.format(lastUseDate)
 
       val oldApplication1Admin: String = "foo@bar.com"
       val oldApplication1 =
@@ -159,16 +159,16 @@ class ThirdPartyApplicationConnectorSpec
           UUID.randomUUID(),
           Random.alphanumeric.take(10).mkString,
           Set(Collaborator(oldApplication1Admin, "ADMINISTRATOR"), Collaborator("a@b.com", "DEVELOPER")),
-          DateTime.now.minusMonths(12),
-          Some(DateTime.now.minusMonths(13)))
+          LocalDateTime.now.minusMonths(12),
+          Some(LocalDateTime.now.minusMonths(13)))
       val oldApplication2Admin: String = "bar@baz.com"
       val oldApplication2 =
         ApplicationLastUseDate(
           UUID.randomUUID(),
           Random.alphanumeric.take(10).mkString,
           Set(Collaborator(oldApplication2Admin, "ADMINISTRATOR"), Collaborator("b@c.com", "DEVELOPER")),
-          DateTime.now.minusMonths(12),
-          Some(DateTime.now.minusMonths(14)))
+         LocalDateTime.now.minusMonths(12),
+          Some(LocalDateTime.now.minusMonths(14)))
 
       stubFor(
         get(urlPathEqualTo("/applications"))
@@ -192,8 +192,8 @@ class ThirdPartyApplicationConnectorSpec
     }
 
     "return empty Sequence when no results are returned" in new Setup {
-      val lastUseDate = DateTime.now.minusMonths(12)
-      val dateString: String = dateFormatter.withZoneUTC().print(lastUseDate)
+      val lastUseDate =LocalDateTime.now.minusMonths(12)
+      val dateString: String = dateFormatter.format(lastUseDate)
 
       stubFor(
         get(urlPathEqualTo("/applications"))
@@ -313,7 +313,7 @@ class ThirdPartyApplicationConnectorSpec
   trait PaginatedTPAResponse {
     val applicationId = UUID.randomUUID()
     val applicationName = Random.alphanumeric.take(10).mkString
-    val createdOn = DateTime.now.minusYears(1)
+    val createdOn =LocalDateTime.now.minusYears(1)
     val lastAccess = createdOn.plusDays(5)
 
     val pageNumber = 1
@@ -339,8 +339,8 @@ class ThirdPartyApplicationConnectorSpec
                       |          "role": "DEVELOPER"
                       |        }
                       |      ],
-                      |      "createdOn": ${createdOn.getMillis},
-                      |      "lastAccess": ${lastAccess.getMillis}
+                      |      "createdOn": ${createdOn.toInstant(ZoneOffset.UTC)},
+                      |      "lastAccess": ${lastAccess.toInstant(ZoneOffset.UTC)}
                       |    }
                       |  ],
                       |  "page": $pageNumber,

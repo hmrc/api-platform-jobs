@@ -17,20 +17,18 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import com.typesafe.config.ConfigFactory
-import org.joda.time.{DateTime, DateTimeUtils, DateTimeZone, LocalTime}
 import play.api.{Configuration, LoggerLike}
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.lock.LockRepository
 
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime, LocalTime, ZoneOffset}
 import scala.concurrent.{ExecutionContext, Future}
 
-class TimedJobSpec extends AsyncHmrcSpec with MongoSpecSupport {
+class TimedJobSpec extends AsyncHmrcSpec {
 
-  trait TestJobSetup {
-    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-      override def mongoConnector: MongoConnector = mongoConnectorForTest
-    }
+  trait TestJobSetup extends BaseSetup {
+
     val mockLogger = mock[LoggerLike]
 
     def testJob(startTime: String, executionInterval: String, enabled: Boolean = true) = {
@@ -44,33 +42,29 @@ class TimedJobSpec extends AsyncHmrcSpec with MongoSpecSupport {
           |    enabled = $enabled
           |  }""".stripMargin))
 
-      new TimedJob(jobName, configuration, reactiveMongoComponent) {
+      new TimedJob(jobName, configuration, mockLockRepository) {
         override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] =
           Future.successful(RunningOfJobSuccessful)
       }
     }
   }
 
-  trait FixedTime {
-    val BaselineTime = DateTime.now.getMillis
-    DateTimeUtils.setCurrentMillisFixed(BaselineTime)
-  }
 
   "calculateInitialDelay()" should {
-    "correctly calculate time until first run if time is later today" in new TestJobSetup with FixedTime {
-      val futureTime = LocalTime.now(DateTimeZone.UTC).plusHours(1).withSecondOfMinute(0).withMillisOfSecond(0)
-      val expectedDelay = futureTime.toDateTimeToday(DateTimeZone.UTC).getMillis - DateTime.now(DateTimeZone.UTC).getMillis
+    "correctly calculate time until first run if time is later today" in new TestJobSetup  {
+      val futureTime = LocalTime.now(utc).plusHours(1)
+      val expectedDelay = LocalDateTime.of(LocalDate.now(), futureTime).toInstant(utc).toEpochMilli - LocalDateTime.now(utc).toInstant(utc).toEpochMilli
 
-      val jobToTest = testJob(futureTime.toString("HH:mm"), "1d")
+      val jobToTest = testJob(futureTime.format(DateTimeFormatter.ofPattern("HH:mm")), "1d")
 
       jobToTest.initialDelay.toMillis shouldBe (expectedDelay)
     }
 
-    "correctly calculate time until first run if time is earlier today" in new TestJobSetup with FixedTime {
-      val pastTime = LocalTime.now(DateTimeZone.UTC).minusHours(1).withSecondOfMinute(0).withMillisOfSecond(0)
-      val expectedDelay = pastTime.toDateTimeToday(DateTimeZone.UTC).plusDays(1).getMillis - DateTime.now(DateTimeZone.UTC).getMillis
+    "correctly calculate time until first run if time is earlier today" in new TestJobSetup{
+      val pastTime = LocalTime.now(utc).minusHours(1)
+      val expectedDelay = LocalDateTime.of(LocalDate.now, pastTime).plusDays(1).toInstant(utc).toEpochMilli - LocalDateTime.now(utc).toInstant(utc).toEpochMilli
 
-      val jobToTest = testJob(pastTime.toString("HH:mm"), "1d")
+      val jobToTest = testJob(pastTime.format(DateTimeFormatter.ofPattern("HH:mm")), "1d")
 
       jobToTest.initialDelay.toMillis shouldBe (expectedDelay)
     }

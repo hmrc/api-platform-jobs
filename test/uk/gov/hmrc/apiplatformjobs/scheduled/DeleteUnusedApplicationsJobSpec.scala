@@ -16,27 +16,25 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import play.modules.reactivemongo.ReactiveMongoComponent
+
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.lock.LockRepository
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with MongoSpecSupport {
-  trait Setup {
-    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-      override def mongoConnector: MongoConnector = mongoConnectorForTest
-    }
+class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration  {
 
-    val mockThirdPartyApplicationConnector: ThirdPartyApplicationConnector = mock[ThirdPartyApplicationConnector]
-    val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
-  }
+ trait Setup extends BaseSetup {
+   val mockThirdPartyApplicationConnector: ThirdPartyApplicationConnector = mock[ThirdPartyApplicationConnector]
+   val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
+ }
+
 
   trait SandboxSetup extends Setup {
     val environment: Environment = Environment.SANDBOX
@@ -46,7 +44,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         mockThirdPartyApplicationConnector,
         mockUnusedApplicationsRepository,
         defaultConfiguration,
-        reactiveMongoComponent)
+        mockLockRepository)
   }
 
   trait ProductionSetup extends Setup {
@@ -57,7 +55,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         mockThirdPartyApplicationConnector,
         mockUnusedApplicationsRepository,
         defaultConfiguration,
-        reactiveMongoComponent)
+        mockLockRepository)
   }
 
   "SANDBOX job" should {

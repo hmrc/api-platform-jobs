@@ -15,12 +15,16 @@
  */
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
+
+import org.bson.Document
+import org.mongodb.scala.model.{Filters, InsertOneModel, ReplaceOneModel, ReplaceOptions}
 import play.api.Configuration
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.mongo.lock.LockRepository
+import uk.gov.hmrc.mongo.play.json.Codecs
 
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, LocalDateTime, ZoneOffset}
@@ -86,12 +90,15 @@ abstract class UpdateUnusedApplicationRecordsJob(thirdPartyApplicationConnector:
       applicationsToAdd = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
       verifiedApplicationAdministrators: Map[String, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
       newUnusedApplicationRecords: Seq[UnusedApplication] = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
-      _ = if(newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
+      _ = if(newUnusedApplicationRecords.nonEmpty) bulkInsert(newUnusedApplicationRecords)
 
       _ = logInfo(s"Found ${updatesRequired._2.size} applications that have been used since last update")
       _ = if(updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))
     } yield RunningOfJobSuccessful
   }
+
+  def bulkInsert(documents: Seq[UnusedApplication])(implicit ec: ExecutionContext): Future[Int] =
+    unusedApplicationsRepository.collection.bulkWrite(documents.map(InsertOneModel(_))).toFuture().map(_.getInsertedCount)
 
   def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[String, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
