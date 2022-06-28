@@ -44,7 +44,7 @@ object SendEmailRequest {
 
 @Singleton
 class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) extends RepsonseUtils with ApplicationLogger {
-  val serviceUrl: String = config.baseUrl
+  val serviceUrl = config.baseUrl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()

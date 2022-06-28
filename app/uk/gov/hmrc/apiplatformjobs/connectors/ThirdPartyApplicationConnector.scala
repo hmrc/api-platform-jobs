@@ -46,9 +46,11 @@ object ThirdPartyApplicationConnector {
       ApplicationUsageDetails(app.id, app.name, admins, app.createdOn, app.lastAccess)
     })
 
-  case class DeleteCollaboratorRequest(email: String,
-                                       adminsToEmail: Set[String],
-                                       notifyCollaborator: Boolean)
+  case class DeleteCollaboratorRequest(
+                                        email: String,
+                                        adminsToEmail: Set[String],
+                                        notifyCollaborator: Boolean
+                                      )
 
   private[connectors] case class ApplicationResponse(id: String)
   private[connectors] case class Collaborator(emailAddress: String, role: String)
@@ -77,7 +79,8 @@ object ThirdPartyApplicationConnector {
       case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue()).atZone(ZoneOffset.UTC).toLocalDateTime)
       case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
     }
-    implicit val writesDeleteCollaboratorRequest: OWrites[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
+
+    implicit val writesDeleteCollaboratorRequest = Json.writes[DeleteCollaboratorRequest]
 
     implicit val dateTimeFormat: Format[LocalDateTime] = Format(dateTimeReader, dateTimeWriter)
 

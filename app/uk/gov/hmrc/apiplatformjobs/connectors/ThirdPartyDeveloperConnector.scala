@@ -104,5 +104,7 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
     http.POST[DeleteUnregisteredDevelopersRequest,ErrorOr[HttpResponse]](s"${config.baseUrl}/unregistered-developer/delete", DeleteUnregisteredDevelopersRequest(Seq(email)))
     .map(statusOrThrow)
   }
+
+
 }
 
