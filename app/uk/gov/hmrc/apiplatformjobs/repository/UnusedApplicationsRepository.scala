@@ -17,12 +17,11 @@
 package uk.gov.hmrc.apiplatformjobs.repository
 
 import java.time.Clock
-
+import org.mongodb.scala.model.InsertOneModel
 import org.mongodb.scala.bson.collection.immutable.Document
 import org.mongodb.scala.model.Filters.{and, equal, lte}
-import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions}
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions}
 import org.mongodb.scala.model.Indexes.ascending
-import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
 import uk.gov.hmrc.mongo.MongoComponent
@@ -95,5 +94,9 @@ class UnusedApplicationsRepository @Inject()(mongo: MongoComponent, val clock: C
     collection.deleteOne(Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId)))
       .toFuture().map(_.wasAcknowledged())
 
+  }
+
+  def bulkInsert(documents: Seq[UnusedApplication]): Future[Boolean]= {
+    collection.bulkWrite(documents.map(InsertOneModel(_))).toFuture().map(_.wasAcknowledged())
   }
 }

@@ -22,11 +22,15 @@ import play.api.Configuration
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.mongo.lock.LockRepository
 
+import java.time.Clock
+
 abstract class UnusedApplicationsJob(jobName: String,
                                      environment: Environment,
                                      configuration: Configuration,
-                                     lockRepository: LockRepository)
-  extends TimedJob(s"$jobName.$environment", configuration, lockRepository) with UnusedApplicationsTimings {
+                                     clock: Clock,
+                                     lockRepository: LockRepository
+                                    )
+  extends TimedJob(s"$jobName.$environment", configuration, clock, lockRepository) with UnusedApplicationsTimings {
 
   override val unusedApplicationsConfiguration: UnusedApplicationsConfiguration =
     configuration.underlying.as[UnusedApplicationsConfiguration]("UnusedApplications")

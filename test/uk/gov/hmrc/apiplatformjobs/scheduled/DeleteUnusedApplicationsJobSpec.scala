@@ -22,7 +22,6 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.mongo.lock.LockRepository
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,6 +32,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
  trait Setup extends BaseSetup {
    val mockThirdPartyApplicationConnector: ThirdPartyApplicationConnector = mock[ThirdPartyApplicationConnector]
    val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
+   when(mockUnusedApplicationsRepository.clock).thenReturn(fixedClock)
  }
 
 
@@ -44,6 +44,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         mockThirdPartyApplicationConnector,
         mockUnusedApplicationsRepository,
         defaultConfiguration,
+        fixedClock,
         mockLockRepository)
   }
 
@@ -55,6 +56,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         mockThirdPartyApplicationConnector,
         mockUnusedApplicationsRepository,
         defaultConfiguration,
+        fixedClock,
         mockLockRepository)
   }
 

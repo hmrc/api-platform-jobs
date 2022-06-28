@@ -23,16 +23,14 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationCo
 import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.LockRepository
 
-import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
+import scala.concurrent.Future
 import scala.concurrent.Future._
 import scala.concurrent.duration.FiniteDuration
 
 class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
-
-  val fixedClock = Clock.fixed(Instant.now(), ZoneOffset.UTC)
 
   val FixedTimeNow: LocalDateTime = LocalDateTime.now(fixedClock)
 
@@ -47,8 +45,10 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
   trait Setup extends BaseSetup {
     implicit val hc = HeaderCarrier()
     val lockKeeperSuccess: () => Boolean = () => true
-
     val mockLockKeeper: DeleteUnregisteredDevelopersJobLockService = new DeleteUnregisteredDevelopersJobLockService(mockLockRepository)
+
+    when(mockLockRepository.takeLock(*,*,*)).thenReturn(Future.successful(true))
+    when(mockLockRepository.releaseLock(*,*)).thenReturn(Future.successful(()))
 
     val deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig = DeleteUnregisteredDevelopersJobConfig(
       FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
@@ -97,6 +97,7 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
 
     "not execute if the job is already running" in new Setup {
       override val lockKeeperSuccess: () => Boolean = () => false
+      when(mockLockRepository.takeLock(*,*,*)).thenReturn(Future.successful(false))
 
       val result: underTest.Result = await(underTest.execute)
 

@@ -23,9 +23,8 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, 
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.mongo.lock.LockRepository
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -34,11 +33,9 @@ import scala.concurrent.Future.successful
 class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
   with UnusedApplicationTestConfiguration  {
 
-  val FixedTime = LocalDateTime.now(ZoneOffset.UTC)
-
+  val FixedTime = LocalDateTime.now(fixedClock)
 
   trait Setup extends BaseSetup {
-
     val mockEmailConnector: EmailConnector = mock[EmailConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
   }
@@ -52,6 +49,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
         mockUnusedApplicationsRepository,
         mockEmailConnector,
         jobConfiguration(sandboxEnvironmentName = environmentName),
+        fixedClock,
         mockLockRepository)
   }
 
@@ -64,6 +62,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
         mockUnusedApplicationsRepository,
         mockEmailConnector,
         jobConfiguration(productionEnvironmentName = environmentName),
+        fixedClock,
         mockLockRepository)
   }
 
@@ -71,9 +70,12 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
     "send notifications for applications that are due" in new SandboxSetup {
       val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
 
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
-      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(true))
-      when(mockUnusedApplicationsRepository.updateNotificationsSent(environment, unusedApplication.applicationId, FixedTime)).thenReturn(successful(true))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(eqTo(environment), eqTo(FixedTime)))
+        .thenReturn(Future.successful(List(unusedApplication)))
+      when(mockEmailConnector.sendApplicationToBeDeletedNotifications(eqTo(unusedApplication), eqTo(environmentName)))
+        .thenReturn(successful(true))
+      when(mockUnusedApplicationsRepository.updateNotificationsSent(eqTo(environment), eqTo(unusedApplication.applicationId), eqTo(FixedTime)))
+        .thenReturn(successful(true))
 
       await(underTest.runJob)
 

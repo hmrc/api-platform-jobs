@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.joda.time.{DateTime, DateTimeUtils, Duration}
 import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
@@ -24,13 +23,12 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationCo
 import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.LockRepository
 
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
+import scala.concurrent.Future
 import scala.concurrent.Future._
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
 
 class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
 
@@ -45,9 +43,15 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
   }
 
   trait Setup extends BaseSetup {
+
     implicit val hc = HeaderCarrier()
 
     val mockLockKeeper: DeleteUnverifiedDevelopersJobLockService = new DeleteUnverifiedDevelopersJobLockService(mockLockRepository)
+
+    when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(true))
+    when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
+
+
 
     val deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedDevelopersJobConfig = DeleteUnverifiedDevelopersJobConfig(
       FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
@@ -96,6 +100,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
     "not execute if the job is already running" in new Setup {
 
+      when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(false))
       val result: underTest.Result = await(underTest.execute)
 
       verify(mockThirdPartyDeveloperConnector, never).fetchUnverifiedDevelopers(*, *)(*)

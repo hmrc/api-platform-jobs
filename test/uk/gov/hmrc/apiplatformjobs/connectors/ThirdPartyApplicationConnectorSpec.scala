@@ -23,13 +23,13 @@ import play.api.http.HeaderNames._
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.{ApplicationLastUseDate, ApplicationResponse, Collaborator, PaginatedApplicationLastUseResponse, ThirdPartyApplicationConnectorConfig}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUsageDetails, UserId}
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 import uk.gov.hmrc.http._
 
-import java.time.{LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
@@ -51,6 +51,7 @@ class ThirdPartyApplicationConnectorSpec
     val apiKeyTest = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
     val bearer = "TestBearerToken"
     val authorisationKeyTest = "TestAuthorisationKey"
+
 
     val mockConfig = mock[ThirdPartyApplicationConnectorConfig]
     when(mockConfig.applicationProductionBaseUrl).thenReturn(wireMockUrl)
@@ -313,7 +314,7 @@ class ThirdPartyApplicationConnectorSpec
   trait PaginatedTPAResponse {
     val applicationId = UUID.randomUUID()
     val applicationName = Random.alphanumeric.take(10).mkString
-    val createdOn =LocalDateTime.now.minusYears(1)
+    val createdOn =LocalDateTime.now(fixedClock).minusYears(1)
     val lastAccess = createdOn.plusDays(5)
 
     val pageNumber = 1
@@ -339,8 +340,8 @@ class ThirdPartyApplicationConnectorSpec
                       |          "role": "DEVELOPER"
                       |        }
                       |      ],
-                      |      "createdOn": ${createdOn.toInstant(ZoneOffset.UTC)},
-                      |      "lastAccess": ${lastAccess.toInstant(ZoneOffset.UTC)}
+                      |      "createdOn": ${createdOn.toInstant(ZoneOffset.UTC).toEpochMilli},
+                      |      "lastAccess": ${lastAccess.toInstant(ZoneOffset.UTC).toEpochMilli}
                       |    }
                       |  ],
                       |  "page": $pageNumber,

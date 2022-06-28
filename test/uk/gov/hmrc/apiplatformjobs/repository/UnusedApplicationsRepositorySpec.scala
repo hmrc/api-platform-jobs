@@ -26,7 +26,7 @@ import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
-import java.time.{Clock, Instant, LocalDate, LocalDateTime, ZoneOffset}
+import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
@@ -35,8 +35,6 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec with GuiceOneAppPer
   with BeforeAndAfterEach with BeforeAndAfterAll {
 
   implicit val materializer = NoMaterializer
-
-  val fixedClock = Clock.fixed(Instant.now(), ZoneOffset.UTC)
 
   private val unusedApplicationRepository = new UnusedApplicationsRepository(mongoComponent, fixedClock)
 
@@ -79,7 +77,7 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec with GuiceOneAppPer
         scheduledNotificationDates,
         scheduledDeletionDate)
   }
-  
+
 
   "applicationsByEnvironment" should {
     "correctly retrieve SANDBOX applications" in new Setup {
@@ -201,7 +199,10 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec with GuiceOneAppPer
 
       result should be (true)
       val updatedApplication: UnusedApplication =
-        await(unusedApplicationRepository.collection.find(Filters.equal("applicationId", Codecs.toBson(applicationId))).toFuture().map(_.toList.head))
+        await(unusedApplicationRepository.collection
+          .find(
+            Filters.and(Filters.equal("environment", "SANDBOX"),
+                Filters.equal("applicationId", Codecs.toBson(applicationId)))).toFuture().map(_.toList.head))
       updatedApplication.scheduledNotificationDates.size should be (1)
       updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
     }
@@ -217,9 +218,13 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec with GuiceOneAppPer
       val result = await(unusedApplicationRepository.updateNotificationsSent(PRODUCTION, applicationId))
 
       result should be (true)
-      val updatedApplication: UnusedApplication = await(unusedApplicationRepository.collection.find(Filters.equal("applicationId", applicationId)).toFuture()).head
-      updatedApplication.scheduledNotificationDates.size should be (1)
-      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
+      val updatedApplication: UnusedApplication =
+        await(unusedApplicationRepository.collection
+          .find(
+            Filters.and(Filters.equal("environment", "PRODUCTION"),
+              Filters.equal("applicationId", Codecs.toBson(applicationId)))).toFuture().map(_.toList.head))
+      updatedApplication.scheduledNotificationDates.size should be(1)
+      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be(true)
     }
   }
 

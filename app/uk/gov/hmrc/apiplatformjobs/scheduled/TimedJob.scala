@@ -20,8 +20,8 @@ import net.ceedubs.ficus.Ficus._
 import play.api.Configuration
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
-
-import java.time.{LocalDateTime, LocalTime, ZoneId, ZoneOffset}
+import java.time.ZoneOffset.UTC
+import java.time.{Clock, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
@@ -29,6 +29,7 @@ import scala.concurrent.{ExecutionContext, Future, duration}
 
 abstract class TimedJob @Inject()(override val name: String,
                                   configuration: Configuration,
+                                  clock: Clock,
                                   lockRepository: LockRepository) extends ScheduledMongoJob with TimedJobConfigReaders with PrefixLogger {
 
   override val logPrefix: String = s"[$name]"
@@ -46,11 +47,10 @@ abstract class TimedJob @Inject()(override val name: String,
   override def interval: FiniteDuration = jobConfig.executionInterval.interval
 
   def calculateInitialDelay(timeOfFirstRun: LocalTime): FiniteDuration = {
-    val currentDateTime = LocalDateTime.now(ZoneOffset.UTC)
-    val timeToday = LocalDateTime.of(currentDateTime.toLocalDate, timeOfFirstRun)
+    val currentDateTime = LocalDateTime.now(clock)
+    val timeToday = LocalDateTime.of(LocalDate.now(clock), timeOfFirstRun)
     val nextInstanceOfTime = if (timeToday.isBefore(currentDateTime)) timeToday.plusDays(1) else timeToday
-    val millisecondsToFirstRun = nextInstanceOfTime.toInstant(ZoneOffset.UTC).toEpochMilli - currentDateTime.toInstant(ZoneOffset.UTC).toEpochMilli
-
+    val millisecondsToFirstRun = nextInstanceOfTime.toInstant(UTC).toEpochMilli - currentDateTime.toInstant(UTC).toEpochMilli
     millisecondsToFirstRun.milliseconds
   }
 

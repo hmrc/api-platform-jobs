@@ -22,7 +22,7 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, 
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.mongo.lock.LockRepository
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.{Clock, LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -30,11 +30,12 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
                                                      emailConnector: EmailConnector,
                                                      environment: Environment,
                                                      configuration: Configuration,
+                                                     clock: Clock,
                                                      lockRepository: LockRepository)
-  extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, lockRepository) {
+  extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    val notificationTime = LocalDateTime.now(ZoneOffset.UTC)
+    val notificationTime = LocalDateTime.now(clock)
 
     for {
       appsToNotify <- unusedApplicationsRepository.unusedApplicationsToBeNotified(environment, notificationTime)
@@ -54,13 +55,15 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
 class SendUnusedSandboxApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,
                                                              emailConnector: EmailConnector,
                                                              configuration: Configuration,
+                                                             clock: Clock,
                                                              lockRepository: LockRepository)
-  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, lockRepository)
+  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, clock, lockRepository)
 
 
 @Singleton
 class SendUnusedProductionApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,
                                                                 emailConnector: EmailConnector,
                                                                 configuration: Configuration,
+                                                                clock: Clock,
                                                                 lockRepository: LockRepository)
-  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, lockRepository)
+  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, clock, lockRepository)

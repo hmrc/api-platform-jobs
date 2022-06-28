@@ -20,16 +20,16 @@ import com.google.inject.AbstractModule
 import com.google.inject.name.Names
 import org.apache.commons.codec.binary.Base64.encodeBase64String
 import play.api.http.Status._
-import play.api.libs.json.Json
+import play.api.libs.json.Writes.LocalDateTimeEpochMilliWrites
+import play.api.libs.json.{Format, JsError, JsNumber, JsPath, JsSuccess, Json, JsonValidationError, OWrites, Reads, Writes}
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models.{Application, ApplicationUsageDetails, UserId}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{Authorization, HttpClient, _}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.nio.charset.StandardCharsets.UTF_8
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
@@ -68,12 +68,15 @@ object ThirdPartyApplicationConnector {
     applicationProductionBaseUrl: String, applicationProductionUseProxy: Boolean, applicationProductionBearerToken: String, applicationProductionApiKey: String, productionAuthorisationKey: String
   )
 
-  object JsonFormatters {
-    import play.api.libs.json._
+  object JsonFormatters  {
 
-    implicit val dateTimeWriter: Writes[LocalDateTime] = MongoJavatimeFormats.localDateTimeWrites
-    implicit val dateTimeReader: Reads[LocalDateTime] = MongoJavatimeFormats.localDateTimeReads
 
+    implicit val dateTimeWriter: Writes[LocalDateTime] = LocalDateTimeEpochMilliWrites
+
+    implicit val dateTimeReader: Reads[LocalDateTime] = {
+      case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue()).atZone(ZoneOffset.UTC).toLocalDateTime)
+      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
+    }
     implicit val writesDeleteCollaboratorRequest: OWrites[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
 
     implicit val dateTimeFormat: Format[LocalDateTime] = Format(dateTimeReader, dateTimeWriter)
@@ -104,7 +107,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
   def http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
 
-  def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] = 
+  def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] =
     http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[String]] = {

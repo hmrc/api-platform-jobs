@@ -59,7 +59,7 @@ object ThirdPartyDeveloperConnector {
 class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) extends RepsonseUtils {
   import ThirdPartyDeveloperConnector._
 
-  val dateFormatter = DateTimeFormatter.ISO_DATE_TIME
+  val dateFormatter = DateTimeFormatter.BASIC_ISO_DATE
   
   def fetchUserId(email: String)(implicit hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
     http.POST[FindUserIdRequest, Option[FindUserIdResponse]](s"${config.baseUrl}/developers/find-user-id", FindUserIdRequest(email))

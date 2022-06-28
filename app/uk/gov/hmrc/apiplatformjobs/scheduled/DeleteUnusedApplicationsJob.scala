@@ -23,16 +23,17 @@ import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.mongo.lock.LockRepository
 
+import java.time.Clock
 import javax.inject.{Inject, Named, Singleton}
-
 import scala.util.control.NonFatal
 
 abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                            unusedApplicationsRepository: UnusedApplicationsRepository,
                                            environment: Environment,
                                            configuration: Configuration,
+                                           clock: Clock,
                                            lockRepository: LockRepository)
-  extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, lockRepository) {
+  extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, lockRepository) {
 
   import scala.concurrent._
 
@@ -94,12 +95,14 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
 class DeleteUnusedSandboxApplicationsJob @Inject()(@Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                    unusedApplicationsRepository: UnusedApplicationsRepository,
                                                    configuration: Configuration,
+                                                   clock: Clock,
                                                    lockRepository: LockRepository)
-  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, SANDBOX, configuration, lockRepository)
+  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, SANDBOX, configuration, clock, lockRepository)
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject()(@Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                                       unusedApplicationsRepository: UnusedApplicationsRepository,
                                                       configuration: Configuration,
+                                                      clock: Clock,
                                                       lockRepository: LockRepository)
-  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, PRODUCTION, configuration, lockRepository)
+  extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, PRODUCTION, configuration, clock, lockRepository)
