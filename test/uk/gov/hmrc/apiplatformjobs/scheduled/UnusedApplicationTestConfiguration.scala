@@ -17,11 +17,11 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import com.typesafe.config.ConfigFactory
-import org.joda.time.{DateTime, LocalDate}
 import play.api.Configuration
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
+import java.time.{LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.util.Random
 
@@ -106,7 +106,7 @@ trait UnusedApplicationTestConfiguration {
       Random.alphanumeric.take(10).mkString, //scalastyle:off magic.number
       Seq.empty,
       environment,
-      DateTime.now.minusYears(1),
+      LocalDateTime.now.minusYears(1),
       List.empty,
-      LocalDate.now)
+      LocalDateTime.now(ZoneOffset.UTC).toLocalDate)
 }

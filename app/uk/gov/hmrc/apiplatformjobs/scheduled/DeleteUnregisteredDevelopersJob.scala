@@ -16,20 +16,18 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.joda.time.Duration
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
 import javax.inject.Inject
 import scala.concurrent.Future.sequence
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
 
-class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: DeleteUnregisteredDevelopersJobLockKeeper,
+class DeleteUnregisteredDevelopersJob @Inject()(override val lockService: DeleteUnregisteredDevelopersJobLockService,
                                                 jobConfig: DeleteUnregisteredDevelopersJobConfig,
                                                 val developerConnector: ThirdPartyDeveloperConnector,
                                                 val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
@@ -60,12 +58,11 @@ class DeleteUnregisteredDevelopersJob @Inject()(override val lockKeeper: DeleteU
   }
 }
 
-class DeleteUnregisteredDevelopersJobLockKeeper @Inject()(mongo: ReactiveMongoComponent) extends LockKeeper {
-  override def repo: LockRepository = new LockRepository()(mongo.mongoConnector.db)
+class DeleteUnregisteredDevelopersJobLockService @Inject()(repository: LockRepository) extends LockService {
 
-  override def lockId: String = "DeleteUnregisteredDevelopersJob"
-
-  override val forceLockReleaseAfter: Duration = Duration.standardHours(1)
+  override val lockRepository: LockRepository = repository
+  override val lockId: String = "DeleteUnregisteredDevelopersJob"
+  override val ttl: duration.Duration = 1.hours
 }
 
 case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int)

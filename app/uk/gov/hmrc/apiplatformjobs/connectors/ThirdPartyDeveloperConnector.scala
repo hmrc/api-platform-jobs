@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import play.api.http.ContentTypes._
 import play.api.http.HeaderNames._
 import play.api.libs.json.Json
@@ -28,6 +26,8 @@ import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -59,7 +59,7 @@ object ThirdPartyDeveloperConnector {
 class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) extends RepsonseUtils {
   import ThirdPartyDeveloperConnector._
 
-  val dateFormatter = ISODateTimeFormat.basicDate()
+  val dateFormatter = DateTimeFormatter.BASIC_ISO_DATE
   
   def fetchUserId(email: String)(implicit hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
     http.POST[FindUserIdRequest, Option[FindUserIdResponse]](s"${config.baseUrl}/developers/find-user-id", FindUserIdRequest(email))
@@ -70,8 +70,8 @@ class ThirdPartyDeveloperConnector @Inject()(config: ThirdPartyDeveloperConnecto
       http.POST[GetOrCreateUserIdRequest, GetOrCreateUserIdResponse](s"${config.baseUrl}/developers/user-id", getOrCreateUserIdRequest, Seq(CONTENT_TYPE -> JSON))
   }
 
-  def fetchUnverifiedDevelopers(createdBefore: DateTime, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
-    val queryParams = Seq("createdBefore" -> dateFormatter.print(createdBefore), "limit" -> limit.toString, "status" -> "UNVERIFIED")
+  def fetchUnverifiedDevelopers(createdBefore: LocalDateTime, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
+    val queryParams = Seq("createdBefore" -> dateFormatter.format(createdBefore), "limit" -> limit.toString, "status" -> "UNVERIFIED")
     http.GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers", queryParams)
     .map(_.map(d => CoreUserDetails(d.email, d.userId)))
   }

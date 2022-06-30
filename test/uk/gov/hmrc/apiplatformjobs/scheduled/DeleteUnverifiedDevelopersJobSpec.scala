@@ -16,53 +16,42 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.joda.time.{DateTime, DateTimeUtils, Duration}
 import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.lock.LockRepository
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
-import uk.gov.hmrc.time.{DateTimeUtils => HmrcTime}
 
+import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
+import scala.concurrent.Future
 import scala.concurrent.Future._
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
 
-class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSupport with BeforeAndAfterAll {
+class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
 
-  val FixedTimeNow: DateTime = HmrcTime.now
+  val FixedTimeNow: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    DateTimeUtils.setCurrentMillisFixed(FixedTimeNow.toDate.getTime)
   }
 
   override  def afterAll() : Unit = {
-    DateTimeUtils.setCurrentMillisSystem()
     super.afterAll()
   }
 
-  trait Setup {
-    implicit val hc = HeaderCarrier()
-    val lockKeeperSuccess: () => Boolean = () => true
-    private val reactiveMongoComponent = new ReactiveMongoComponent {
-      override def mongoConnector: MongoConnector = mongoConnectorForTest
-    }
+  trait Setup extends BaseSetup {
 
-    val mockLockKeeper: DeleteUnverifiedDevelopersJobLockKeeper = new DeleteUnverifiedDevelopersJobLockKeeper(reactiveMongoComponent) {
-      override def lockId: String = "testLock"
-      override def repo: LockRepository = mock[LockRepository]
-      override val forceLockReleaseAfter: Duration = Duration.standardMinutes(5) // scalastyle:off magic.number
-      override def tryLock[T](body: => Future[T])(implicit ec: ExecutionContext): Future[Option[T]] =
-        if (lockKeeperSuccess()) body.map(value => Some(value))
-        else successful(None)
-    }
+    implicit val hc = HeaderCarrier()
+
+    val mockLockKeeper: DeleteUnverifiedDevelopersJobLockService = new DeleteUnverifiedDevelopersJobLockService(mockLockRepository)
+
+    when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(true))
+    when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
+
+
 
     val deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedDevelopersJobConfig = DeleteUnverifiedDevelopersJobConfig(
       FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
@@ -110,8 +99,8 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with MongoSpecSupp
     }
 
     "not execute if the job is already running" in new Setup {
-      override val lockKeeperSuccess: () => Boolean = () => false
 
+      when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(false))
       val result: underTest.Result = await(underTest.execute)
 
       verify(mockThirdPartyDeveloperConnector, never).fetchUnverifiedDevelopers(*, *)(*)

@@ -17,49 +17,45 @@
 package uk.gov.hmrc.apiplatformjobs.repository
 
 import akka.stream.testkit.NoMaterializer
-import org.joda.time.{DateTime, LocalDate}
+import org.mongodb.scala.model.Filters
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Ascending
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import uk.gov.hmrc.apiplatformjobs.models.Environment._
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
+import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
-class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
-  with MongoSpecSupport
-  with BeforeAndAfterEach with BeforeAndAfterAll
-  with IndexVerification {
+class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec with GuiceOneAppPerSuite with DefaultPlayMongoRepositorySupport[UnusedApplication]
+  with BeforeAndAfterEach with BeforeAndAfterAll {
 
   implicit val materializer = NoMaterializer
 
-  private val reactiveMongoComponent = new ReactiveMongoComponent {
-    override def mongoConnector: MongoConnector = mongoConnectorForTest
-  }
+  private val unusedApplicationRepository = new UnusedApplicationsRepository(mongoComponent, fixedClock)
 
-  private val unusedApplicationRepository = new UnusedApplicationsRepository(reactiveMongoComponent)
+  override protected def repository: PlayMongoRepository[UnusedApplication] = unusedApplicationRepository
 
   override def beforeEach() {
     super.beforeEach()
-    await(unusedApplicationRepository.drop)
+    await(unusedApplicationRepository.collection.drop().toFuture())
     await(unusedApplicationRepository.ensureIndexes)
   }
 
   override protected def afterAll() {
     super.afterAll()
-    await(unusedApplicationRepository.drop)
+    await(unusedApplicationRepository.collection.drop.toFuture())
   }
 
   trait Setup {
     def sandboxApplication(applicationId: UUID,
-                           lastInteractionDate: DateTime = DateTime.now,
-                           scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now.plusDays(1)),
-                           scheduledDeletionDate: LocalDate = LocalDate.now.plusDays(30)) =
+                           lastInteractionDate: LocalDateTime = LocalDateTime.now(fixedClock),
+                           scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
+                           scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)) =
       UnusedApplication(
         applicationId,
         Random.alphanumeric.take(10).mkString,
@@ -69,9 +65,9 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
         scheduledNotificationDates,
         scheduledDeletionDate)
     def productionApplication(applicationId: UUID,
-                              lastInteractionDate: DateTime = DateTime.now,
-                              scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now.plusDays(1)),
-                              scheduledDeletionDate: LocalDate = LocalDate.now.plusDays(30)) =
+                              lastInteractionDate: LocalDateTime = LocalDateTime.now(fixedClock),
+                              scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
+                              scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)) =
       UnusedApplication(
         applicationId,
         Random.alphanumeric.take(10).mkString,
@@ -82,29 +78,18 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
         scheduledDeletionDate)
   }
 
-  "The 'unusedApplications' collection" should {
-    "have all the current indexes" in {
-
-      val expectedIndexes = Set(
-        Index(key = List("environment" -> Ascending, "applicationId" -> Ascending), name = Some("applicationIdIndex"), unique = true, background = true),
-        Index(key = List("environment" -> Ascending, "scheduledNotificationDates" -> Ascending), name = Some("scheduledNotificationDatesIndex"), unique = false, background = true),
-        Index(key = List("environment" -> Ascending, "scheduledDeletionDate" -> Ascending), name = Some("scheduledDeletionDateIndex"), unique = false, background = true)
-      )
-
-      verifyIndexesVersionAgnostic(unusedApplicationRepository, expectedIndexes)
-    }
-  }
 
   "applicationsByEnvironment" should {
     "correctly retrieve SANDBOX applications" in new Setup {
       val sandboxApplicationId = UUID.randomUUID
 
       await(unusedApplicationRepository
-        .bulkInsert(
+        .collection.insertMany(
           Seq(
             sandboxApplication(sandboxApplicationId),
             productionApplication(UUID.randomUUID()),
-            productionApplication(UUID.randomUUID()))))
+            productionApplication(UUID.randomUUID()))).toFuture()
+      )
 
       val results = await(unusedApplicationRepository.unusedApplications(SANDBOX))
 
@@ -115,13 +100,13 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     "correctly retrieve PRODUCTION applications" in new Setup {
       val productionApplication1Id = UUID.randomUUID
       val productionApplication2Id = UUID.randomUUID
-
       await(unusedApplicationRepository
-        .bulkInsert(
+        .collection.insertMany(
           Seq(
             sandboxApplication(UUID.randomUUID()),
             productionApplication(productionApplication1Id),
-            productionApplication(productionApplication2Id))))
+            productionApplication(productionApplication2Id))).toFuture()
+      )
 
       val results = await(unusedApplicationRepository.unusedApplications(PRODUCTION))
 
@@ -135,13 +120,13 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   "unusedApplicationsToBeNotified" should {
     "retrieve SANDBOX application that is due a notification being sent" in new Setup {
       val applicationId = UUID.randomUUID
-
       await(unusedApplicationRepository
-        .bulkInsert(
+        .collection.insertMany(
           Seq(
             sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
             sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))).toFuture()
+      )
 
       val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
 
@@ -153,11 +138,12 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
       val applicationId = UUID.randomUUID
 
       await(unusedApplicationRepository
-        .bulkInsert(
+        .collection.insertMany(
           Seq(
             sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
             sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+            productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))).toFuture()
+      )
 
       val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
 
@@ -168,12 +154,13 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     "retrieve PRODUCTION application that is due a notification being sent" in new Setup {
       val applicationId = UUID.randomUUID
 
-      await(unusedApplicationRepository
-        .bulkInsert(
+       await(unusedApplicationRepository
+        .collection.insertMany(
           Seq(
             productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
             productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))).toFuture()
+       )
 
       val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(PRODUCTION))
 
@@ -184,12 +171,13 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     "retrieve PRODUCTION application that is due multiple notifications being sent only once" in new Setup {
       val applicationId = UUID.randomUUID
 
-      await(unusedApplicationRepository
-        .bulkInsert(
+       await(unusedApplicationRepository
+        .collection.insertMany(
           Seq(
             productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
             productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))))
+            sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))))).toFuture()
+       )
 
       val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(PRODUCTION))
 
@@ -201,32 +189,42 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
   "updateNotificationsSent" should {
     "remove all scheduled notifications for SANDBOX apps prior to a specific date" in new Setup {
       val applicationId = UUID.randomUUID
-      await(unusedApplicationRepository.insert(
+      await(unusedApplicationRepository.collection.insertOne(
         sandboxApplication(
           applicationId,
-          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1)))))
+          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1))))
+      .toFuture())
 
       val result = await(unusedApplicationRepository.updateNotificationsSent(SANDBOX, applicationId))
 
       result should be (true)
-      val updatedApplication: UnusedApplication = await(unusedApplicationRepository.find("applicationId" -> applicationId)).head
+      val updatedApplication: UnusedApplication =
+        await(unusedApplicationRepository.collection
+          .find(
+            Filters.and(Filters.equal("environment", "SANDBOX"),
+                Filters.equal("applicationId", Codecs.toBson(applicationId)))).toFuture().map(_.toList.head))
       updatedApplication.scheduledNotificationDates.size should be (1)
       updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
     }
 
     "remove all scheduled notifications for PRODUCTION apps prior to a specific date" in new Setup {
       val applicationId = UUID.randomUUID
-      await(unusedApplicationRepository.insert(
+      await(unusedApplicationRepository.collection.insertOne(
         productionApplication(
           applicationId,
-          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1)))))
+          scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1))))
+      .toFuture())
 
       val result = await(unusedApplicationRepository.updateNotificationsSent(PRODUCTION, applicationId))
 
       result should be (true)
-      val updatedApplication: UnusedApplication = await(unusedApplicationRepository.find("applicationId" -> applicationId)).head
-      updatedApplication.scheduledNotificationDates.size should be (1)
-      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be (true)
+      val updatedApplication: UnusedApplication =
+        await(unusedApplicationRepository.collection
+          .find(
+            Filters.and(Filters.equal("environment", "PRODUCTION"),
+              Filters.equal("applicationId", Codecs.toBson(applicationId)))).toFuture().map(_.toList.head))
+      updatedApplication.scheduledNotificationDates.size should be(1)
+      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be(true)
     }
   }
 
@@ -235,15 +233,16 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
       val sandboxApplicationToBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))
       val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.plusDays(1))
 
-      await(unusedApplicationRepository
-        .bulkInsert(
+       await(unusedApplicationRepository
+        .collection.insertMany(
           Seq(
             sandboxApplicationToBeDeleted,
             sandboxApplicationToNotBeDeleted,
             productionApplication(UUID.randomUUID()),
-            productionApplication(UUID.randomUUID()))))
+            productionApplication(UUID.randomUUID())))
+       .toFuture())
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(SANDBOX, DateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(SANDBOX, LocalDateTime.now))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be (1)
@@ -254,15 +253,16 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
       val productionApplicationToBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))
       val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.plusDays(1))
 
-      await(unusedApplicationRepository
-        .bulkInsert(
+       await(unusedApplicationRepository
+        .collection.insertMany(
           Seq(
             sandboxApplication(UUID.randomUUID()),
             sandboxApplication(UUID.randomUUID()),
             productionApplicationToBeDeleted,
-            productionApplicationToNotBeDeleted)))
+            productionApplicationToNotBeDeleted))
+       toFuture())
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, DateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, LocalDateTime.now))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be (1)
@@ -274,12 +274,13 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     "correctly remove a SANDBOX application" in new Setup {
       val sandboxApplicationId = UUID.randomUUID
 
-      await(unusedApplicationRepository
-        .bulkInsert(
+       await(unusedApplicationRepository
+        .collection.insertMany(
           Seq(
             sandboxApplication(sandboxApplicationId),
             productionApplication(UUID.randomUUID()),
-            productionApplication(UUID.randomUUID()))))
+            productionApplication(UUID.randomUUID())))
+       .toFuture())
 
       val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(SANDBOX, sandboxApplicationId))
 
@@ -290,11 +291,12 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
     "correctly remove a PRODUCTION application" in new Setup {
       val productionApplicationId = UUID.randomUUID
 
-      await(unusedApplicationRepository
-        .bulkInsert(
+       await(unusedApplicationRepository
+        .collection.insertMany(
           Seq(
             sandboxApplication(UUID.randomUUID()),
-            productionApplication(productionApplicationId))))
+            productionApplication(productionApplicationId)))
+       .toFuture())
 
       val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(PRODUCTION, productionApplicationId))
 
@@ -308,4 +310,6 @@ class UnusedApplicationsRepositorySpec extends AsyncHmrcSpec
       result should be (true)
     }
   }
+
+
 }

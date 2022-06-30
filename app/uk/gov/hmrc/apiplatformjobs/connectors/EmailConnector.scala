@@ -16,9 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.{DateTime, Days}
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 import play.mvc.Http.Status._
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
@@ -26,6 +24,9 @@ import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResponse}
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -38,7 +39,7 @@ case class SendEmailRequest(to: Set[String],
                             eventUrl: Option[String] = None)
 
 object SendEmailRequest {
-  implicit val sendEmailRequestFmt = Json.format[SendEmailRequest]
+  implicit val sendEmailRequestFmt: OFormat[SendEmailRequest] = Json.format[SendEmailRequest]
 }
 
 @Singleton
@@ -85,8 +86,8 @@ class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(impl
 
 object EmailConnector {
 
-  def daysSince(date: DateTime) = Days.daysBetween(date, DateTime.now)
-  val dateFormatter = DateTimeFormat.forPattern("dd MMMM yyyy")
+  def daysSince(date: LocalDateTime): Long = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
+  val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
 
   def toNotifications(unusedApplication: UnusedApplication, environmentName: String): Seq[UnusedApplicationToBeDeletedNotification] =
     unusedApplication.administrators.map { administrator =>
@@ -96,8 +97,8 @@ object EmailConnector {
         administrator.lastName,
         unusedApplication.applicationName,
         environmentName,
-        s"${daysSince(unusedApplication.lastInteractionDate).getDays} days",
-        dateFormatter.print(unusedApplication.scheduledDeletionDate))
+        s"${daysSince(unusedApplication.lastInteractionDate)} days",
+        dateFormatter.format(unusedApplication.scheduledDeletionDate))
     }
 
   private[connectors] case class UnusedApplicationToBeDeletedNotification(userEmailAddress: String,

@@ -16,20 +16,19 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import org.joda.time.DateTime
-import org.joda.time.LocalDate
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 
 case class ApplicationUsageDetails(applicationId: UUID,
                                    applicationName: String,
                                    administrators: Set[String],
-                                   creationDate: DateTime,
-                                   lastAccessDate: Option[DateTime])
+                                   creationDate: LocalDateTime,
+                                   lastAccessDate: Option[LocalDateTime])
 
 case class Administrator(emailAddress: String, firstName: String, lastName: String)
 case object Administrator {
@@ -40,7 +39,7 @@ case class UnusedApplication(applicationId: UUID,
                              applicationName: String,
                              administrators: Seq[Administrator],
                              environment: Environment,
-                             lastInteractionDate: DateTime,
+                             lastInteractionDate: LocalDateTime,
                              scheduledNotificationDates: Seq[LocalDate],
                              scheduledDeletionDate: LocalDate)
 
@@ -50,8 +49,8 @@ object Environment extends Enumeration {
 }
 
 object MongoFormat {
-  implicit val dateFormat = ReactiveMongoFormats.dateTimeFormats
-  implicit val localDateFormat = ReactiveMongoFormats.localDateFormats
+  implicit val localDateTimeFormat = MongoJavatimeFormats.localDateTimeFormat
+  implicit val localDateFormat = MongoJavatimeFormats.localDateFormat
 
   implicit def environmentWrites: Writes[Environment.Value] = (v: Environment.Value) => JsString(v.toString)
   implicit val environmentFormat: Format[Environment.Value] = Format(environmentReads(), environmentWrites)
@@ -62,7 +61,7 @@ object MongoFormat {
       (JsPath \ "applicationName").read[String] and
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
-      (JsPath \ "lastInteractionDate").read[DateTime] and
+      (JsPath \ "lastInteractionDate").read[LocalDateTime] and
       (JsPath \ "scheduledNotificationDates").read[List[LocalDate]] and
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
     )(UnusedApplication.apply _)

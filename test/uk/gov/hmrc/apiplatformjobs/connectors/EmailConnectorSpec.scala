@@ -17,7 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.joda.time.{DateTime, LocalDate}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status._
@@ -26,6 +25,8 @@ import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApp
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -59,10 +60,10 @@ class EmailConnectorSpec
     val environmentName = "Sandbox"
     val timeSinceLastUse = "335 days"
 
-    val lastAccessDate = DateTime.now.minusDays(335)
-    val scheduledDeletionDate = LocalDate.now.plusDays(30)
-
-    val expectedDeletionDateString = scheduledDeletionDate.toString("dd MMMM yyyy")
+    val lastAccessDate = LocalDateTime.now.minusDays(335)
+    val scheduledDeletionDate = LocalDateTime.now.plusDays(30).toLocalDate
+    val dateTimeFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
+    val expectedDeletionDateString = scheduledDeletionDate.format(dateTimeFormatter)
 
     val unusedApplication =
       UnusedApplication(

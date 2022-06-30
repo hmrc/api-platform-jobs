@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import com.typesafe.config.Config
 import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
-import uk.gov.hmrc.lock.LockKeeper
+import uk.gov.hmrc.mongo.lock.LockService
 
 import java.time.Duration
 import java.util.concurrent.TimeUnit
@@ -30,8 +30,9 @@ case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, ena
 
 object JobConfig {
   private implicit class ToFiniteDuration(d: Duration) {
-    def finite(): FiniteDuration = FiniteDuration(d.toNanos(), TimeUnit.NANOSECONDS)
+    def finite(): FiniteDuration = FiniteDuration(d.toNanos, TimeUnit.NANOSECONDS)
   }
+
   def fromConfig(config: Config): JobConfig = {
     new JobConfig(config.getDuration("initialDelay").finite, config.getDuration("interval").finite, config.getBoolean("enabled"))
   }
@@ -39,14 +40,13 @@ object JobConfig {
 
 trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState with ApplicationLogger {
 
-  val lockKeeper: LockKeeper
-
+  val lockService: LockService
   def isEnabled: Boolean
 
   def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful]
 
   override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
-    lockKeeper tryLock {
+    lockService.withLock {
       runJob
     } map {
       case Some(_) => Result(s"$name Job ran successfully.")

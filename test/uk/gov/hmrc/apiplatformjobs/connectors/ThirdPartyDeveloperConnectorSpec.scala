@@ -17,7 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.joda.time.DateTime
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status.{OK, _}
@@ -27,13 +26,13 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
 import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.time.DateTimeUtils.now
 
+import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ThirdPartyDeveloperConnectorSpec 
-    extends AsyncHmrcSpec 
-    with GuiceOneAppPerSuite 
+class ThirdPartyDeveloperConnectorSpec
+    extends AsyncHmrcSpec
+    with GuiceOneAppPerSuite
     with WiremockSugar {
 
   override def fakeApplication(): Application =
@@ -68,7 +67,7 @@ class ThirdPartyDeveloperConnectorSpec
           .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = false, userId)))
         )
       )
-      val result = await(connector.fetchUnverifiedDevelopers(new DateTime(2020, 2, 1, 0, 0), limit))
+      val result = await(connector.fetchUnverifiedDevelopers(LocalDateTime.of(2020, 2, 1, 0, 0), limit))
 
       result shouldBe Seq(CoreUserDetails(devEmail, userId))
     }
@@ -82,7 +81,7 @@ class ThirdPartyDeveloperConnectorSpec
         )
       )
       intercept[UpstreamErrorResponse] {
-        await(connector.fetchUnverifiedDevelopers(now, limit))
+        await(connector.fetchUnverifiedDevelopers(LocalDateTime.now(), limit))
       }
     }
   }

@@ -17,23 +17,23 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import net.ceedubs.ficus.Ficus._
-import org.joda.time.{DateTime, DateTimeZone, Duration, LocalTime}
 import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
-import uk.gov.hmrc.lock.{LockKeeper, LockRepository}
-
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
+import java.time.ZoneOffset.UTC
+import java.time.{Clock, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future, duration}
 
 abstract class TimedJob @Inject()(override val name: String,
                                   configuration: Configuration,
-                                  mongo: ReactiveMongoComponent) extends ScheduledMongoJob with TimedJobConfigReaders with PrefixLogger {
+                                  clock: Clock,
+                                  lockRepository: LockRepository) extends ScheduledMongoJob with TimedJobConfigReaders with PrefixLogger {
 
   override val logPrefix: String = s"[$name]"
-  override val lockKeeper: LockKeeper = mongoLockKeeper(mongo)
+  override val lockService: LockService = new MongoLockService(s"$name-Lock", lockRepository)
 
   val jobConfig: TimedJobConfig = configuration.underlying.as[TimedJobConfig](name)
 
@@ -47,18 +47,11 @@ abstract class TimedJob @Inject()(override val name: String,
   override def interval: FiniteDuration = jobConfig.executionInterval.interval
 
   def calculateInitialDelay(timeOfFirstRun: LocalTime): FiniteDuration = {
-    val currentDateTime = DateTime.now(DateTimeZone.UTC)
-    val timeToday = timeOfFirstRun.toDateTimeToday(DateTimeZone.UTC)
+    val currentDateTime = LocalDateTime.now(clock)
+    val timeToday = LocalDateTime.of(LocalDate.now(clock), timeOfFirstRun)
     val nextInstanceOfTime = if (timeToday.isBefore(currentDateTime)) timeToday.plusDays(1) else timeToday
-    val millisecondsToFirstRun = nextInstanceOfTime.getMillis - currentDateTime.getMillis
-
-    FiniteDuration(millisecondsToFirstRun, TimeUnit.MILLISECONDS)
-  }
-
-  def mongoLockKeeper(mongo: ReactiveMongoComponent): LockKeeper = new LockKeeper {
-    override def repo: LockRepository = new LockRepository()(mongo.mongoConnector.db)
-    override def lockId: String = s"$name-Lock"
-    override val forceLockReleaseAfter: Duration = Duration.standardHours(1)
+    val millisecondsToFirstRun = nextInstanceOfTime.toInstant(UTC).toEpochMilli - currentDateTime.toInstant(UTC).toEpochMilli
+    millisecondsToFirstRun.milliseconds
   }
 
   override final def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
@@ -67,6 +60,12 @@ abstract class TimedJob @Inject()(override val name: String,
   }
 
   def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful]
+}
+
+class MongoLockService @Inject()(override val lockId: String, repository: LockRepository) extends LockService  {
+
+  override val lockRepository: LockRepository = repository
+  override val ttl: duration.Duration = 1.hours
 }
 
 class StartTime(val startTime: LocalTime) extends AnyVal
