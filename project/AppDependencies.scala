@@ -3,7 +3,7 @@ import sbt._
 object AppDependencies {
   def apply(): Seq[ModuleID] = compileDeps ++ testDeps
 
-  lazy val hmrcMongoVersion = "0.65.0"
+  lazy val hmrcMongoVersion = "0.73.0"
 
   private lazy val compileDeps = Seq(
     "uk.gov.hmrc"                 %% "bootstrap-backend-play-28"          % "7.12.0",
