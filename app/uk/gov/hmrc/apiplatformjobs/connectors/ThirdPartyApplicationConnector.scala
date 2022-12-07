@@ -27,6 +27,8 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models.{Application, ApplicationUsageDetails, UserId}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{Authorization, HttpClient, _}
+import uk.gov.hmrc.apiplatformjobs.models.{DeleteUnusedApplication, ApplicationUpdateFormatters}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateResult, ApplicationUpdateSuccessResult, ApplicationUpdateFailureResult}
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.{Instant, LocalDateTime, ZoneOffset}
@@ -98,7 +100,7 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
   }
 }
 
-abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends RepsonseUtils {
+abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends RepsonseUtils with ApplicationUpdateFormatters {
 
   protected val httpClient: HttpClient
   protected val proxiedHttpClient: ProxiedHttpClient
@@ -133,11 +135,20 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       .map(page => toDomain(page.applications))
   }
 
-  def deleteApplication(applicationId: UUID): Future[Boolean] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authorisationKey)))
+  // def deleteApplication(applicationId: UUID): Future[Boolean] = {
+  //   implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authorisationKey)))
 
-    http.POSTEmpty[HttpResponse](s"$serviceBaseUrl/application/${applicationId.toString}/delete")
-    .map(_.status == NO_CONTENT)
+  //   http.POSTEmpty[HttpResponse](s"$serviceBaseUrl/application/${applicationId.toString}/delete")
+  //   .map(_.status == NO_CONTENT)
+  // }
+
+  def deleteApplication(applicationId: UUID, jobId: String, reasons: String, timestamp: LocalDateTime)(implicit hc: HeaderCarrier): Future[ApplicationUpdateResult] = {
+    val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
+    http.PATCH[DeleteUnusedApplication, Either[UpstreamErrorResponse, HttpResponse]](s"$serviceBaseUrl/application/$applicationId", deleteRequest)
+      .map( _ match {
+        case Right(result) => ApplicationUpdateSuccessResult
+        case Left(_) => ApplicationUpdateFailureResult
+      })
   }
 }
 
