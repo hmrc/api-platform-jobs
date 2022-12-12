@@ -20,12 +20,15 @@ import play.api.Configuration
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateResult, ApplicationUpdateSuccessResult}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.mongo.lock.LockRepository
+import uk.gov.hmrc.http.HeaderCarrier
 
-import java.time.Clock
+import java.time.{Clock, LocalDateTime}
 import javax.inject.{Inject, Named, Singleton}
 import scala.util.control.NonFatal
+
 
 abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
                                            unusedApplicationsRepository: UnusedApplicationsRepository,
@@ -64,10 +67,12 @@ abstract class DeleteUnusedApplicationsJob(thirdPartyApplicationConnector: Third
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def deleteApplication(application: UnusedApplication): Future[Unit] = {
+      implicit val hc: HeaderCarrier = HeaderCarrier()
       logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})] in TPA")
+      val reasons = s"Application automatically deleted because it has not been used since ${application.lastInteractionDate}"
       (for {
-        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId)
-        _: Unit <- if(deleteSuccessful) {
+        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId, name, reasons, LocalDateTime.now(clock))
+        _: Unit <- if(deleteSuccessful == ApplicationUpdateSuccessResult) {
           logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
           unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, application.applicationId)
           .map(_ => ())

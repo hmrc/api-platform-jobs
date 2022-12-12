@@ -19,12 +19,11 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.http.HeaderNames._
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUsageDetails, UserId}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUsageDetails, UserId, ApplicationUpdateSuccessResult, ApplicationUpdateFailureResult}
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 import uk.gov.hmrc.http._
 
@@ -218,34 +217,16 @@ class ThirdPartyApplicationConnectorSpec
       val applicationId = ApplicationId.random
 
       stubFor(
-        post(urlPathEqualTo(s"/application/${applicationId.value}/delete"))
+        patch(urlPathEqualTo(s"/application/${applicationId.value}"))
           .willReturn(
             aResponse()
               .withStatus(NO_CONTENT)
           )
       )
 
-      val response = await(connector.deleteApplication(applicationId.value))
+      val response = await(connector.deleteApplication(applicationId.value, "jobId", "reasons", LocalDateTime.now))
 
-      response should be (true)
-    }
-
-    "include authorisationKey in the authorisation header" in new Setup {
-      val applicationId = ApplicationId.random
-      val authorisationKeyAsItAppearsOnTheWire = connector.authorisationKey
-
-      stubFor(
-        post(urlPathEqualTo(s"/application/${applicationId.value}/delete"))
-          .withHeader(AUTHORIZATION, equalTo(authorisationKeyAsItAppearsOnTheWire))
-          .willReturn(
-            aResponse()
-              .withStatus(NO_CONTENT)
-          )
-      )
-
-      val response = await(connector.deleteApplication(applicationId.value))
-
-      response should be (true)
+      response should be (ApplicationUpdateSuccessResult)
     }
 
     "return false if call to TPA fails" in new Setup {
@@ -259,9 +240,9 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val response = await(connector.deleteApplication(applicationId.value))
+      val response = await(connector.deleteApplication(applicationId.value, "jobId", "reasons", LocalDateTime.now))
 
-      response should be (false)
+      response should be (ApplicationUpdateFailureResult)
     }
   }
 
