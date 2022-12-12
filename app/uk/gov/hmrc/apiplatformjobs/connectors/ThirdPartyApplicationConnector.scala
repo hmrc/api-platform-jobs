@@ -135,13 +135,6 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       .map(page => toDomain(page.applications))
   }
 
-  // def deleteApplication(applicationId: UUID): Future[Boolean] = {
-  //   implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(authorisationKey)))
-
-  //   http.POSTEmpty[HttpResponse](s"$serviceBaseUrl/application/${applicationId.toString}/delete")
-  //   .map(_.status == NO_CONTENT)
-  // }
-
   def deleteApplication(applicationId: UUID, jobId: String, reasons: String, timestamp: LocalDateTime)(implicit hc: HeaderCarrier): Future[ApplicationUpdateResult] = {
     val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
     http.PATCH[DeleteUnusedApplication, Either[UpstreamErrorResponse, HttpResponse]](s"$serviceBaseUrl/application/$applicationId", deleteRequest)
