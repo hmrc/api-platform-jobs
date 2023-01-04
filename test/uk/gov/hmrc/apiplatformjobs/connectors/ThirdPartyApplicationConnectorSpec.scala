@@ -23,11 +23,12 @@ import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUsageDetails, UserId, ApplicationUpdateSuccessResult, ApplicationUpdateFailureResult}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, ApplicationUsageDetails, UserId}
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 import uk.gov.hmrc.http._
 
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit.MILLIS
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -295,7 +296,7 @@ class ThirdPartyApplicationConnectorSpec
   trait PaginatedTPAResponse {
     val applicationId = UUID.randomUUID()
     val applicationName = Random.alphanumeric.take(10).mkString
-    val createdOn =LocalDateTime.now(fixedClock).minusYears(1)
+    val createdOn =LocalDateTime.now(fixedClock).minusYears(1).truncatedTo(MILLIS)
     val lastAccess = createdOn.plusDays(5)
 
     val pageNumber = 1
