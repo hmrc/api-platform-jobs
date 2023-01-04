@@ -5,9 +5,11 @@ import uk.gov.hmrc.SbtAutoBuildPlugin
 
 import bloop.integrations.sbt.BloopDefaults
 
-lazy val root = (project in file("."))
+lazy val appName = "api-platform-jobs"
+
+lazy val microservice = Project(appName, file("."))
   .settings(
-    name := "api-platform-jobs",
+    name := appName,
     organization := "uk.gov.hmrc",
     scalaVersion := "2.12.12",
     scalacOptions += "-Ypartial-unification",
