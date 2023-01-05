@@ -70,7 +70,7 @@ class EmailConnector @Inject()(httpClient: HttpClient, config: EmailConfig)(impl
 
     httpClient.POST[SendEmailRequest, HttpResponse](url, payload)
     .map { response =>
-      logger.info(s"Sent '${payload.templateId}' to: ${payload.to.mkString(",")} with response: ${response.status}")
+      logger.info(s"Sent '${payload.templateId}' with response: ${response.status}")
       response.status match {
         case status if HttpErrorFunctions.is2xx(status) => true
         case NOT_FOUND =>
