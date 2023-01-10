@@ -16,17 +16,18 @@
 
 package uk.gov.hmrc.apiplatformjobs.config
 
+import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
+import javax.inject.{Inject, Provider, Singleton}
+import scala.concurrent.duration.{Duration, FiniteDuration}
+
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig}
 import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-
-import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
-import javax.inject.{Inject, Provider, Singleton}
-import scala.concurrent.duration.{Duration, FiniteDuration}
 
 class ConfigurationModule extends Module {
 

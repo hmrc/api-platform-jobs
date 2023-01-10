@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-
 import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
+
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 
 case class ApplicationUsageDetails(applicationId: UUID, applicationName: String, administrators: Set[String], creationDate: LocalDateTime, lastAccessDate: Option[LocalDateTime])
 

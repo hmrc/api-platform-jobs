@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
+
 import play.api.Configuration
 import play.api.libs.ws.{WSClient, WSRequest}
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 
-import java.util.UUID
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class ProxiedHttpClientSpec extends AsyncHmrcSpec {
   private val actorSystem = ActorSystem("test-actor-system")

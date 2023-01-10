@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduling
 
-import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future, duration}
+
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
 trait LockedScheduledJob extends ScheduledJob {
 

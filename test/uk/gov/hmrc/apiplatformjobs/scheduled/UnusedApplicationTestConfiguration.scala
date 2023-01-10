@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import com.typesafe.config.ConfigFactory
-import play.api.Configuration
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
-
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.util.Random
+
+import com.typesafe.config.ConfigFactory
+
+import play.api.Configuration
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
 trait UnusedApplicationTestConfiguration {
 

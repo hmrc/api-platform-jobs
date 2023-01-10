@@ -16,20 +16,21 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import play.api.libs.json.{Json, OFormat}
-import play.mvc.Http.Status._
-import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
-import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResponse}
-
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+
+import play.api.libs.json.{Json, OFormat}
+import play.mvc.Http.Status._
+import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResponse}
+
+import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
+import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 
 case class SendEmailRequest(
     to: Set[String],

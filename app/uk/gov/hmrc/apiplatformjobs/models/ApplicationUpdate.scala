@@ -17,8 +17,8 @@
 package uk.gov.hmrc.apiplatformjobs.models
 
 import java.time.LocalDateTime
-import play.api.libs.json.Json
-import play.api.libs.json._
+
+import play.api.libs.json.{Json, _}
 
 trait ApplicationUpdate {
   def timestamp: LocalDateTime

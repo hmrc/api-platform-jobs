@@ -16,19 +16,21 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
+import java.time.LocalDateTime
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+
 import play.api.Application
 import play.api.http.Status.{OK, _}
 import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.http._
+
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
 import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.http._
-
-import java.time.LocalDateTime
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPerSuite with WiremockSugar {
 

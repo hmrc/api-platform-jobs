@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import com.typesafe.config.ConfigFactory
-import play.api.{Configuration, LoggerLike}
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.{ExecutionContext, Future}
+
+import com.typesafe.config.ConfigFactory
+
+import play.api.{Configuration, LoggerLike}
+
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class TimedJobSpec extends AsyncHmrcSpec {
 

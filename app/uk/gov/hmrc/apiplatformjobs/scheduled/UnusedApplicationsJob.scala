@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.time.Clock
+
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ValueReader
+
 import play.api.Configuration
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.mongo.lock.LockRepository
 
-import java.time.Clock
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 
 abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, clock: Clock, lockRepository: LockRepository)
     extends TimedJob(s"$jobName.$environment", configuration, clock, lockRepository)

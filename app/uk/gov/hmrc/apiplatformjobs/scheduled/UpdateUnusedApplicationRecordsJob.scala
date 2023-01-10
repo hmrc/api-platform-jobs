@@ -16,18 +16,19 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import play.api.Configuration
-import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
-import uk.gov.hmrc.apiplatformjobs.models._
-import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.mongo.lock.LockRepository
-
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, LocalDate, LocalDateTime}
 import java.util.UUID
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
+import play.api.Configuration
+import uk.gov.hmrc.mongo.lock.LockRepository
+
+import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models._
+import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class UpdateUnusedApplicationRecordsJob(
     thirdPartyApplicationConnector: ThirdPartyApplicationConnector,

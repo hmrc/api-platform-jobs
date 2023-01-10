@@ -16,14 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import com.typesafe.config.{Config, ConfigException}
-import net.ceedubs.ficus.Ficus._
-import net.ceedubs.ficus.readers.ValueReader
-import uk.gov.hmrc.apiplatformjobs.models.Environment
-
 import java.time.LocalTime
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
+
+import com.typesafe.config.{Config, ConfigException}
+import net.ceedubs.ficus.Ficus._
+import net.ceedubs.ficus.readers.ValueReader
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment
 
 trait TimedJobConfigReaders {
 

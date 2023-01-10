@@ -16,20 +16,22 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import akka.stream.testkit.NoMaterializer
-import org.mongodb.scala.model.Filters
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.apiplatformjobs.models.Environment._
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-
 import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
+
+import akka.stream.testkit.NoMaterializer
+import org.mongodb.scala.model.Filters
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment._
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class UnusedApplicationsRepositorySpec
     extends AsyncHmrcSpec

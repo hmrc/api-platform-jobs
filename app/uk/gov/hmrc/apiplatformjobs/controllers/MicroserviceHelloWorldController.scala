@@ -16,14 +16,11 @@
 
 package uk.gov.hmrc.apiplatformjobs.controllers
 
-import play.api.mvc.Action
-import play.api.mvc.AnyContent
-import play.api.mvc.ControllerComponents
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-
-import javax.inject.Inject
-import javax.inject.Singleton
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
+
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 @Singleton()
 class MicroserviceHelloWorldController @Inject() (cc: ControllerComponents) extends BackendController(cc) {

@@ -16,24 +16,23 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.time.Clock
-import org.mongodb.scala.model.InsertOneModel
+import java.time.{Clock, LocalDateTime}
+import java.util.UUID
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
+
+import com.mongodb.client.model.ReturnDocument
 import org.mongodb.scala.bson.collection.immutable.Document
 import org.mongodb.scala.model.Filters.{and, equal, lte}
-import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions}
 import org.mongodb.scala.model.Indexes.ascending
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, IndexModel, IndexOptions, InsertOneModel, Updates}
+
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.time.LocalDateTime
-import java.util.UUID
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
-import org.mongodb.scala.model.Updates
-import com.mongodb.client.model.ReturnDocument
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
 
 @Singleton
 class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)

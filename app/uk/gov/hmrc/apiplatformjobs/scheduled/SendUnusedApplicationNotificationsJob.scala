@@ -16,15 +16,16 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.time.{Clock, LocalDateTime}
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
+
 import play.api.Configuration
+import uk.gov.hmrc.mongo.lock.LockRepository
+
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.mongo.lock.LockRepository
-
-import java.time.{Clock, LocalDateTime, ZoneOffset}
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
 
 abstract class SendUnusedApplicationNotificationsJob(
     unusedApplicationsRepository: UnusedApplicationsRepository,

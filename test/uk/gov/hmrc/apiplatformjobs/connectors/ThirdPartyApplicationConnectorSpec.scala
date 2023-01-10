@@ -16,23 +16,25 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
-import play.api.http.Status._
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, ApplicationUsageDetails, UserId}
-import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
-import uk.gov.hmrc.http._
-
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit.MILLIS
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
+
+import com.github.tomakehurst.wiremock.client.WireMock._
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+
+import play.api.Application
+import play.api.http.Status._
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
+import uk.gov.hmrc.http._
+
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, ApplicationUsageDetails, UserId}
+import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 
 class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 

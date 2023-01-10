@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.apiplatformjobs.config
 
-import com.google.inject.AbstractModule
-import play.api.Application
-import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.apiplatformjobs.scheduled._
-import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
-
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
+
+import com.google.inject.AbstractModule
+
+import play.api.Application
+import play.api.inject.ApplicationLifecycle
+
+import uk.gov.hmrc.apiplatformjobs.scheduled._
+import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 class SchedulerModule extends AbstractModule {
   override def configure(): Unit = {

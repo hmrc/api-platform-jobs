@@ -16,16 +16,19 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import net.ceedubs.ficus.Ficus._
-import play.api.Configuration
-import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
-import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 import java.time.ZoneOffset.UTC
 import java.time.{Clock, LocalDate, LocalDateTime, LocalTime}
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
+
+import net.ceedubs.ficus.Ficus._
+
+import play.api.Configuration
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
+
+import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 
 abstract class TimedJob @Inject() (override val name: String, configuration: Configuration, clock: Clock, lockRepository: LockRepository)
     extends ScheduledMongoJob
