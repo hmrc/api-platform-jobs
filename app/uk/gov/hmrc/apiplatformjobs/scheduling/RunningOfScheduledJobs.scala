@@ -63,6 +63,7 @@ trait RunningOfScheduledJobs extends ApplicationLogger {
     })
   }
 
+  // scalastyle:off magic.number
   applicationLifecycle.addStopHook(() => {
     logger.info(s"Cancelling all scheduled jobs.")
     cancellables.foreach(_.cancel())
@@ -77,4 +78,5 @@ trait RunningOfScheduledJobs extends ApplicationLogger {
 
     Future.successful(())
   })
+  // scalastyle:on magic.number
 }

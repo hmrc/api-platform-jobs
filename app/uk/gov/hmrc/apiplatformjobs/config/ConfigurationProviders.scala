@@ -94,6 +94,7 @@ class ThirdPartyApplicationConnectorConfigProvider @Inject() (val sc: ServicesCo
 @Singleton
 class DeleteUnverifiedDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnverifiedDevelopersJobConfig] {
 
+    // scalastyle:off magic.number
   override def get(): DeleteUnverifiedDevelopersJobConfig = {
     val initialDelay = configuration
       .getOptional[String]("deleteUnverifiedDevelopersJob.initialDelay")
@@ -126,6 +127,7 @@ class DeleteUnregisteredDevelopersJobConfigProvider @Inject() (configuration: Co
     DeleteUnregisteredDevelopersJobConfig(initialDelay, interval, enabled, limit)
   }
 }
+// scalastyle:on magic.number
 
 @Singleton
 class EmailConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[EmailConfig] {
