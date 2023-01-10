@@ -38,24 +38,24 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     super.beforeAll()
   }
 
-  override  def afterAll() : Unit = {
+  override def afterAll(): Unit = {
     super.afterAll()
   }
 
   trait Setup extends BaseSetup {
-    implicit val hc = HeaderCarrier()
-    val lockKeeperSuccess: () => Boolean = () => true
+    implicit val hc                                                = HeaderCarrier()
+    val lockKeeperSuccess: () => Boolean                           = () => true
     val mockLockKeeper: DeleteUnregisteredDevelopersJobLockService = new DeleteUnregisteredDevelopersJobLockService(mockLockRepository)
 
-    when(mockLockRepository.takeLock(*,*,*)).thenReturn(Future.successful(true))
-    when(mockLockRepository.releaseLock(*,*)).thenReturn(Future.successful(()))
+    when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(true))
+    when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 
-    val deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig = DeleteUnregisteredDevelopersJobConfig(
-      FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
-    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector = mock[ThirdPartyDeveloperConnector]
-    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector = mock[SandboxThirdPartyApplicationConnector]
+    val deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig           =
+      DeleteUnregisteredDevelopersJobConfig(FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
+    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector                         = mock[ThirdPartyDeveloperConnector]
+    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
     val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
-    val underTest = new DeleteUnregisteredDevelopersJob(
+    val underTest                                                                              = new DeleteUnregisteredDevelopersJob(
       mockLockKeeper,
       deleteUnregisteredDevelopersJobConfig,
       mockThirdPartyDeveloperConnector,
@@ -97,7 +97,7 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
 
     "not execute if the job is already running" in new Setup {
       override val lockKeeperSuccess: () => Boolean = () => false
-      when(mockLockRepository.takeLock(*,*,*)).thenReturn(Future.successful(false))
+      when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(false))
 
       val result: underTest.Result = await(underTest.execute)
 

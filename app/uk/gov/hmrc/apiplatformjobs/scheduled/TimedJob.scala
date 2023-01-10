@@ -27,12 +27,12 @@ import javax.inject.Inject
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
 
-abstract class TimedJob @Inject()(override val name: String,
-                                  configuration: Configuration,
-                                  clock: Clock,
-                                  lockRepository: LockRepository) extends ScheduledMongoJob with TimedJobConfigReaders with PrefixLogger {
+abstract class TimedJob @Inject() (override val name: String, configuration: Configuration, clock: Clock, lockRepository: LockRepository)
+    extends ScheduledMongoJob
+    with TimedJobConfigReaders
+    with PrefixLogger {
 
-  override val logPrefix: String = s"[$name]"
+  override val logPrefix: String        = s"[$name]"
   override val lockService: LockService = new MongoLockService(s"$name-Lock", lockRepository)
 
   val jobConfig: TimedJobConfig = configuration.underlying.as[TimedJobConfig](name)
@@ -41,15 +41,15 @@ abstract class TimedJob @Inject()(override val name: String,
 
   override def initialDelay: FiniteDuration = jobConfig.startTime match {
     case Some(startTime) => calculateInitialDelay(startTime.startTime)
-    case _ => FiniteDuration(0, TimeUnit.MILLISECONDS)
+    case _               => FiniteDuration(0, TimeUnit.MILLISECONDS)
   }
 
   override def interval: FiniteDuration = jobConfig.executionInterval.interval
 
   def calculateInitialDelay(timeOfFirstRun: LocalTime): FiniteDuration = {
-    val currentDateTime = LocalDateTime.now(clock)
-    val timeToday = LocalDateTime.of(LocalDate.now(clock), timeOfFirstRun)
-    val nextInstanceOfTime = if (timeToday.isBefore(currentDateTime)) timeToday.plusDays(1) else timeToday
+    val currentDateTime        = LocalDateTime.now(clock)
+    val timeToday              = LocalDateTime.of(LocalDate.now(clock), timeOfFirstRun)
+    val nextInstanceOfTime     = if (timeToday.isBefore(currentDateTime)) timeToday.plusDays(1) else timeToday
     val millisecondsToFirstRun = nextInstanceOfTime.toInstant(UTC).toEpochMilli - currentDateTime.toInstant(UTC).toEpochMilli
     millisecondsToFirstRun.milliseconds
   }
@@ -62,13 +62,13 @@ abstract class TimedJob @Inject()(override val name: String,
   def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful]
 }
 
-class MongoLockService @Inject()(override val lockId: String, repository: LockRepository) extends LockService  {
+class MongoLockService @Inject() (override val lockId: String, repository: LockRepository) extends LockService {
 
   override val lockRepository: LockRepository = repository
-  override val ttl: duration.Duration = 1.hours
+  override val ttl: duration.Duration         = 1.hours
 }
 
-class StartTime(val startTime: LocalTime) extends AnyVal
+class StartTime(val startTime: LocalTime)             extends AnyVal
 class ExecutionInterval(val interval: FiniteDuration) extends AnyVal
 
 case class TimedJobConfig(startTime: Option[StartTime], executionInterval: ExecutionInterval, enabled: Boolean) {
@@ -78,10 +78,10 @@ case class TimedJobConfig(startTime: Option[StartTime], executionInterval: Execu
 trait PrefixLogger extends ApplicationLogger {
   val logPrefix: String
 
-  def logDebug(message: String) = logger.debug(s"$logPrefix $message")
-  def logInfo(message: String) = logger.info(s"$logPrefix $message")
-  def logWarn(message: String) = logger.warn(s"$logPrefix $message")
-  def logError(message: String) = logger.error(s"$logPrefix $message")
-  def logWarn(message: String, error: => Throwable) = logger.warn(s"$logPrefix $message", error)
+  def logDebug(message: String)                      = logger.debug(s"$logPrefix $message")
+  def logInfo(message: String)                       = logger.info(s"$logPrefix $message")
+  def logWarn(message: String)                       = logger.warn(s"$logPrefix $message")
+  def logError(message: String)                      = logger.error(s"$logPrefix $message")
+  def logWarn(message: String, error: => Throwable)  = logger.warn(s"$logPrefix $message", error)
   def logError(message: String, error: => Throwable) = logger.error(s"$logPrefix $message", error)
 }

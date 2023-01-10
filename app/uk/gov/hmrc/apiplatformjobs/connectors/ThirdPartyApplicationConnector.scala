@@ -49,46 +49,45 @@ object ThirdPartyApplicationConnector {
     })
 
   case class DeleteCollaboratorRequest(
-                                        email: String,
-                                        adminsToEmail: Set[String],
-                                        notifyCollaborator: Boolean
-                                      )
+      email: String,
+      adminsToEmail: Set[String],
+      notifyCollaborator: Boolean
+  )
 
   private[connectors] case class ApplicationResponse(id: String)
   private[connectors] case class Collaborator(emailAddress: String, role: String)
-  private[connectors] case class ApplicationLastUseDate(id: UUID,
-                                                        name: String,
-                                                        collaborators: Set[Collaborator],
-                                                        createdOn: LocalDateTime,
-                                                        lastAccess: Option[LocalDateTime])
-  private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate],
-                                                                     page: Int,
-                                                                     pageSize: Int,
-                                                                     total: Int,
-                                                                     matching: Int)
+  private[connectors] case class ApplicationLastUseDate(id: UUID, name: String, collaborators: Set[Collaborator], createdOn: LocalDateTime, lastAccess: Option[LocalDateTime])
+  private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate], page: Int, pageSize: Int, total: Int, matching: Int)
 
   case class ThirdPartyApplicationConnectorConfig(
-    applicationSandboxBaseUrl: String, applicationSandboxUseProxy: Boolean, applicationSandboxBearerToken: String, applicationSandboxApiKey: String, sandboxAuthorisationKey: String,
-    applicationProductionBaseUrl: String, applicationProductionUseProxy: Boolean, applicationProductionBearerToken: String, applicationProductionApiKey: String, productionAuthorisationKey: String
+      applicationSandboxBaseUrl: String,
+      applicationSandboxUseProxy: Boolean,
+      applicationSandboxBearerToken: String,
+      applicationSandboxApiKey: String,
+      sandboxAuthorisationKey: String,
+      applicationProductionBaseUrl: String,
+      applicationProductionUseProxy: Boolean,
+      applicationProductionBearerToken: String,
+      applicationProductionApiKey: String,
+      productionAuthorisationKey: String
   )
 
-  object JsonFormatters  {
-
+  object JsonFormatters {
 
     implicit val dateTimeWriter: Writes[LocalDateTime] = LocalDateTimeEpochMilliWrites
 
     implicit val dateTimeReader: Reads[LocalDateTime] = {
       case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue()).atZone(ZoneOffset.UTC).toLocalDateTime)
-      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
+      case _           => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
     }
 
     implicit val writesDeleteCollaboratorRequest = Json.writes[DeleteCollaboratorRequest]
 
     implicit val dateTimeFormat: Format[LocalDateTime] = Format(dateTimeReader, dateTimeWriter)
 
-    implicit val formatApplicationResponse: Format[ApplicationResponse] = Json.format[ApplicationResponse]
-    implicit val formatCollaborator: Format[Collaborator] = Json.format[Collaborator]
-    implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate] = Json.format[ApplicationLastUseDate]
+    implicit val formatApplicationResponse: Format[ApplicationResponse]                             = Json.format[ApplicationResponse]
+    implicit val formatCollaborator: Format[Collaborator]                                           = Json.format[Collaborator]
+    implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate]                       = Json.format[ApplicationLastUseDate]
     implicit val formatPaginatedApplicationLastUseDate: Format[PaginatedApplicationLastUseResponse] = Json.format[PaginatedApplicationLastUseResponse]
   }
 }
@@ -116,59 +115,68 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[String]] = {
-    http.GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.toString}/applications")
+    http
+      .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.toString}/applications")
       .map(_.map(_.id))
   }
 
   def removeCollaborator(applicationId: String, email: String)(implicit hc: HeaderCarrier): Future[Int] = {
     val request = DeleteCollaboratorRequest(email = email, adminsToEmail = Set(), notifyCollaborator = false)
-    http.POST[DeleteCollaboratorRequest, ErrorOr[HttpResponse]](s"$serviceBaseUrl/application/$applicationId/collaborator/delete", request)
+    http
+      .POST[DeleteCollaboratorRequest, ErrorOr[HttpResponse]](s"$serviceBaseUrl/application/$applicationId/collaborator/delete", request)
       .map(statusOrThrow)
   }
 
   def applicationsLastUsedBefore(lastUseDate: LocalDateTime): Future[List[ApplicationUsageDetails]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    http.GET[PaginatedApplicationLastUseResponse](
-      url = s"$serviceBaseUrl/applications",
-      queryParams = Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(lastUseDate), "sort" -> "NO_SORT"))
+    http
+      .GET[PaginatedApplicationLastUseResponse](
+        url = s"$serviceBaseUrl/applications",
+        queryParams = Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(lastUseDate), "sort" -> "NO_SORT")
+      )
       .map(page => toDomain(page.applications))
   }
 
   def deleteApplication(applicationId: UUID, jobId: String, reasons: String, timestamp: LocalDateTime)(implicit hc: HeaderCarrier): Future[ApplicationUpdateResult] = {
     val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
-    http.PATCH[DeleteUnusedApplication, Either[UpstreamErrorResponse, HttpResponse]](s"$serviceBaseUrl/application/$applicationId", deleteRequest)
-      .map( _ match {
+    http
+      .PATCH[DeleteUnusedApplication, Either[UpstreamErrorResponse, HttpResponse]](s"$serviceBaseUrl/application/$applicationId", deleteRequest)
+      .map(_ match {
         case Right(result) => ApplicationUpdateSuccessResult
-        case Left(_) => ApplicationUpdateFailureResult
+        case Left(_)       => ApplicationUpdateFailureResult
       })
   }
 }
 
 @Singleton
-class SandboxThirdPartyApplicationConnector @Inject()(val config: ThirdPartyApplicationConnectorConfig,
-                                                      override val httpClient: HttpClient,
-                                                      override val proxiedHttpClient: ProxiedHttpClient)(implicit override val ec: ExecutionContext)
-  extends ThirdPartyApplicationConnector {
+class SandboxThirdPartyApplicationConnector @Inject() (
+    val config: ThirdPartyApplicationConnectorConfig,
+    override val httpClient: HttpClient,
+    override val proxiedHttpClient: ProxiedHttpClient
+)(implicit override val ec: ExecutionContext)
+    extends ThirdPartyApplicationConnector {
 
-  val serviceBaseUrl = config.applicationSandboxBaseUrl
-  val useProxy = config.applicationSandboxUseProxy
-  val bearerToken = config.applicationSandboxBearerToken
-  val apiKey = config.applicationSandboxApiKey
+  val serviceBaseUrl           = config.applicationSandboxBaseUrl
+  val useProxy                 = config.applicationSandboxUseProxy
+  val bearerToken              = config.applicationSandboxBearerToken
+  val apiKey                   = config.applicationSandboxApiKey
   val authorisationKey: String = encodeBase64String(config.sandboxAuthorisationKey.getBytes(UTF_8))
 
 }
 
 @Singleton
-class ProductionThirdPartyApplicationConnector @Inject()(val config: ThirdPartyApplicationConnectorConfig,
-                                                         override val httpClient: HttpClient,
-                                                         override val proxiedHttpClient: ProxiedHttpClient)(implicit override val ec: ExecutionContext)
-  extends ThirdPartyApplicationConnector {
+class ProductionThirdPartyApplicationConnector @Inject() (
+    val config: ThirdPartyApplicationConnectorConfig,
+    override val httpClient: HttpClient,
+    override val proxiedHttpClient: ProxiedHttpClient
+)(implicit override val ec: ExecutionContext)
+    extends ThirdPartyApplicationConnector {
 
-  val serviceBaseUrl = config.applicationProductionBaseUrl
-  val useProxy = config.applicationProductionUseProxy
-  val bearerToken = config.applicationProductionBearerToken
-  val apiKey = config.applicationProductionApiKey
+  val serviceBaseUrl           = config.applicationProductionBaseUrl
+  val useProxy                 = config.applicationProductionUseProxy
+  val bearerToken              = config.applicationProductionBearerToken
+  val apiKey                   = config.applicationProductionApiKey
   val authorisationKey: String = encodeBase64String(config.productionAuthorisationKey.getBytes(UTF_8))
 
 }

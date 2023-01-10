@@ -43,8 +43,7 @@ class ConfigurationModule extends Module {
 }
 
 @Singleton
-class ApiPlatformMicroserviceConnectorConfigProvider @Inject()(val sc: ServicesConfig)
-  extends Provider[ApiPlatformMicroserviceConnectorConfig] {
+class ApiPlatformMicroserviceConnectorConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[ApiPlatformMicroserviceConnectorConfig] {
 
   override def get(): ApiPlatformMicroserviceConnectorConfig = {
     ApiPlatformMicroserviceConnectorConfig(sc.baseUrl("api-platform-microservice"))
@@ -52,8 +51,7 @@ class ApiPlatformMicroserviceConnectorConfigProvider @Inject()(val sc: ServicesC
 }
 
 @Singleton
-class ThirdPartyDeveloperConnectorConfigProvider @Inject()(val sc: ServicesConfig)
-  extends Provider[ThirdPartyDeveloperConnectorConfig] {
+class ThirdPartyDeveloperConnectorConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[ThirdPartyDeveloperConnectorConfig] {
 
   override def get(): ThirdPartyDeveloperConnectorConfig = {
     ThirdPartyDeveloperConnectorConfig(sc.baseUrl("third-party-developer"))
@@ -61,8 +59,7 @@ class ThirdPartyDeveloperConnectorConfigProvider @Inject()(val sc: ServicesConfi
 }
 
 @Singleton
-class ThirdPartyApplicationConnectorConfigProvider @Inject()(val sc: ServicesConfig)
-  extends Provider[ThirdPartyApplicationConnectorConfig] {
+class ThirdPartyApplicationConnectorConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[ThirdPartyApplicationConnectorConfig] {
 
   private def serviceUrl(key: String)(serviceName: String): String = {
     if (useProxy(serviceName)) s"${sc.baseUrl(serviceName)}/${sc.getConfString(s"$serviceName.context", key)}"
@@ -94,37 +91,43 @@ class ThirdPartyApplicationConnectorConfigProvider @Inject()(val sc: ServicesCon
 }
 
 @Singleton
-class DeleteUnverifiedDevelopersJobConfigProvider @Inject()(configuration: Configuration)
-  extends Provider[DeleteUnverifiedDevelopersJobConfig] {
+class DeleteUnverifiedDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnverifiedDevelopersJobConfig] {
 
   override def get(): DeleteUnverifiedDevelopersJobConfig = {
-    val initialDelay = configuration.getOptional[String]("deleteUnverifiedDevelopersJob.initialDelay").map(Duration.create(_).asInstanceOf[FiniteDuration])
+    val initialDelay = configuration
+      .getOptional[String]("deleteUnverifiedDevelopersJob.initialDelay")
+      .map(Duration.create(_).asInstanceOf[FiniteDuration])
       .getOrElse(FiniteDuration(60, SECONDS))
-    val interval = configuration.getOptional[String]("deleteUnverifiedDevelopersJob.interval").map(Duration.create(_).asInstanceOf[FiniteDuration])
+    val interval     = configuration
+      .getOptional[String]("deleteUnverifiedDevelopersJob.interval")
+      .map(Duration.create(_).asInstanceOf[FiniteDuration])
       .getOrElse(FiniteDuration(1, HOURS))
-    val enabled = configuration.getOptional[Boolean]("deleteUnverifiedDevelopersJob.enabled").getOrElse(false)
-    val limit = configuration.getOptional[Int]("deleteUnverifiedDevelopersJob.limit").getOrElse(10)
+    val enabled      = configuration.getOptional[Boolean]("deleteUnverifiedDevelopersJob.enabled").getOrElse(false)
+    val limit        = configuration.getOptional[Int]("deleteUnverifiedDevelopersJob.limit").getOrElse(10)
     DeleteUnverifiedDevelopersJobConfig(initialDelay, interval, enabled, limit)
   }
 }
 
 @Singleton
-class DeleteUnregisteredDevelopersJobConfigProvider @Inject()(configuration: Configuration)
-  extends Provider[DeleteUnregisteredDevelopersJobConfig] {
+class DeleteUnregisteredDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnregisteredDevelopersJobConfig] {
 
   override def get(): DeleteUnregisteredDevelopersJobConfig = {
-    val initialDelay = configuration.getOptional[String]("deleteUnregisteredDevelopersJob.initialDelay").map(Duration.create(_).asInstanceOf[FiniteDuration])
+    val initialDelay = configuration
+      .getOptional[String]("deleteUnregisteredDevelopersJob.initialDelay")
+      .map(Duration.create(_).asInstanceOf[FiniteDuration])
       .getOrElse(FiniteDuration(120, SECONDS))
-    val interval = configuration.getOptional[String]("deleteUnregisteredDevelopersJob.interval").map(Duration.create(_).asInstanceOf[FiniteDuration])
+    val interval     = configuration
+      .getOptional[String]("deleteUnregisteredDevelopersJob.interval")
+      .map(Duration.create(_).asInstanceOf[FiniteDuration])
       .getOrElse(FiniteDuration(1, HOURS))
-    val enabled = configuration.getOptional[Boolean]("deleteUnregisteredDevelopersJob.enabled").getOrElse(false)
-    val limit = configuration.getOptional[Int]("deleteUnregisteredDevelopersJob.limit").getOrElse(10)
+    val enabled      = configuration.getOptional[Boolean]("deleteUnregisteredDevelopersJob.enabled").getOrElse(false)
+    val limit        = configuration.getOptional[Int]("deleteUnregisteredDevelopersJob.limit").getOrElse(10)
     DeleteUnregisteredDevelopersJobConfig(initialDelay, interval, enabled, limit)
   }
 }
 
 @Singleton
-class EmailConfigProvider @Inject()(val sc: ServicesConfig) extends Provider[EmailConfig] {
+class EmailConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[EmailConfig] {
   override def get() = EmailConfig(sc.baseUrl("email"))
 }
 

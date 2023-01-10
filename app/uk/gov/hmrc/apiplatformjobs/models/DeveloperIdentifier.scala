@@ -29,14 +29,14 @@ case class EmailIdentifier(val email: String) extends DeveloperIdentifier
 case class UuidIdentifier(val userId: UserId) extends DeveloperIdentifier
 
 object EmailIdentifier {
-  private[this] val simplestEmailRegex: Regex = """^.+@.+\..+$""".r
+  private[this] val simplestEmailRegex: Regex      = """^.+@.+\..+$""".r
   def parse(text: String): Option[EmailIdentifier] =
     simplestEmailRegex.findFirstIn(text).map(EmailIdentifier(_))
 
   implicit val format = Json.format[EmailIdentifier]
 }
 
-object UuidIdentifier {
+object UuidIdentifier      {
   def parse(text: String): Option[UuidIdentifier] =
     Try(UUID.fromString(text)).toOption.map(u => UuidIdentifier(UserId(u)))
 }
@@ -45,6 +45,6 @@ object DeveloperIdentifier {
 
   def asText(id: DeveloperIdentifier) = id match {
     case EmailIdentifier(email) => email
-    case UuidIdentifier(id) => id.toString
+    case UuidIdentifier(id)     => id.toString
   }
 }

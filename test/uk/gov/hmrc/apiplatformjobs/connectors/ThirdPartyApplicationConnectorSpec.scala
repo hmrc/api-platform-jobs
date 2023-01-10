@@ -34,24 +34,18 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
-class ThirdPartyApplicationConnectorSpec
-  extends AsyncHmrcSpec
-  with RepsonseUtils
-  with GuiceOneAppPerSuite
-  with WiremockSugar
-  with UrlEncoding {
+class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
   override def fakeApplication(): Application =
-  GuiceApplicationBuilder()
-    .configure("metrics.jvm" -> false)
-    .build()
+    GuiceApplicationBuilder()
+      .configure("metrics.jvm" -> false)
+      .build()
 
   class Setup(proxyEnabled: Boolean = false) {
-    implicit val hc = HeaderCarrier()
-    val apiKeyTest = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
-    val bearer = "TestBearerToken"
+    implicit val hc          = HeaderCarrier()
+    val apiKeyTest           = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
+    val bearer               = "TestBearerToken"
     val authorisationKeyTest = "TestAuthorisationKey"
-
 
     val mockConfig = mock[ThirdPartyApplicationConnectorConfig]
     when(mockConfig.applicationProductionBaseUrl).thenReturn(wireMockUrl)
@@ -70,7 +64,7 @@ class ThirdPartyApplicationConnectorSpec
   "fetchApplicationsByUserId" should {
     import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatApplicationResponse
 
-    val userId = UserId.random
+    val userId               = UserId.random
     val applicationResponses = List(ApplicationResponse("app id 1"), ApplicationResponse("app id 2"))
 
     "return application Ids" in new Setup {
@@ -115,11 +109,11 @@ class ThirdPartyApplicationConnectorSpec
       val request = DeleteCollaboratorRequest(email, adminsToEmail = Set(), notifyCollaborator = false)
       stubFor(
         post(urlPathEqualTo(s"/application/${appId.value}/collaborator/delete"))
-        .withJsonRequestBody(request)
-        .willReturn(
-          aResponse()
-            .withStatus(OK)
-        )
+          .withJsonRequestBody(request)
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+          )
       )
 
       val result = await(connector.removeCollaborator(appId.value.toString(), email))
@@ -151,30 +145,32 @@ class ThirdPartyApplicationConnectorSpec
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
-      val lastUseDate = LocalDateTime.now.minusMonths(12)
+      val lastUseDate        = LocalDateTime.now.minusMonths(12)
       val dateString: String = dateFormatter.format(lastUseDate)
 
       val oldApplication1Admin: String = "foo@bar.com"
-      val oldApplication1 =
+      val oldApplication1              =
         ApplicationLastUseDate(
           UUID.randomUUID(),
           Random.alphanumeric.take(10).mkString,
           Set(Collaborator(oldApplication1Admin, "ADMINISTRATOR"), Collaborator("a@b.com", "DEVELOPER")),
           LocalDateTime.now.minusMonths(12),
-          Some(LocalDateTime.now.minusMonths(13)))
+          Some(LocalDateTime.now.minusMonths(13))
+        )
       val oldApplication2Admin: String = "bar@baz.com"
-      val oldApplication2 =
+      val oldApplication2              =
         ApplicationLastUseDate(
           UUID.randomUUID(),
           Random.alphanumeric.take(10).mkString,
           Set(Collaborator(oldApplication2Admin, "ADMINISTRATOR"), Collaborator("b@c.com", "DEVELOPER")),
-         LocalDateTime.now.minusMonths(12),
-          Some(LocalDateTime.now.minusMonths(14)))
+          LocalDateTime.now.minusMonths(12),
+          Some(LocalDateTime.now.minusMonths(14))
+        )
 
       stubFor(
         get(urlPathEqualTo("/applications"))
-        .withQueryParam("lastUseBefore", equalTo(dateString))
-        .withQueryParam("sort", equalTo("NO_SORT"))
+          .withQueryParam("lastUseBefore", equalTo(dateString))
+          .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -185,21 +181,19 @@ class ThirdPartyApplicationConnectorSpec
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
 
       results should contain
-        ApplicationUsageDetails(
-          oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.createdOn, oldApplication1.lastAccess)
+      ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.createdOn, oldApplication1.lastAccess)
       results should contain
-        ApplicationUsageDetails(
-          oldApplication2.id, oldApplication2.name, Set(oldApplication2Admin), oldApplication2.createdOn, oldApplication2.lastAccess)
+      ApplicationUsageDetails(oldApplication2.id, oldApplication2.name, Set(oldApplication2Admin), oldApplication2.createdOn, oldApplication2.lastAccess)
     }
 
     "return empty Sequence when no results are returned" in new Setup {
-      val lastUseDate =LocalDateTime.now.minusMonths(12)
+      val lastUseDate        = LocalDateTime.now.minusMonths(12)
       val dateString: String = dateFormatter.format(lastUseDate)
 
       stubFor(
         get(urlPathEqualTo("/applications"))
-        .withQueryParam("lastUseBefore", equalTo(dateString))
-        .withQueryParam("sort", equalTo("NO_SORT"))
+          .withQueryParam("lastUseBefore", equalTo(dateString))
+          .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -209,7 +203,7 @@ class ThirdPartyApplicationConnectorSpec
 
       val results = await(connector.applicationsLastUsedBefore(lastUseDate))
 
-      results.size should be (0)
+      results.size should be(0)
     }
   }
 
@@ -227,7 +221,7 @@ class ThirdPartyApplicationConnectorSpec
 
       val response = await(connector.deleteApplication(applicationId.value, "jobId", "reasons", LocalDateTime.now))
 
-      response should be (ApplicationUpdateSuccessResult)
+      response should be(ApplicationUpdateSuccessResult)
     }
 
     "return false if call to TPA fails" in new Setup {
@@ -243,7 +237,7 @@ class ThirdPartyApplicationConnectorSpec
 
       val response = await(connector.deleteApplication(applicationId.value, "jobId", "reasons", LocalDateTime.now))
 
-      response should be (ApplicationUpdateFailureResult)
+      response should be(ApplicationUpdateFailureResult)
     }
   }
 
@@ -253,21 +247,21 @@ class ThirdPartyApplicationConnectorSpec
     "correctly parse PaginatedApplicationLastUseResponse from TPA" in new PaginatedTPAResponse {
       val parsedResponse: PaginatedApplicationLastUseResponse = Json.fromJson[PaginatedApplicationLastUseResponse](Json.parse(response)).get
 
-      parsedResponse.page should be (pageNumber)
-      parsedResponse.pageSize should be (pageSize)
-      parsedResponse.total should be (totalApplications)
-      parsedResponse.matching should be (matchingApplications)
+      parsedResponse.page should be(pageNumber)
+      parsedResponse.pageSize should be(pageSize)
+      parsedResponse.total should be(totalApplications)
+      parsedResponse.matching should be(matchingApplications)
 
-      parsedResponse.applications.size should be (1)
+      parsedResponse.applications.size should be(1)
       val application = parsedResponse.applications.head
-      application.id should be (applicationId)
-      application.name should be (applicationName)
-      application.createdOn should be (createdOn)
-      application.lastAccess should be (Some(lastAccess))
+      application.id should be(applicationId)
+      application.name should be(applicationName)
+      application.createdOn should be(createdOn)
+      application.lastAccess should be(Some(lastAccess))
 
-      application.collaborators.size should be (2)
-      application.collaborators should contain (Collaborator(adminEmailAddress, "ADMINISTRATOR"))
-      application.collaborators should contain (Collaborator(developerEmailAddress, "DEVELOPER"))
+      application.collaborators.size should be(2)
+      application.collaborators should contain(Collaborator(adminEmailAddress, "ADMINISTRATOR"))
+      application.collaborators should contain(Collaborator(developerEmailAddress, "DEVELOPER"))
     }
   }
 
@@ -280,31 +274,31 @@ class ThirdPartyApplicationConnectorSpec
 
       val convertedApplicationDetails = toDomain(parsedResponse.applications)
 
-      convertedApplicationDetails.size should be (1)
+      convertedApplicationDetails.size should be(1)
       val convertedApplication = convertedApplicationDetails.head
 
-      convertedApplication.applicationId should be (applicationId)
-      convertedApplication.applicationName should be (applicationName)
-      convertedApplication.creationDate should be (createdOn)
-      convertedApplication.lastAccessDate should be (Some(lastAccess))
-      convertedApplication.administrators.size should be (1)
-      convertedApplication.administrators should contain (adminEmailAddress)
+      convertedApplication.applicationId should be(applicationId)
+      convertedApplication.applicationName should be(applicationName)
+      convertedApplication.creationDate should be(createdOn)
+      convertedApplication.lastAccessDate should be(Some(lastAccess))
+      convertedApplication.administrators.size should be(1)
+      convertedApplication.administrators should contain(adminEmailAddress)
       convertedApplication.administrators should not contain (developerEmailAddress)
     }
   }
 
   trait PaginatedTPAResponse {
-    val applicationId = UUID.randomUUID()
+    val applicationId   = UUID.randomUUID()
     val applicationName = Random.alphanumeric.take(10).mkString
-    val createdOn =LocalDateTime.now(fixedClock).minusYears(1).truncatedTo(MILLIS)
-    val lastAccess = createdOn.plusDays(5)
+    val createdOn       = LocalDateTime.now(fixedClock).minusYears(1).truncatedTo(MILLIS)
+    val lastAccess      = createdOn.plusDays(5)
 
-    val pageNumber = 1
-    val pageSize = 25
-    val totalApplications = 500
+    val pageNumber           = 1
+    val pageSize             = 25
+    val totalApplications    = 500
     val matchingApplications = 1
 
-    val adminEmailAddress = "admin@foo.com"
+    val adminEmailAddress     = "admin@foo.com"
     val developerEmailAddress = "developer@foo.com"
 
     val response = s"""{

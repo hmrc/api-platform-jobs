@@ -26,16 +26,14 @@ import uk.gov.hmrc.mongo.lock.MongoLockRepository
 
 import java.time.{Clock, Instant, ZoneOffset}
 
-
 abstract class HmrcSpec extends AnyWordSpec with Matchers with OptionValues with WsScalaTestClient with MockitoSugar with ArgumentMatchersSugar
 
-abstract class AsyncHmrcSpec
-  extends HmrcSpec with DefaultAwaitTimeout with FutureAwaits {
+abstract class AsyncHmrcSpec extends HmrcSpec with DefaultAwaitTimeout with FutureAwaits {
 
   val fixedClock = Clock.fixed(Instant.now(), ZoneOffset.UTC)
 
-  trait BaseSetup{
+  trait BaseSetup {
     val mockLockRepository = mock[MongoLockRepository]
-    val utc = ZoneOffset.UTC
+    val utc                = ZoneOffset.UTC
   }
 }

@@ -36,67 +36,86 @@ import org.mongodb.scala.model.Updates
 import com.mongodb.client.model.ReturnDocument
 
 @Singleton
-class UnusedApplicationsRepository @Inject()(mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
-  extends PlayMongoRepository[UnusedApplication](
-    collectionName = "unusedApplications",
-    mongoComponent = mongo,
-    domainFormat = MongoFormat.unusedApplicationFormat,
-    indexes = Seq(
-      IndexModel(ascending("environment", "applicationId"), IndexOptions()
-        .name("applicationIdIndex")
-        .unique(true)
-        .background(true)
+class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
+    extends PlayMongoRepository[UnusedApplication](
+      collectionName = "unusedApplications",
+      mongoComponent = mongo,
+      domainFormat = MongoFormat.unusedApplicationFormat,
+      indexes = Seq(
+        IndexModel(
+          ascending("environment", "applicationId"),
+          IndexOptions()
+            .name("applicationIdIndex")
+            .unique(true)
+            .background(true)
+        ),
+        IndexModel(
+          ascending("environment", "scheduledNotificationDates"),
+          IndexOptions()
+            .name("scheduledNotificationDatesIndex")
+            .unique(false)
+            .background(true)
+        ),
+        IndexModel(
+          ascending("environment", "scheduledDeletionDate"),
+          IndexOptions()
+            .name("scheduledDeletionDateIndex")
+            .unique(false)
+            .background(true)
+        )
       ),
-      IndexModel(ascending("environment", "scheduledNotificationDates"), IndexOptions()
-        .name("scheduledNotificationDatesIndex")
-        .unique(false)
-        .background(true)
-      ),
-      IndexModel(ascending("environment", "scheduledDeletionDate"), IndexOptions()
-        .name("scheduledDeletionDateIndex")
-        .unique(false)
-        .background(true)
-      )
-    ),
-    replaceIndexes = true
-  ) with MongoJavatimeFormats.Implicits {
+      replaceIndexes = true
+    )
+    with MongoJavatimeFormats.Implicits {
 
   def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = {
-    collection.find(equal("environment", Codecs.toBson(environment)))
-      .toFuture().map(_.toList)
+    collection
+      .find(equal("environment", Codecs.toBson(environment)))
+      .toFuture()
+      .map(_.toList)
   }
 
   def unusedApplicationsToBeNotified(environment: Environment, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
-    collection.find(and(
-      equal("environment", Codecs.toBson(environment)),
-      lte("scheduledNotificationDates", Codecs.toBson(notificationDate))
+    collection
+      .find(
+        and(
+          equal("environment", Codecs.toBson(environment)),
+          lte("scheduledNotificationDates", Codecs.toBson(notificationDate))
+        )
       )
-    ).toFuture().map(_.toList)
+      .toFuture()
+      .map(_.toList)
   }
 
   def updateNotificationsSent(environment: Environment, applicationId: UUID, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[Boolean] = {
     val query = Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId))
 
-    collection.findOneAndUpdate(
-      filter = query,
-      update = Updates.pullByFilter(lte("scheduledNotificationDates", Codecs.toBson(notificationDate))),
-      options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
-    ).toFuture()
+    collection
+      .findOneAndUpdate(
+        filter = query,
+        update = Updates.pullByFilter(lte("scheduledNotificationDates", Codecs.toBson(notificationDate))),
+        options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
+      )
+      .toFuture()
       .map(!_.scheduledNotificationDates.exists(y => y.atStartOfDay.isBefore(notificationDate))) // No notification dates prior to specified date
   }
 
   def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
-    collection.find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", Codecs.toBson(deletionDate))))
-      .toFuture().map(_.toList)
+    collection
+      .find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", Codecs.toBson(deletionDate))))
+      .toFuture()
+      .map(_.toList)
   }
 
   def deleteUnusedApplicationRecord(environment: Environment, applicationId: UUID): Future[Boolean] = {
-    collection.deleteOne(Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId)))
-      .toFuture().map(_.wasAcknowledged())
+    collection
+      .deleteOne(Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId)))
+      .toFuture()
+      .map(_.wasAcknowledged())
 
   }
 
-  def bulkInsert(documents: Seq[UnusedApplication]): Future[Boolean]= {
+  def bulkInsert(documents: Seq[UnusedApplication]): Future[Boolean] = {
     collection.bulkWrite(documents.map(InsertOneModel(_))).toFuture().map(_.wasAcknowledged())
   }
 }

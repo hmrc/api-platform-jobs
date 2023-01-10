@@ -28,41 +28,43 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
 
-class DeleteUnverifiedDevelopersJob @Inject()(override val lockService: DeleteUnverifiedDevelopersJobLockService,
-                                              jobConfig: DeleteUnverifiedDevelopersJobConfig,
-                                              val developerConnector: ThirdPartyDeveloperConnector,
-                                              val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
-                                              val productionApplicationConnector: ProductionThirdPartyApplicationConnector)
-  extends ScheduledMongoJob with DeleteDeveloper with ApplicationLogger {
+class DeleteUnverifiedDevelopersJob @Inject() (
+    override val lockService: DeleteUnverifiedDevelopersJobLockService,
+    jobConfig: DeleteUnverifiedDevelopersJobConfig,
+    val developerConnector: ThirdPartyDeveloperConnector,
+    val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
+    val productionApplicationConnector: ProductionThirdPartyApplicationConnector
+) extends ScheduledMongoJob
+    with DeleteDeveloper
+    with ApplicationLogger {
 
-  override def name: String = "DeleteUnverifiedDevelopersJob"
-  override def interval: FiniteDuration = jobConfig.interval
-  override def initialDelay: FiniteDuration = jobConfig.initialDelay
-  override val isEnabled: Boolean = jobConfig.enabled
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  override def name: String                            = "DeleteUnverifiedDevelopersJob"
+  override def interval: FiniteDuration                = jobConfig.interval
+  override def initialDelay: FiniteDuration            = jobConfig.initialDelay
+  override val isEnabled: Boolean                      = jobConfig.enabled
+  implicit val hc: HeaderCarrier                       = HeaderCarrier()
   override val deleteFunction: (String) => Future[Int] = developerConnector.deleteDeveloper
-  val createdBeforeInDays = 30
+  val createdBeforeInDays                              = 30
 
   override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
     logger.info("Starting DeleteUnverifiedDevelopersJob")
 
     (for {
       developerDetails <- developerConnector.fetchUnverifiedDevelopers(LocalDateTime.now(ZoneOffset.UTC).minusDays(createdBeforeInDays), jobConfig.limit)
-      _ = logger.info(s"Found ${developerDetails.size} unverified developers")
-      _ <- sequence(developerDetails.map(deleteDeveloper))
-    } yield RunningOfJobSuccessful) recoverWith {
-      case NonFatal(e) =>
-        logger.error("Could not delete unverified developers", e)
-        Future.failed(RunningOfJobFailed(name, e))
+      _                 = logger.info(s"Found ${developerDetails.size} unverified developers")
+      _                <- sequence(developerDetails.map(deleteDeveloper))
+    } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>
+      logger.error("Could not delete unverified developers", e)
+      Future.failed(RunningOfJobFailed(name, e))
     }
   }
 }
 
-class DeleteUnverifiedDevelopersJobLockService @Inject()(repository: LockRepository) extends LockService {
+class DeleteUnverifiedDevelopersJobLockService @Inject() (repository: LockRepository) extends LockService {
 
   override val lockRepository: LockRepository = repository
-  override val lockId: String = "DeleteUnverifiedDevelopersJob"
-  override val ttl: duration.Duration = 1.hours
+  override val lockId: String                 = "DeleteUnverifiedDevelopersJob"
+  override val ttl: duration.Duration         = 1.hours
 }
 
 case class DeleteUnverifiedDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int)

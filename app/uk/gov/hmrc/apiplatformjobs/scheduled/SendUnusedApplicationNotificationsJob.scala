@@ -26,25 +26,26 @@ import java.time.{Clock, LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepository: UnusedApplicationsRepository,
-                                                     emailConnector: EmailConnector,
-                                                     environment: Environment,
-                                                     configuration: Configuration,
-                                                     clock: Clock,
-                                                     lockRepository: LockRepository)
-  extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
+abstract class SendUnusedApplicationNotificationsJob(
+    unusedApplicationsRepository: UnusedApplicationsRepository,
+    emailConnector: EmailConnector,
+    environment: Environment,
+    configuration: Configuration,
+    clock: Clock,
+    lockRepository: LockRepository
+) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     val notificationTime = LocalDateTime.now(clock)
 
     for {
       appsToNotify <- unusedApplicationsRepository.unusedApplicationsToBeNotified(environment, notificationTime)
-      _ <- Future.sequence(appsToNotify.map { app =>
-        emailConnector.sendApplicationToBeDeletedNotifications(app, environmentName(environment)) map {
-          case true => unusedApplicationsRepository.updateNotificationsSent(environment, app.applicationId, notificationTime)
-          case _ => logWarn(s"Unable to send notifications to any administrators of Application [${app.applicationName} (${app.applicationId})]")
-        }
-      })
+      _            <- Future.sequence(appsToNotify.map { app =>
+                        emailConnector.sendApplicationToBeDeletedNotifications(app, environmentName(environment)) map {
+                          case true => unusedApplicationsRepository.updateNotificationsSent(environment, app.applicationId, notificationTime)
+                          case _    => logWarn(s"Unable to send notifications to any administrators of Application [${app.applicationName} (${app.applicationId})]")
+                        }
+                      })
     } yield RunningOfJobSuccessful
 
   }
@@ -52,18 +53,19 @@ abstract class SendUnusedApplicationNotificationsJob(unusedApplicationsRepositor
 }
 
 @Singleton
-class SendUnusedSandboxApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,
-                                                             emailConnector: EmailConnector,
-                                                             configuration: Configuration,
-                                                             clock: Clock,
-                                                             lockRepository: LockRepository)
-  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, clock, lockRepository)
-
+class SendUnusedSandboxApplicationNotificationsJob @Inject() (
+    unusedApplicationsRepository: UnusedApplicationsRepository,
+    emailConnector: EmailConnector,
+    configuration: Configuration,
+    clock: Clock,
+    lockRepository: LockRepository
+) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, clock, lockRepository)
 
 @Singleton
-class SendUnusedProductionApplicationNotificationsJob @Inject()(unusedApplicationsRepository: UnusedApplicationsRepository,
-                                                                emailConnector: EmailConnector,
-                                                                configuration: Configuration,
-                                                                clock: Clock,
-                                                                lockRepository: LockRepository)
-  extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, clock, lockRepository)
+class SendUnusedProductionApplicationNotificationsJob @Inject() (
+    unusedApplicationsRepository: UnusedApplicationsRepository,
+    emailConnector: EmailConnector,
+    configuration: Configuration,
+    clock: Clock,
+    lockRepository: LockRepository
+) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, clock, lockRepository)

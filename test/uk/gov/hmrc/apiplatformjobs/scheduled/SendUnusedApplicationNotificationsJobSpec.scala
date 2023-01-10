@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-
-
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
@@ -30,19 +28,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
-class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
-  with UnusedApplicationTestConfiguration  {
+class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration {
 
   val FixedTime = LocalDateTime.now(fixedClock)
 
   trait Setup extends BaseSetup {
-    val mockEmailConnector: EmailConnector = mock[EmailConnector]
+    val mockEmailConnector: EmailConnector                             = mock[EmailConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
   }
 
   trait SandboxSetup extends Setup {
     val environment: Environment = SANDBOX
-    val environmentName: String = "Sandbox"
+    val environmentName: String  = "Sandbox"
 
     val underTest =
       new SendUnusedSandboxApplicationNotificationsJob(
@@ -50,12 +47,13 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
         mockEmailConnector,
         jobConfiguration(sandboxEnvironmentName = environmentName),
         fixedClock,
-        mockLockRepository)
+        mockLockRepository
+      )
   }
 
   trait ProductionSetup extends Setup {
     val environment: Environment = PRODUCTION
-    val environmentName: String = "Production"
+    val environmentName: String  = "Production"
 
     val underTest =
       new SendUnusedProductionApplicationNotificationsJob(
@@ -63,7 +61,8 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec
         mockEmailConnector,
         jobConfiguration(productionEnvironmentName = environmentName),
         fixedClock,
-        mockLockRepository)
+        mockLockRepository
+      )
   }
 
   "SANDBOX job" should {

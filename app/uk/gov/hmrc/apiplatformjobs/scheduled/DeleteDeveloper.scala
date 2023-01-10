@@ -32,11 +32,11 @@ trait DeleteDeveloper {
 
   def deleteDeveloper(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[CoreUserDetails] = {
     for {
-      sandboxAppIds <- sandboxApplicationConnector.fetchApplicationsByUserId(developer.id)
+      sandboxAppIds    <- sandboxApplicationConnector.fetchApplicationsByUserId(developer.id)
       productionAppIds <- productionApplicationConnector.fetchApplicationsByUserId(developer.id)
-      _ <- sequence(sandboxAppIds.map(sandboxApplicationConnector.removeCollaborator(_, developer.email)))
-      _ <- sequence(productionAppIds.map(productionApplicationConnector.removeCollaborator(_, developer.email)))
-      _ <- deleteFunction(developer.email)
+      _                <- sequence(sandboxAppIds.map(sandboxApplicationConnector.removeCollaborator(_, developer.email)))
+      _                <- sequence(productionAppIds.map(productionApplicationConnector.removeCollaborator(_, developer.email)))
+      _                <- deleteFunction(developer.email)
     } yield developer
   }
 }

@@ -27,11 +27,11 @@ trait ApplicationUpdate {
 case class DeleteUnusedApplication(jobId: String, authorisationKey: String, reasons: String, timestamp: LocalDateTime) extends ApplicationUpdate
 
 trait ApplicationUpdateFormatters {
-  implicit val deleteUnusedApplicationFormatter = Json.writes[DeleteUnusedApplication]
+  implicit val deleteUnusedApplicationFormatter = Json
+    .writes[DeleteUnusedApplication]
     .transform(_.as[JsObject] + ("updateType" -> JsString("deleteUnusedApplication")))
 }
 
 sealed trait ApplicationUpdateResult
 case object ApplicationUpdateSuccessResult extends ApplicationUpdateResult
 case object ApplicationUpdateFailureResult extends ApplicationUpdateResult
-

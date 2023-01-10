@@ -50,11 +50,10 @@ trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState wit
       runJob
     } map {
       case Some(_) => Result(s"$name Job ran successfully.")
-      case _ => Result(s"$name did not run because repository was locked by another instance of the scheduler.")
-    } recover {
-      case failure: RunningOfJobFailed =>
-        logger.error("The execution of the job failed.", failure.wrappedCause)
-        failure.asResult
+      case _       => Result(s"$name did not run because repository was locked by another instance of the scheduler.")
+    } recover { case failure: RunningOfJobFailed =>
+      logger.error("The execution of the job failed.", failure.wrappedCause)
+      failure.asResult
     }
   }
 }
@@ -66,8 +65,10 @@ trait ScheduledJobState { e: ScheduledJob =>
 
   case class RunningOfJobFailed(jobName: String, wrappedCause: Throwable) extends RuntimeException {
     def asResult: Result = {
-      Result(s"The execution of scheduled job $jobName failed with error '${wrappedCause.getMessage}'. " +
-        s"The next execution of the job will do retry.")
+      Result(
+        s"The execution of scheduled job $jobName failed with error '${wrappedCause.getMessage}'. " +
+          s"The next execution of the job will do retry."
+      )
     }
   }
 }

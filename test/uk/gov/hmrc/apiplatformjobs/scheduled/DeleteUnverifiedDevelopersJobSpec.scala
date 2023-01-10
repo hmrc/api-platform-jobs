@@ -38,7 +38,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     super.beforeAll()
   }
 
-  override  def afterAll() : Unit = {
+  override def afterAll(): Unit = {
     super.afterAll()
   }
 
@@ -51,14 +51,12 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(true))
     when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 
-
-
-    val deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedDevelopersJobConfig = DeleteUnverifiedDevelopersJobConfig(
-      FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
-    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector = mock[ThirdPartyDeveloperConnector]
-    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector = mock[SandboxThirdPartyApplicationConnector]
+    val deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedDevelopersJobConfig               =
+      DeleteUnverifiedDevelopersJobConfig(FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
+    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector                         = mock[ThirdPartyDeveloperConnector]
+    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
     val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
-    val underTest = new DeleteUnverifiedDevelopersJob(
+    val underTest                                                                              = new DeleteUnverifiedDevelopersJob(
       mockLockKeeper,
       deleteUnverifiedDevelopersJobConfig,
       mockThirdPartyDeveloperConnector,

@@ -30,12 +30,7 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class EmailConnectorSpec
-  extends AsyncHmrcSpec
-  with RepsonseUtils
-  with GuiceOneAppPerSuite
-  with WiremockSugar
-  with UrlEncoding {
+class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -45,24 +40,24 @@ class EmailConnectorSpec
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   trait Setup {
-    val http = app.injector.instanceOf[HttpClient]
-    val config = EmailConfig(wireMockUrl)
+    val http      = app.injector.instanceOf[HttpClient]
+    val config    = EmailConfig(wireMockUrl)
     val connector = new EmailConnector(http, config)
   }
 
   trait ApplicationToBeDeletedNotificationDetails {
     val expectedTemplateId = "apiApplicationToBeDeletedNotification"
 
-    val adminEmail = "admin1@example.com"
-    val applicationName = "Test Application"
-    val userFirstName = "Fred"
-    val userLastName = "Bloggs"
-    val environmentName = "Sandbox"
+    val adminEmail       = "admin1@example.com"
+    val applicationName  = "Test Application"
+    val userFirstName    = "Fred"
+    val userLastName     = "Bloggs"
+    val environmentName  = "Sandbox"
     val timeSinceLastUse = "335 days"
 
-    val lastAccessDate = LocalDateTime.now.minusDays(335)
-    val scheduledDeletionDate = LocalDateTime.now.plusDays(30).toLocalDate
-    val dateTimeFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
+    val lastAccessDate             = LocalDateTime.now.minusDays(335)
+    val scheduledDeletionDate      = LocalDateTime.now.plusDays(30).toLocalDate
+    val dateTimeFormatter          = DateTimeFormatter.ofPattern("dd MMMM yyyy")
     val expectedDeletionDateString = scheduledDeletionDate.format(dateTimeFormatter)
 
     val unusedApplication =
@@ -73,7 +68,8 @@ class EmailConnectorSpec
         Environment.SANDBOX,
         lastAccessDate,
         Seq.empty,
-        scheduledDeletionDate)
+        scheduledDeletionDate
+      )
 
     val unusedApplicationWithMultipleAdmins =
       UnusedApplication(
@@ -83,21 +79,22 @@ class EmailConnectorSpec
         Environment.SANDBOX,
         lastAccessDate,
         Seq.empty,
-        scheduledDeletionDate)
+        scheduledDeletionDate
+      )
   }
 
   "emailConnector" should {
     "send unused application to be deleted email" in new Setup with ApplicationToBeDeletedNotificationDetails {
-      val expectedToEmails = Set(adminEmail)
+      val expectedToEmails                        = Set(adminEmail)
       val expectedParameters: Map[String, String] = Map(
-        "userFirstName" -> userFirstName,
-        "userLastName" -> userLastName,
-        "applicationName" -> applicationName,
-        "environmentName" -> environmentName,
-        "timeSinceLastUse" -> timeSinceLastUse,
+        "userFirstName"           -> userFirstName,
+        "userLastName"            -> userLastName,
+        "applicationName"         -> applicationName,
+        "environmentName"         -> environmentName,
+        "timeSinceLastUse"        -> timeSinceLastUse,
         "dateOfScheduledDeletion" -> expectedDeletionDateString
       )
- 
+
       stubFor(
         post(urlPathEqualTo("/hmrc/email"))
           .withJsonRequestBody(SendEmailRequest(expectedToEmails, expectedTemplateId, expectedParameters))
@@ -109,7 +106,7 @@ class EmailConnectorSpec
 
       val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName))
 
-      successful should be (true)
+      successful should be(true)
     }
 
     "return true if any notification succeeds" in new Setup with ApplicationToBeDeletedNotificationDetails {
@@ -122,11 +119,11 @@ class EmailConnectorSpec
           .willReturn(
             aResponse()
               .withStatus(OK)
-          )      
+          )
       )
       val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
-      successful should be (true)
+      successful should be(true)
     }
 
     "return false if all notifications fail" in new Setup with ApplicationToBeDeletedNotificationDetails {
@@ -139,7 +136,7 @@ class EmailConnectorSpec
       )
       val successful = await(connector.sendApplicationToBeDeletedNotifications(unusedApplicationWithMultipleAdmins, environmentName))
 
-      successful should be (false)
+      successful should be(false)
     }
   }
 }
