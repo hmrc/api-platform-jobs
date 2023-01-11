@@ -17,9 +17,11 @@
 package uk.gov.hmrc.apiplatformjobs.controllers
 
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+
 import play.api.http.Status
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
+
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class MicroserviceHelloWorldControllerSpec extends AsyncHmrcSpec with GuiceOneAppPerSuite {

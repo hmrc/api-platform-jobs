@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import play.api.libs.json.Json
 import java.{util => ju}
+
+import play.api.libs.json.Json
 
 case class ApplicationId(value: ju.UUID) extends AnyVal
 

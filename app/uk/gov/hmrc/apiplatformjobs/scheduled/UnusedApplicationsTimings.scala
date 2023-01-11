@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
-
 import scala.concurrent.duration.FiniteDuration
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 
 trait UnusedApplicationsTimings {
   val unusedApplicationsConfiguration: UnusedApplicationsConfiguration
@@ -26,32 +26,30 @@ trait UnusedApplicationsTimings {
   /** The amount of time an application be unused for in a given environment before it is deleted */
   def deleteUnusedApplicationsAfter(environment: Environment): FiniteDuration =
     environment match {
-      case SANDBOX => unusedApplicationsConfiguration.sandbox.deleteUnusedApplicationsAfter
+      case SANDBOX    => unusedApplicationsConfiguration.sandbox.deleteUnusedApplicationsAfter
       case PRODUCTION => unusedApplicationsConfiguration.production.deleteUnusedApplicationsAfter
     }
 
   /** How far in advance of deletion notifications are sent out for the environment */
   def sendNotificationsInAdvance(environment: Environment): Set[FiniteDuration] =
     environment match {
-      case SANDBOX => unusedApplicationsConfiguration.sandbox.sendNotificationsInAdvance
+      case SANDBOX    => unusedApplicationsConfiguration.sandbox.sendNotificationsInAdvance
       case PRODUCTION => unusedApplicationsConfiguration.production.sendNotificationsInAdvance
     }
 
   /** How far in advance the first notification needs to be sent (i.e. what is the largest sendNotificationsInAdvance value for the environment) */
   def firstNotificationInAdvance(environment: Environment): FiniteDuration =
     environment match {
-      case SANDBOX => unusedApplicationsConfiguration.sandbox.sendNotificationsInAdvance.max
+      case SANDBOX    => unusedApplicationsConfiguration.sandbox.sendNotificationsInAdvance.max
       case PRODUCTION => unusedApplicationsConfiguration.production.sendNotificationsInAdvance.max
     }
 
   def environmentName(environment: Environment): String =
     environment match {
-      case SANDBOX => unusedApplicationsConfiguration.sandbox.environmentName
+      case SANDBOX    => unusedApplicationsConfiguration.sandbox.environmentName
       case PRODUCTION => unusedApplicationsConfiguration.production.environmentName
     }
 }
 
 case class UnusedApplicationsConfiguration(sandbox: UnusedApplicationsEnvironmentConfiguration, production: UnusedApplicationsEnvironmentConfiguration)
-case class UnusedApplicationsEnvironmentConfiguration(deleteUnusedApplicationsAfter: FiniteDuration,
-                                                      sendNotificationsInAdvance: Set[FiniteDuration],
-                                                      environmentName: String)
+case class UnusedApplicationsEnvironmentConfiguration(deleteUnusedApplicationsAfter: FiniteDuration, sendNotificationsInAdvance: Set[FiniteDuration], environmentName: String)

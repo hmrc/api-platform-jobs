@@ -16,25 +16,27 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
+
 import play.api.Configuration
 import play.api.libs.ws.{WSClient, WSRequest}
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 
-import java.util.UUID
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class ProxiedHttpClientSpec extends AsyncHmrcSpec {
   private val actorSystem = ActorSystem("test-actor-system")
 
   trait Setup {
-    val apiKey: String = UUID.randomUUID().toString
-    val bearerToken: String = UUID.randomUUID().toString
-    val url = "http://example.com"
-    val mockConfig: Configuration = mock[Configuration]
+    val apiKey: String                 = UUID.randomUUID().toString
+    val bearerToken: String            = UUID.randomUUID().toString
+    val url                            = "http://example.com"
+    val mockConfig: Configuration      = mock[Configuration]
     val mockHttpAuditing: HttpAuditing = mock[HttpAuditing]
-    val mockWsClient: WSClient = mock[WSClient]
+    val mockWsClient: WSClient         = mock[WSClient]
     when(mockWsClient.url(url)).thenReturn(mock[WSRequest])
 
     val underTest = new ProxiedHttpClient(mockConfig, mockHttpAuditing, mockWsClient, actorSystem)

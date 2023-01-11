@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import play.api.libs.json.Format
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 
-case class APIDefinition(serviceName: String,
-                         categories: Seq[String] = Seq.empty)
+case class APIDefinition(serviceName: String, categories: Seq[String] = Seq.empty)
 
 object APIDefinition {
   implicit val formatAPIDefinition: Format[APIDefinition] = Json.format[APIDefinition]

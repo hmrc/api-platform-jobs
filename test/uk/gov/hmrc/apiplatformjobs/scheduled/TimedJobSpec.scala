@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import com.typesafe.config.ConfigFactory
-import play.api.{Configuration, LoggerLike}
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.{ExecutionContext, Future}
+
+import com.typesafe.config.ConfigFactory
+
+import play.api.{Configuration, LoggerLike}
+
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class TimedJobSpec extends AsyncHmrcSpec {
 
@@ -30,15 +32,14 @@ class TimedJobSpec extends AsyncHmrcSpec {
     val mockLogger = mock[LoggerLike]
 
     def testJob(startTime: String, executionInterval: String, enabled: Boolean = true) = {
-      val jobName = "TestJob"
+      val jobName       = "TestJob"
       val configuration =
-        new Configuration(
-          ConfigFactory.parseString(s"""
-          |$jobName {
-          |    startTime = "$startTime"
-          |    executionInterval = $executionInterval
-          |    enabled = $enabled
-          |  }""".stripMargin))
+        new Configuration(ConfigFactory.parseString(s"""
+                                                       |$jobName {
+                                                       |    startTime = "$startTime"
+                                                       |    executionInterval = $executionInterval
+                                                       |    enabled = $enabled
+                                                       |  }""".stripMargin))
 
       new TimedJob(jobName, configuration, fixedClock, mockLockRepository) {
         override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] =
@@ -47,10 +48,9 @@ class TimedJobSpec extends AsyncHmrcSpec {
     }
   }
 
-
   "calculateInitialDelay()" should {
-    "correctly calculate time until first run if time is later today" in new TestJobSetup  {
-      val futureTime = LocalTime.now(fixedClock).plusHours(1).withSecond(0).withNano(0)
+    "correctly calculate time until first run if time is later today" in new TestJobSetup {
+      val futureTime    = LocalTime.now(fixedClock).plusHours(1).withSecond(0).withNano(0)
       val expectedDelay = LocalDateTime.of(LocalDate.now(fixedClock), futureTime).toInstant(utc).toEpochMilli - LocalDateTime.now(fixedClock).toInstant(utc).toEpochMilli
 
       val jobToTest = testJob(futureTime.format(DateTimeFormatter.ofPattern("HH:mm")), "1d")
@@ -58,8 +58,8 @@ class TimedJobSpec extends AsyncHmrcSpec {
       jobToTest.initialDelay.toMillis shouldBe expectedDelay
     }
 
-    "correctly calculate time until first run if time is earlier today" in new TestJobSetup{
-      val pastTime = LocalTime.now(fixedClock).minusHours(1).withSecond(0).withNano(0)
+    "correctly calculate time until first run if time is earlier today" in new TestJobSetup {
+      val pastTime      = LocalTime.now(fixedClock).minusHours(1).withSecond(0).withNano(0)
       val expectedDelay = LocalDateTime.of(LocalDate.now(fixedClock), pastTime).plusDays(1).toInstant(utc).toEpochMilli - LocalDateTime.now(fixedClock).toInstant(utc).toEpochMilli
 
       val jobToTest = testJob(pastTime.format(DateTimeFormatter.ofPattern("HH:mm")), "1d")

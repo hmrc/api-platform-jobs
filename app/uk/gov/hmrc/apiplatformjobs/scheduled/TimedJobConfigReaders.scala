@@ -16,32 +16,32 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import com.typesafe.config.{Config, ConfigException}
-import net.ceedubs.ficus.Ficus._
-import net.ceedubs.ficus.readers.ValueReader
-import uk.gov.hmrc.apiplatformjobs.models.Environment
-
 import java.time.LocalTime
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
+
+import com.typesafe.config.{Config, ConfigException}
+import net.ceedubs.ficus.Ficus._
+import net.ceedubs.ficus.readers.ValueReader
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment
 
 trait TimedJobConfigReaders {
 
   implicit def localTimeReader: ValueReader[LocalTime] = (config: Config, path: String) => {
     (Try {
       LocalTime.parse(config.getString(path))
-    } recover {
-      case ex => throw new ConfigException.BadValue(path, config.getString(path), ex)
+    } recover { case ex =>
+      throw new ConfigException.BadValue(path, config.getString(path), ex)
     }).get
   }
 
-  implicit def timedJobConfigReader: ValueReader[TimedJobConfig] = ValueReader.relative[TimedJobConfig] {
-    config =>
-      val parsedStartTime: Option[StartTime] = config.as[Option[LocalTime]]("startTime").map(new StartTime(_))
-      val parsedExecutionInterval = new ExecutionInterval(config.as[FiniteDuration]("executionInterval"))
-      val parsedEnabled: Boolean = config.as[Option[Boolean]]("enabled").getOrElse(false)
+  implicit def timedJobConfigReader: ValueReader[TimedJobConfig] = ValueReader.relative[TimedJobConfig] { config =>
+    val parsedStartTime: Option[StartTime] = config.as[Option[LocalTime]]("startTime").map(new StartTime(_))
+    val parsedExecutionInterval            = new ExecutionInterval(config.as[FiniteDuration]("executionInterval"))
+    val parsedEnabled: Boolean             = config.as[Option[Boolean]]("enabled").getOrElse(false)
 
-      TimedJobConfig(parsedStartTime, parsedExecutionInterval, parsedEnabled)
+    TimedJobConfig(parsedStartTime, parsedExecutionInterval, parsedEnabled)
   }
 
   implicit def unusedApplicationsConfigurationReader: ValueReader[UnusedApplicationsConfiguration] =
@@ -50,11 +50,10 @@ trait TimedJobConfigReaders {
         UnusedApplicationsEnvironmentConfiguration(
           config.as[FiniteDuration](s"$environment.deleteUnusedApplicationsAfter"),
           config.as[Set[FiniteDuration]](s"$environment.sendNotificationsInAdvance"),
-          config.as[String](s"$environment.environmentName"))
+          config.as[String](s"$environment.environmentName")
+        )
 
-      UnusedApplicationsConfiguration(
-        environmentConfiguration(Environment.SANDBOX),
-        environmentConfiguration(Environment.PRODUCTION))
+      UnusedApplicationsConfiguration(environmentConfiguration(Environment.SANDBOX), environmentConfiguration(Environment.PRODUCTION))
     }
 
 }

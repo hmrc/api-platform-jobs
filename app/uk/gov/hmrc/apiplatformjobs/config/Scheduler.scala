@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.apiplatformjobs.config
 
-import com.google.inject.AbstractModule
-import play.api.Application
-import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.apiplatformjobs.scheduled._
-import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
-
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
+
+import com.google.inject.AbstractModule
+
+import play.api.Application
+import play.api.inject.ApplicationLifecycle
+
+import uk.gov.hmrc.apiplatformjobs.scheduled._
+import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 class SchedulerModule extends AbstractModule {
   override def configure(): Unit = {
@@ -32,17 +34,19 @@ class SchedulerModule extends AbstractModule {
 }
 
 @Singleton
-class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
-                          deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
-                          updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordsJob,
-                          updateUnusedProductionApplicationRecordsJob: UpdateUnusedProductionApplicationRecordsJob,
-                          sendUnusedSandboxApplicationNotificationsJob: SendUnusedSandboxApplicationNotificationsJob,
-                          sendUnusedProductionApplicationNotificationsJob: SendUnusedProductionApplicationNotificationsJob,
-                          deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
-                          deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
-                          override val applicationLifecycle: ApplicationLifecycle,
-                          override val application: Application)
-                         (implicit val ec: ExecutionContext) extends RunningOfScheduledJobs {
+class Scheduler @Inject() (
+    deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
+    deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
+    updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordsJob,
+    updateUnusedProductionApplicationRecordsJob: UpdateUnusedProductionApplicationRecordsJob,
+    sendUnusedSandboxApplicationNotificationsJob: SendUnusedSandboxApplicationNotificationsJob,
+    sendUnusedProductionApplicationNotificationsJob: SendUnusedProductionApplicationNotificationsJob,
+    deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
+    deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
+    override val applicationLifecycle: ApplicationLifecycle,
+    override val application: Application
+)(implicit val ec: ExecutionContext)
+    extends RunningOfScheduledJobs {
   override lazy val scheduledJobs: Seq[ScheduledJob] =
     Seq(
       deleteUnverifiedDevelopersJob,
@@ -53,6 +57,6 @@ class Scheduler @Inject()(deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelop
       sendUnusedProductionApplicationNotificationsJob,
       deleteUnusedSandboxApplicationsJob,
       deleteUnusedProductionApplicationsJob
-      )
+    )
       .filter(_.isEnabled)
 }

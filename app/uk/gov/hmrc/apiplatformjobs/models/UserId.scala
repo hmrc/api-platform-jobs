@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import play.api.libs.json.Json
-
 import java.net.URLEncoder
 import java.util.UUID
 import java.{util => ju}
 
+import play.api.libs.json.Json
+
 case class UserId(value: ju.UUID) extends AnyVal {
-  override def toString = value.toString
+  override def toString    = value.toString
   def asQueryParam: String = URLEncoder.encode(value.toString, "UTF-8")
 }
 
@@ -32,5 +32,3 @@ object UserId {
 
   def random: UserId = UserId(UUID.randomUUID)
 }
-
-

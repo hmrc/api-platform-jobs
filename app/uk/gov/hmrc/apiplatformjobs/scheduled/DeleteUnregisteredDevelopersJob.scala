@@ -16,30 +16,34 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
-
 import javax.inject.Inject
 import scala.concurrent.Future.sequence
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
 
-class DeleteUnregisteredDevelopersJob @Inject()(override val lockService: DeleteUnregisteredDevelopersJobLockService,
-                                                jobConfig: DeleteUnregisteredDevelopersJobConfig,
-                                                val developerConnector: ThirdPartyDeveloperConnector,
-                                                val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
-                                                val productionApplicationConnector: ProductionThirdPartyApplicationConnector)
-  extends ScheduledMongoJob with DeleteDeveloper with ApplicationLogger {
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
-  override def name: String = "DeleteUnregisteredDevelopersJob"
-  override def interval: FiniteDuration = jobConfig.interval
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+
+class DeleteUnregisteredDevelopersJob @Inject() (
+    override val lockService: DeleteUnregisteredDevelopersJobLockService,
+    jobConfig: DeleteUnregisteredDevelopersJobConfig,
+    val developerConnector: ThirdPartyDeveloperConnector,
+    val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
+    val productionApplicationConnector: ProductionThirdPartyApplicationConnector
+) extends ScheduledMongoJob
+    with DeleteDeveloper
+    with ApplicationLogger {
+
+  override def name: String                 = "DeleteUnregisteredDevelopersJob"
+  override def interval: FiniteDuration     = jobConfig.interval
   override def initialDelay: FiniteDuration = jobConfig.initialDelay
 
-  override val isEnabled: Boolean = jobConfig.enabled
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  override val isEnabled: Boolean                      = jobConfig.enabled
+  implicit val hc: HeaderCarrier                       = HeaderCarrier()
   override val deleteFunction: (String) => Future[Int] = developerConnector.deleteUnregisteredDeveloper
 
   override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
@@ -48,21 +52,20 @@ class DeleteUnregisteredDevelopersJob @Inject()(override val lockService: Delete
 
     (for {
       developerDetails <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
-      _ = logger.info(s"Found ${developerDetails.size} unregistered developers")
-      _ <- sequence(developerDetails.map(deleteDeveloper))
-    } yield RunningOfJobSuccessful) recoverWith {
-      case NonFatal(e) =>
-        logger.error("Could not delete unregistered developers", e)
-        Future.failed(RunningOfJobFailed(name, e))
+      _                 = logger.info(s"Found ${developerDetails.size} unregistered developers")
+      _                <- sequence(developerDetails.map(deleteDeveloper))
+    } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>
+      logger.error("Could not delete unregistered developers", e)
+      Future.failed(RunningOfJobFailed(name, e))
     }
   }
 }
 
-class DeleteUnregisteredDevelopersJobLockService @Inject()(repository: LockRepository) extends LockService {
+class DeleteUnregisteredDevelopersJobLockService @Inject() (repository: LockRepository) extends LockService {
 
   override val lockRepository: LockRepository = repository
-  override val lockId: String = "DeleteUnregisteredDevelopersJob"
-  override val ttl: duration.Duration = 1.hours
+  override val lockId: String                 = "DeleteUnregisteredDevelopersJob"
+  override val ttl: duration.Duration         = 1.hours
 }
 
 case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int)

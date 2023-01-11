@@ -16,19 +16,21 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.scalatest.BeforeAndAfterAll
-import play.api.http.Status.OK
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.UserId
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.http.HeaderCarrier
-
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import scala.concurrent.Future
 import scala.concurrent.Future._
 import scala.concurrent.duration.FiniteDuration
+
+import org.scalatest.BeforeAndAfterAll
+
+import play.api.http.Status.OK
+import uk.gov.hmrc.http.HeaderCarrier
+
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
+import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.models.UserId
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
 
@@ -38,7 +40,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     super.beforeAll()
   }
 
-  override  def afterAll() : Unit = {
+  override def afterAll(): Unit = {
     super.afterAll()
   }
 
@@ -51,14 +53,12 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(true))
     when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 
-
-
-    val deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedDevelopersJobConfig = DeleteUnverifiedDevelopersJobConfig(
-      FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
-    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector = mock[ThirdPartyDeveloperConnector]
-    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector = mock[SandboxThirdPartyApplicationConnector]
+    val deleteUnverifiedDevelopersJobConfig: DeleteUnverifiedDevelopersJobConfig               =
+      DeleteUnverifiedDevelopersJobConfig(FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
+    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector                         = mock[ThirdPartyDeveloperConnector]
+    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
     val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
-    val underTest = new DeleteUnverifiedDevelopersJob(
+    val underTest                                                                              = new DeleteUnverifiedDevelopersJob(
       mockLockKeeper,
       deleteUnverifiedDevelopersJobConfig,
       mockThirdPartyDeveloperConnector,

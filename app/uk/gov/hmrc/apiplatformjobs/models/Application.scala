@@ -25,5 +25,5 @@ case class Application(
 
 object Application {
   implicit val eformat = Json.formatEnum(Environment)
-  implicit val format = Json.format[Application]
+  implicit val format  = Json.format[Application]
 }

@@ -16,32 +16,31 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-
 import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 
-case class ApplicationUsageDetails(applicationId: UUID,
-                                   applicationName: String,
-                                   administrators: Set[String],
-                                   creationDate: LocalDateTime,
-                                   lastAccessDate: Option[LocalDateTime])
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+
+case class ApplicationUsageDetails(applicationId: UUID, applicationName: String, administrators: Set[String], creationDate: LocalDateTime, lastAccessDate: Option[LocalDateTime])
 
 case class Administrator(emailAddress: String, firstName: String, lastName: String)
 case object Administrator {
   def apply(emailAddress: String, firstName: String, lastName: String): Administrator = new Administrator(emailAddress, firstName, lastName)
 }
 
-case class UnusedApplication(applicationId: UUID,
-                             applicationName: String,
-                             administrators: Seq[Administrator],
-                             environment: Environment,
-                             lastInteractionDate: LocalDateTime,
-                             scheduledNotificationDates: Seq[LocalDate],
-                             scheduledDeletionDate: LocalDate)
+case class UnusedApplication(
+    applicationId: UUID,
+    applicationName: String,
+    administrators: Seq[Administrator],
+    environment: Environment,
+    lastInteractionDate: LocalDateTime,
+    scheduledNotificationDates: Seq[LocalDate],
+    scheduledDeletionDate: LocalDate
+)
 
 object Environment extends Enumeration {
   type Environment = Value
@@ -50,11 +49,11 @@ object Environment extends Enumeration {
 
 object MongoFormat {
   implicit val localDateTimeFormat = MongoJavatimeFormats.localDateTimeFormat
-  implicit val localDateFormat = MongoJavatimeFormats.localDateFormat
+  implicit val localDateFormat     = MongoJavatimeFormats.localDateFormat
 
   implicit def environmentWrites: Writes[Environment.Value] = (v: Environment.Value) => JsString(v.toString)
   implicit val environmentFormat: Format[Environment.Value] = Format(environmentReads(), environmentWrites)
-  implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
+  implicit val administratorFormat: Format[Administrator]   = Format(Json.reads[Administrator], Json.writes[Administrator])
 
   val unusedApplicationReads: Reads[UnusedApplication] = (
     (JsPath \ "applicationId").read[UUID] and
@@ -64,19 +63,19 @@ object MongoFormat {
       (JsPath \ "lastInteractionDate").read[LocalDateTime] and
       (JsPath \ "scheduledNotificationDates").read[List[LocalDate]] and
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
-    )(UnusedApplication.apply _)
+  )(UnusedApplication.apply _)
 
   def environmentReads(): Reads[Environment.Value] = {
-    case JsString("SANDBOX") => JsSuccess(Environment.SANDBOX)
+    case JsString("SANDBOX")    => JsSuccess(Environment.SANDBOX)
     case JsString("PRODUCTION") => JsSuccess(Environment.PRODUCTION)
-    case JsString(s) =>
+    case JsString(s)            =>
       try {
         JsSuccess(Environment.withName(s))
       } catch {
         case _: NoSuchElementException =>
           JsError(s"Enumeration expected of type: Environment, but it does not contain '$s'")
       }
-    case _ => JsError("String value expected")
+    case _                      => JsError("String value expected")
   }
 
   implicit val unusedApplicationFormat: Format[UnusedApplication] = Format(unusedApplicationReads, Json.writes[UnusedApplication])
