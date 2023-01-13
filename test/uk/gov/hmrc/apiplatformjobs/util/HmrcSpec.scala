@@ -16,26 +16,25 @@
 
 package uk.gov.hmrc.apiplatformjobs.util
 
+import java.time.{Clock, Instant, ZoneOffset}
+
 import org.mockito.{ArgumentMatchersSugar, MockitoSugar}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.WsScalaTestClient
+
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import uk.gov.hmrc.mongo.lock.MongoLockRepository
 
-import java.time.{Clock, Instant, ZoneOffset}
-
-
 abstract class HmrcSpec extends AnyWordSpec with Matchers with OptionValues with WsScalaTestClient with MockitoSugar with ArgumentMatchersSugar
 
-abstract class AsyncHmrcSpec
-  extends HmrcSpec with DefaultAwaitTimeout with FutureAwaits {
+abstract class AsyncHmrcSpec extends HmrcSpec with DefaultAwaitTimeout with FutureAwaits {
 
   val fixedClock = Clock.fixed(Instant.now(), ZoneOffset.UTC)
 
-  trait BaseSetup{
+  trait BaseSetup {
     val mockLockRepository = mock[MongoLockRepository]
-    val utc = ZoneOffset.UTC
+    val utc                = ZoneOffset.UTC
   }
 }

@@ -24,4 +24,3 @@ object FixCollaboratorRequest {
   import play.api.libs.json._
   implicit val fixCollaboratorRequestFormat = Json.format[FixCollaboratorRequest]
 }
-
