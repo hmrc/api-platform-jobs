@@ -11,7 +11,7 @@ ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports"
 
 inThisBuild(
   List(
-    scalaVersion := "2.12.12",
+    scalaVersion := "2.12.15",
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
@@ -21,7 +21,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     name := appName,
     organization := "uk.gov.hmrc",
-    scalaVersion := "2.12.12",
+    scalaVersion := "2.12.15",
     scalacOptions += "-Ypartial-unification",
     majorVersion := 0,
     PlayKeys.playDefaultPort := 6700,
@@ -31,7 +31,7 @@ lazy val microservice = Project(appName, file("."))
     libraryDependencies ++= AppDependencies(),
     publishingSettings,
   )
-  .settings(ScoverageSettings())
+  .settings(ScoverageSettings(): _*)
   .settings(
     inConfig(Test)(BloopDefaults.configSettings),
     Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-eT"),
@@ -39,7 +39,7 @@ lazy val microservice = Project(appName, file("."))
     Test / parallelExecution := false,
     Test / unmanagedResourceDirectories += baseDirectory.value / "test" / "resources"
   )
-  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
+  .enablePlugins(PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)
 
 def oneForkedJvmPerTest(tests: Seq[TestDefinition]) = {
