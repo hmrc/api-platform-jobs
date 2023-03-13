@@ -22,14 +22,14 @@ import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.LockRepository
-
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.mongo.lock.LockRepository
+
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
 abstract class UpdateUnusedApplicationRecordsJob(
     thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
@@ -39,7 +39,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
+  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
 
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
@@ -81,15 +81,15 @@ abstract class UpdateUnusedApplicationRecordsJob(
     }
 
     for {
-      knownApplications                      <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications              <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
+      knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
+      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
       updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
-      _                                                              = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
-      applicationsToAdd                                              = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
+      _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
+      applicationsToAdd                                                       = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
       verifiedApplicationAdministrators: Map[LaxEmailAddress, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
-      newUnusedApplicationRecords: Seq[UnusedApplication]            = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
-      _                                                              = if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
+      newUnusedApplicationRecords: Seq[UnusedApplication]                     = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
+      _                                                                       = if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
 
       _ = logInfo(s"Found ${updatesRequired._2.size} applications that have been used since last update")
       _ = if (updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))
@@ -124,7 +124,7 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UpdateUnusedApplicationRecordsJob(
+  ) extends UpdateUnusedApplicationRecordsJob(
       thirdPartyApplicationConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
@@ -142,7 +142,7 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UpdateUnusedApplicationRecordsJob(
+  ) extends UpdateUnusedApplicationRecordsJob(
       thirdPartyApplicationConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,

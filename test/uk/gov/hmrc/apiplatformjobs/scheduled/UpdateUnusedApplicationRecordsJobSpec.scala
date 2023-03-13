@@ -30,10 +30,11 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, 
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration {
 
@@ -325,7 +326,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       creationDate: LocalDateTime,
       lastAccessDate: Option[LocalDateTime],
       administrators: Set[LaxEmailAddress]
-  ): (ApplicationUsageDetails, UnusedApplication) = {
+    ): (ApplicationUsageDetails, UnusedApplication) = {
     val applicationId        = ApplicationId.random
     val applicationName      = Random.alphanumeric.take(10).mkString
     val administratorDetails = administrators.map(admin => new Administrator(admin, "Foo", "Bar"))

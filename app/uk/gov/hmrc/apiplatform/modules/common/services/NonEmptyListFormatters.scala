@@ -27,8 +27,8 @@ trait NonEmptyListFormatters {
       .of[List[A]]
       .collect(
         JsonValidationError("expected a NonEmptyList but got an empty list")
-      ) {
-        case head :: tail => NEL(head, tail)
+      ) { case head :: tail =>
+        NEL(head, tail)
       }
 
   implicit def nelWrites[A](implicit w: Writes[A]): Writes[NEL[A]] =

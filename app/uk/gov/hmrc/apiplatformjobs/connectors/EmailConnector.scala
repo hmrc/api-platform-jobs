@@ -25,13 +25,13 @@ import scala.util.{Failure, Success, Try}
 
 import play.api.libs.json.{Json, OFormat}
 import play.mvc.Http.Status._
+import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResponse}
 
-import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
-import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 case class SendEmailRequest(
     to: Set[LaxEmailAddress],
@@ -40,7 +40,7 @@ case class SendEmailRequest(
     force: Boolean = false,
     auditData: Map[String, String] = Map.empty,
     eventUrl: Option[String] = None
-)
+  )
 
 object SendEmailRequest {
   implicit val sendEmailRequestFmt: OFormat[SendEmailRequest] = Json.format[SendEmailRequest]
@@ -114,7 +114,7 @@ object EmailConnector {
       environmentName: String,
       timeSinceLastUse: String,
       dateOfScheduledDeletion: String
-  ) {
+    ) {
 
     def parameters(): Map[String, String] =
       Map(

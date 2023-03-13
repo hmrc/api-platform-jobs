@@ -16,43 +16,37 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.apiplatformjobs.util.UrlEncoding
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ProductionApplicationCommandConnector
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.http.HttpClient
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
 import java.time.LocalDateTime
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
-import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-import com.github.tomakehurst.wiremock.client.WireMock._
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommandFormatters._
-import play.api.http.Status._
-import uk.gov.hmrc.http.InternalServerException
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.CommandFailures
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import cats.data.NonEmptyList
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.CommandFailure
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.DispatchRequest
 import cats.syntax.either._
+import com.github.tomakehurst.wiremock.client.WireMock._
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+
+import play.api.Application
+import play.api.http.Status._
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, InternalServerException}
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{CommandFailure, CommandFailures, DispatchRequest, RemoveCollaborator}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ProductionApplicationCommandConnector
 
 class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
-    val appId = ApplicationId.random
-    val actor = Actors.ScheduledJob("TestMe")
-    val timestamp = LocalDateTime.now()
-    val userId = UserId.random
-    val emailAddress = "bob@example.com".toLaxEmail
-    val collaborator = Collaborators.Developer(userId, emailAddress)
+  val appId        = ApplicationId.random
+  val actor        = Actors.ScheduledJob("TestMe")
+  val timestamp    = LocalDateTime.now()
+  val userId       = UserId.random
+  val emailAddress = "bob@example.com".toLaxEmail
+  val collaborator = Collaborators.Developer(userId, emailAddress)
 
-
-    override def fakeApplication(): Application =
+  override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .configure("metrics.jvm" -> false)
       .build()
@@ -62,7 +56,6 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
     val apiKeyTest           = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
     val bearer               = "TestBearerToken"
     val authorisationKeyTest = "TestAuthorisationKey"
-
 
     val mockConfig = mock[ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig]
     when(mockConfig.productionBaseUrl).thenReturn(wireMockUrl)
@@ -81,10 +74,10 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
     "removeCollaborator" in new Setup {
       stubFor(
         patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
-        .withJsonRequestBody(request)
-        .willReturn(
-          aResponse()
-          .withStatus(OK)
+          .withJsonRequestBody(request)
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
           )
       )
 
@@ -100,11 +93,11 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
 
       stubFor(
         patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
-        .willReturn(
-          aResponse()
-            .withStatus(BAD_REQUEST)
-            .withJsonBody(errors)
-        )
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_REQUEST)
+              .withJsonBody(errors)
+          )
       )
 
       await(connector.dispatch(appId, command, Set.empty)) shouldBe errors.asLeft[Unit]
@@ -113,10 +106,10 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
     "throw exception when endpoint returns internal server error" in new Setup {
       stubFor(
         patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
-        .willReturn(
-          aResponse()
-            .withStatus(INTERNAL_SERVER_ERROR)
-        )
+          .willReturn(
+            aResponse()
+              .withStatus(INTERNAL_SERVER_ERROR)
+          )
       )
 
       intercept[InternalServerException] {
@@ -124,6 +117,5 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       }
     }
   }
-
 
 }

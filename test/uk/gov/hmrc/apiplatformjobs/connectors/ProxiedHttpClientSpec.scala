@@ -22,10 +22,9 @@ import akka.actor.ActorSystem
 
 import play.api.Configuration
 import play.api.libs.ws.{WSClient, WSRequest}
+import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.http.HttpAuditing
-
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class ProxiedHttpClientSpec extends AsyncHmrcSpec {
   // TODO - make this an integration style test with guice injected actor system

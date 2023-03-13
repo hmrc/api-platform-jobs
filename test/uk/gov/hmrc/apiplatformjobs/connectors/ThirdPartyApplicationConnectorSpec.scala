@@ -29,15 +29,14 @@ import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import uk.gov.hmrc.http._
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
-import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
+import uk.gov.hmrc.http._
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -115,7 +114,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       val dateString: String = dateFormatter.format(lastUseDate)
 
       val oldApplication1Admin = "foo@bar.com".toLaxEmail
-      val oldApplication1              =
+      val oldApplication1      =
         ApplicationLastUseDate(
           ApplicationId.random,
           Random.alphanumeric.take(10).mkString,
@@ -124,7 +123,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           Some(LocalDateTime.now.minusMonths(13))
         )
       val oldApplication2Admin = "bar@baz.com".toLaxEmail
-      val oldApplication2              =
+      val oldApplication2      =
         ApplicationLastUseDate(
           ApplicationId.random,
           Random.alphanumeric.take(10).mkString,
@@ -265,9 +264,9 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
     val matchingApplications = 1
 
     val adminEmailAddress     = "admin@foo.com".toLaxEmail
-    val adminUserId = UserId.random
+    val adminUserId           = UserId.random
     val developerEmailAddress = "developer@foo.com".toLaxEmail
-    val developerUserId = UserId.random
+    val developerUserId       = UserId.random
 
     val response = s"""{
                       |  "applications": [

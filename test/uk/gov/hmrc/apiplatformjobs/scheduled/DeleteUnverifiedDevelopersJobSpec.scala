@@ -25,30 +25,24 @@ import scala.concurrent.duration.FiniteDuration
 import org.scalatest.BeforeAndAfterAll
 
 import play.api.http.Status.OK
-import uk.gov.hmrc.http.HeaderCarrier
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.SandboxApplicationCommandConnector
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ProductionApplicationCommandConnector
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ApplicationCommandConnector
-import org.mockito.captor.ArgCaptor
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommand
+import uk.gov.hmrc.http.HeaderCarrier
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.{ProductionApplicationCommandConnector, SandboxApplicationCommandConnector}
 
 class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
 
   val FixedTimeNow: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
 
   val joeBloggs = "joe.bloggs@example.com".toLaxEmail
-  val johnDoe = "john.doe@example.com".toLaxEmail
+  val johnDoe   = "john.doe@example.com".toLaxEmail
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -74,6 +68,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
     val mockSandboxApplicationCmdConnector: SandboxApplicationCommandConnector                 = mock[SandboxApplicationCommandConnector]
     val mockProductionApplicationCmdConnector: ProductionApplicationCommandConnector           = mock[ProductionApplicationCommandConnector]
+
     val underTest                                                                              = new DeleteUnverifiedDevelopersJob(
       mockLockKeeper,
       deleteUnverifiedDevelopersJobConfig,
@@ -87,7 +82,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
   trait SuccessfulSetup extends Setup {
     val productionAppId = ApplicationId.random
-    val sandboxAppId = ApplicationId.random
+    val sandboxAppId    = ApplicationId.random
 
     val developers = Seq(CoreUserDetails(joeBloggs, UserId.random), CoreUserDetails(johnDoe, UserId.random))
     when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
@@ -112,10 +107,26 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     "remove unverified developers as collaborators" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(eqTo(sandboxAppId), argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }), *)(*)
-      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(eqTo(sandboxAppId), argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }), *)(*)
-      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(eqTo(productionAppId), argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }), *)(*)
-      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(eqTo(productionAppId), argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }), *)(*)
+      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(sandboxAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        *
+      )(*)
+      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(sandboxAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        *
+      )(*)
+      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(productionAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        *
+      )(*)
+      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(productionAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        *
+      )(*)
 
       result.message shouldBe "DeleteUnverifiedDevelopersJob Job ran successfully."
     }

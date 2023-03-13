@@ -22,13 +22,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import com.typesafe.config.ConfigFactory
 
-import play.api.{Configuration}
-
+import play.api.Configuration
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class TimedJobSpec extends AsyncHmrcSpec {
 
   trait TestJobSetup extends BaseSetup {
+
     def testJob(startTime: String, executionInterval: String, enabled: Boolean = true) = {
       val jobName       = "TestJob"
       val configuration =

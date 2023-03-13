@@ -21,13 +21,13 @@ import scala.concurrent.{ExecutionContext, Future}
 import cats.data.NonEmptyList
 import com.google.inject.{Inject, Singleton}
 
+import uk.gov.hmrc.apiplatformjobs.connectors.ProxiedHttpClient
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, InternalServerException}
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import uk.gov.hmrc.apiplatformjobs.connectors.ProxiedHttpClient
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 
 abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) {
 
@@ -50,7 +50,9 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) {
     def baseApplicationUrl(applicationId: ApplicationId) = s"$serviceBaseUrl/application/${applicationId.value.toString()}"
 
     def parseErrorResponse(responseBody: String): NonEmptyList[CommandFailure] =
-      Json.parse(responseBody).asOpt[NonEmptyList[CommandFailure]]
+      Json
+        .parse(responseBody)
+        .asOpt[NonEmptyList[CommandFailure]]
         .fold(throw new InternalServerException("Failed parsing error response to dispatch"))(identity)
 
     val url          = s"${baseApplicationUrl(applicationId)}/dispatch"
@@ -58,7 +60,8 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) {
     val extraHeaders = Seq.empty[(String, String)]
     import cats.syntax.either._
 
-    http.PATCH[DispatchRequest, HttpResponse](url, request, extraHeaders)
+    http
+      .PATCH[DispatchRequest, HttpResponse](url, request, extraHeaders)
       .map(response =>
         response.status match {
           case OK          => ().asRight[NonEmptyList[CommandFailure]]

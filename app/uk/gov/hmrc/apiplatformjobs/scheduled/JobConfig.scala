@@ -23,14 +23,15 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import com.typesafe.config.Config
 
+import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 import uk.gov.hmrc.mongo.lock.LockService
 
-import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
 
 object JobConfig {
+
   private implicit class ToFiniteDuration(d: Duration) {
     def finite(): FiniteDuration = FiniteDuration(d.toNanos, TimeUnit.NANOSECONDS)
   }
@@ -66,6 +67,7 @@ trait ScheduledJobState { e: ScheduledJob =>
   case object RunningOfJobSuccessful extends RunningOfJobSuccessful
 
   case class RunningOfJobFailed(jobName: String, wrappedCause: Throwable) extends RuntimeException {
+
     def asResult: Result = {
       Result(
         s"The execution of scheduled job $jobName failed with error '${wrappedCause.getMessage}'. " +

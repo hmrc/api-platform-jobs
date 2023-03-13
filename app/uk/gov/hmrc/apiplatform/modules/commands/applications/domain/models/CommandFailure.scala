@@ -42,7 +42,8 @@ trait CommandFailureJsonFormatters {
   implicit val formatCollaboratorAlreadyExistsOnApp = Json.format[CollaboratorAlreadyExistsOnApp.type]
   implicit val formatGenericFailure                 = Json.format[GenericFailure]
 
-  implicit val formatCommandFailures = Union.from[CommandFailure]("failureType")
+  implicit val formatCommandFailures = Union
+    .from[CommandFailure]("failureType")
     .and[ApplicationNotFound.type]("ApplicationNotFound")
     .and[CannotRemoveLastAdmin.type]("CannotRemoveLastAdmin")
     .and[ActorIsNotACollaboratorOnApp.type]("ActorIsNotACollaboratorOnApp")

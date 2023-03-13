@@ -28,18 +28,18 @@ import org.apache.commons.codec.binary.Base64.encodeBase64String
 
 import play.api.libs.json.Writes.LocalDateTimeEpochMilliWrites
 import play.api.libs.json._
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HttpClient, _}
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
-import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborator
+import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{HttpClient, _}
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 object ThirdPartyApplicationConnector {
+
   def toDomain(applications: List[ApplicationLastUseDate]): List[ApplicationUsageDetails] =
     applications.map(app => {
       val admins =
@@ -54,10 +54,17 @@ object ThirdPartyApplicationConnector {
       email: LaxEmailAddress,
       adminsToEmail: Set[LaxEmailAddress],
       notifyCollaborator: Boolean
-  )
+    )
 
   private[connectors] case class ApplicationResponse(id: ApplicationId)
-  private[connectors] case class ApplicationLastUseDate(id: ApplicationId, name: String, collaborators: Set[Collaborator], createdOn: LocalDateTime, lastAccess: Option[LocalDateTime])
+
+  private[connectors] case class ApplicationLastUseDate(
+      id: ApplicationId,
+      name: String,
+      collaborators: Set[Collaborator],
+      createdOn: LocalDateTime,
+      lastAccess: Option[LocalDateTime]
+    )
   private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate], page: Int, pageSize: Int, total: Int, matching: Int)
 
   case class ThirdPartyApplicationConnectorConfig(
@@ -68,7 +75,7 @@ object ThirdPartyApplicationConnector {
       sandboxAuthorisationKey: String,
       productionBaseUrl: String,
       productionAuthorisationKey: String
-  )
+    )
 
   object JsonFormatters {
 
@@ -90,6 +97,7 @@ object ThirdPartyApplicationConnector {
 }
 
 class ThirdPartyApplicationConnectorModule extends AbstractModule {
+
   override def configure(): Unit = {
     bind(classOf[ThirdPartyApplicationConnector]).annotatedWith(Names.named("tpa-production")).to(classOf[ProductionThirdPartyApplicationConnector])
     bind(classOf[ThirdPartyApplicationConnector]).annotatedWith(Names.named("tpa-sandbox")).to(classOf[SandboxThirdPartyApplicationConnector])
@@ -139,15 +147,15 @@ class SandboxThirdPartyApplicationConnector @Inject() (
     config: ThirdPartyApplicationConnectorConfig,
     override val httpClient: HttpClient,
     proxiedHttpClient: ProxiedHttpClient
-)(implicit override val ec: ExecutionContext)
-    extends ThirdPartyApplicationConnector {
+  )(implicit override val ec: ExecutionContext
+  ) extends ThirdPartyApplicationConnector {
 
   val serviceBaseUrl           = config.sandboxBaseUrl
   val useProxy                 = config.sandboxUseProxy
   val bearerToken              = config.sandboxBearerToken
   val apiKey                   = config.sandboxApiKey
   val authorisationKey: String = encodeBase64String(config.sandboxAuthorisationKey.getBytes(UTF_8))
-  
+
   override lazy val http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
 
 }
@@ -156,8 +164,8 @@ class SandboxThirdPartyApplicationConnector @Inject() (
 class ProductionThirdPartyApplicationConnector @Inject() (
     val config: ThirdPartyApplicationConnectorConfig,
     override val httpClient: HttpClient
-)(implicit override val ec: ExecutionContext)
-    extends ThirdPartyApplicationConnector {
+  )(implicit override val ec: ExecutionContext
+  ) extends ThirdPartyApplicationConnector {
 
   val serviceBaseUrl           = config.productionBaseUrl
   val authorisationKey: String = encodeBase64String(config.productionAuthorisationKey.getBytes(UTF_8))

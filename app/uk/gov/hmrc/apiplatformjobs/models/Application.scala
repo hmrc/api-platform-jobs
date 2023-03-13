@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import play.api.libs.json.Json
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborator
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator}
 
 case class Application(
     id: ApplicationId,
     collaborators: Set[Collaborator] = Set.empty
-)
+  )
 
 object Application {
   implicit val eformat = Json.formatEnum(Environment)

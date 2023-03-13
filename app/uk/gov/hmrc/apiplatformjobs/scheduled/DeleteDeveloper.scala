@@ -16,20 +16,19 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.time.LocalDateTime
 import scala.concurrent.Future.sequence
 import scala.concurrent.{ExecutionContext, Future}
 
-import uk.gov.hmrc.http.HeaderCarrier
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
+import uk.gov.hmrc.http.HeaderCarrier
+
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
-import java.time.LocalDateTime
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ProductionApplicationCommandConnector
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.SandboxApplicationCommandConnector
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
+import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.{ProductionApplicationCommandConnector, SandboxApplicationCommandConnector}
+
 trait DeleteDeveloper {
 
   def sandboxApplicationConnector: SandboxThirdPartyApplicationConnector
@@ -41,7 +40,7 @@ trait DeleteDeveloper {
   val deleteFunction: (LaxEmailAddress) => Future[Int]
 
   def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[CoreUserDetails] = {
-    val timestamp = LocalDateTime.now()
+    val timestamp            = LocalDateTime.now()
     val collaboratorToDelete = Collaborators.Developer(developer.id, developer.email)
 
     for {

@@ -36,7 +36,8 @@ trait ApplicationCommandFormatters {
   implicit val addCollaboratorFormatter    = Json.format[AddCollaborator]
   implicit val removeCollaboratorFormatter = Json.format[RemoveCollaborator]
 
-  implicit val applicationCommandsFormatter = Union.from[ApplicationCommand]("updateType")
+  implicit val applicationCommandsFormatter = Union
+    .from[ApplicationCommand]("updateType")
     .and[AddCollaborator]("addCollaborator")
     .and[RemoveCollaborator]("removeCollaborator")
     .format

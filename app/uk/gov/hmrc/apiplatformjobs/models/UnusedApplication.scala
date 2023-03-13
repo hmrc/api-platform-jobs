@@ -20,16 +20,23 @@ import java.time.{LocalDate, LocalDateTime}
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
-case class ApplicationUsageDetails(applicationId: ApplicationId, applicationName: String, administrators: Set[LaxEmailAddress], creationDate: LocalDateTime, lastAccessDate: Option[LocalDateTime])
+case class ApplicationUsageDetails(
+    applicationId: ApplicationId,
+    applicationName: String,
+    administrators: Set[LaxEmailAddress],
+    creationDate: LocalDateTime,
+    lastAccessDate: Option[LocalDateTime]
+  )
 
 // TODO - what is this - has this joined TPD and Collaborator ??
 case class Administrator(emailAddress: LaxEmailAddress, firstName: String, lastName: String)
+
 case object Administrator {
   def apply(emailAddress: LaxEmailAddress, firstName: String, lastName: String): Administrator = new Administrator(emailAddress, firstName, lastName)
 }
@@ -42,7 +49,7 @@ case class UnusedApplication(
     lastInteractionDate: LocalDateTime,
     scheduledNotificationDates: Seq[LocalDate],
     scheduledDeletionDate: LocalDate
-)
+  )
 
 object Environment extends Enumeration {
   type Environment = Value
