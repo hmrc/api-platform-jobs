@@ -26,7 +26,7 @@ import com.typesafe.config.Config
 import uk.gov.hmrc.mongo.lock.LockService
 
 import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
-import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
 

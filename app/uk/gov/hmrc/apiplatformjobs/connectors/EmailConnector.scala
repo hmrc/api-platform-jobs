@@ -30,7 +30,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResp
 
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
-import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
 case class SendEmailRequest(

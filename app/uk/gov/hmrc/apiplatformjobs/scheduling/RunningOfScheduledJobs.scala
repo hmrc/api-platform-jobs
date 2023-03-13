@@ -26,7 +26,7 @@ import org.apache.commons.lang3.time.StopWatch
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
 
-import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 /** All implementing classes must be singletons - see https://www.playframework.com/documentation/2.6.x/ScalaDependencyInjection#Stopping/cleaning-up
   */

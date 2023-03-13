@@ -28,7 +28,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
-import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 abstract class TimedJob @Inject() (override val name: String, configuration: Configuration, clock: Clock, lockRepository: LockRepository)
     extends ScheduledMongoJob
