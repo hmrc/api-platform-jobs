@@ -11,7 +11,8 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"           %% "hmrc-mongo-play-28"                 % hmrcMongoVersion,
     "com.beachape"                %% "enumeratum-play-json"               % "1.6.0",
     "org.typelevel"               %% "cats-core"                          % "2.1.1",
-    "commons-codec"               %  "commons-codec"                      % "1.15"
+    "commons-codec"               %  "commons-codec"                      % "1.15",
+    "uk.gov.hmrc"                 %% "api-platform-application-events"    % "0.10.14"
   )
 
   private lazy val testDeps = Seq(

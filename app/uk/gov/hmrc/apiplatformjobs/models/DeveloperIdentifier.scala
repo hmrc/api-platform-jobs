@@ -21,6 +21,7 @@ import scala.util.Try
 import scala.util.matching.Regex
 
 import play.api.libs.json.Json
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 trait DeveloperIdentifier {
   def asText: String = DeveloperIdentifier.asText(this)

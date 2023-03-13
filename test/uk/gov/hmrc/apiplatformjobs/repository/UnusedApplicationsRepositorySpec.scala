@@ -17,7 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.repository
 
 import java.time.{LocalDate, LocalDateTime}
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
@@ -32,6 +31,7 @@ import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.apiplatformjobs.models.Environment._
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 class UnusedApplicationsRepositorySpec
     extends AsyncHmrcSpec
@@ -59,14 +59,14 @@ class UnusedApplicationsRepositorySpec
 
   trait Setup {
     def sandboxApplication(
-        applicationId: UUID,
+        applicationId: ApplicationId,
         lastInteractionDate: LocalDateTime = LocalDateTime.now(fixedClock),
         scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
         scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)
     ) =
       UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), SANDBOX, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
     def productionApplication(
-        applicationId: UUID,
+        applicationId: ApplicationId,
         lastInteractionDate: LocalDateTime = LocalDateTime.now(fixedClock),
         scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
         scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)
@@ -76,11 +76,11 @@ class UnusedApplicationsRepositorySpec
 
   "applicationsByEnvironment" should {
     "correctly retrieve SANDBOX applications" in new Setup {
-      val sandboxApplicationId = UUID.randomUUID
+      val sandboxApplicationId = ApplicationId.random
 
       await(
         unusedApplicationRepository.collection
-          .insertMany(Seq(sandboxApplication(sandboxApplicationId), productionApplication(UUID.randomUUID()), productionApplication(UUID.randomUUID())))
+          .insertMany(Seq(sandboxApplication(sandboxApplicationId), productionApplication(ApplicationId.random), productionApplication(ApplicationId.random)))
           .toFuture()
       )
 
@@ -91,11 +91,11 @@ class UnusedApplicationsRepositorySpec
     }
 
     "correctly retrieve PRODUCTION applications" in new Setup {
-      val productionApplication1Id = UUID.randomUUID
-      val productionApplication2Id = UUID.randomUUID
+      val productionApplication1Id = ApplicationId.random
+      val productionApplication2Id = ApplicationId.random
       await(
         unusedApplicationRepository.collection
-          .insertMany(Seq(sandboxApplication(UUID.randomUUID()), productionApplication(productionApplication1Id), productionApplication(productionApplication2Id)))
+          .insertMany(Seq(sandboxApplication(ApplicationId.random), productionApplication(productionApplication1Id), productionApplication(productionApplication2Id)))
           .toFuture()
       )
 
@@ -110,14 +110,14 @@ class UnusedApplicationsRepositorySpec
 
   "unusedApplicationsToBeNotified" should {
     "retrieve SANDBOX application that is due a notification being sent" in new Setup {
-      val applicationId = UUID.randomUUID
+      val applicationId = ApplicationId.random
       await(
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
               sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
-              sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
             )
           )
           .toFuture()
@@ -130,15 +130,15 @@ class UnusedApplicationsRepositorySpec
     }
 
     "retrieve SANDBOX application that is due multiple notifications being sent only once" in new Setup {
-      val applicationId = UUID.randomUUID
+      val applicationId = ApplicationId.random
 
       await(
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
               sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
-              sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
             )
           )
           .toFuture()
@@ -151,15 +151,15 @@ class UnusedApplicationsRepositorySpec
     }
 
     "retrieve PRODUCTION application that is due a notification being sent" in new Setup {
-      val applicationId = UUID.randomUUID
+      val applicationId = ApplicationId.random
 
       await(
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
               productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
-              productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
             )
           )
           .toFuture()
@@ -172,15 +172,15 @@ class UnusedApplicationsRepositorySpec
     }
 
     "retrieve PRODUCTION application that is due multiple notifications being sent only once" in new Setup {
-      val applicationId = UUID.randomUUID
+      val applicationId = ApplicationId.random
 
       await(
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
               productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
-              productionApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              sandboxApplication(UUID.randomUUID, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
             )
           )
           .toFuture()
@@ -195,7 +195,7 @@ class UnusedApplicationsRepositorySpec
 
   "updateNotificationsSent" should {
     "remove all scheduled notifications for SANDBOX apps prior to a specific date" in new Setup {
-      val applicationId = UUID.randomUUID
+      val applicationId = ApplicationId.random
       await(
         unusedApplicationRepository.collection
           .insertOne(sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1))))
@@ -217,7 +217,7 @@ class UnusedApplicationsRepositorySpec
     }
 
     "remove all scheduled notifications for PRODUCTION apps prior to a specific date" in new Setup {
-      val applicationId = UUID.randomUUID
+      val applicationId = ApplicationId.random
       await(
         unusedApplicationRepository.collection
           .insertOne(productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1))))
@@ -241,12 +241,12 @@ class UnusedApplicationsRepositorySpec
 
   "applicationsToBeDeleted" should {
     "correctly retrieve SANDBOX applications that are scheduled to be deleted" in new Setup {
-      val sandboxApplicationToBeDeleted: UnusedApplication    = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))
-      val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.plusDays(1))
+      val sandboxApplicationToBeDeleted: UnusedApplication    = sandboxApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.minusDays(1))
+      val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.plusDays(1))
 
       await(
         unusedApplicationRepository.collection
-          .insertMany(Seq(sandboxApplicationToBeDeleted, sandboxApplicationToNotBeDeleted, productionApplication(UUID.randomUUID()), productionApplication(UUID.randomUUID())))
+          .insertMany(Seq(sandboxApplicationToBeDeleted, sandboxApplicationToNotBeDeleted, productionApplication(ApplicationId.random), productionApplication(ApplicationId.random)))
           .toFuture()
       )
 
@@ -258,12 +258,12 @@ class UnusedApplicationsRepositorySpec
     }
 
     "correctly retrieve PRODUCTION applications that are scheduled to be deleted" in new Setup {
-      val productionApplicationToBeDeleted: UnusedApplication    = productionApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.minusDays(1))
-      val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(UUID.randomUUID, scheduledDeletionDate = LocalDate.now.plusDays(1))
+      val productionApplicationToBeDeleted: UnusedApplication    = productionApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.minusDays(1))
+      val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.plusDays(1))
 
       await(
         unusedApplicationRepository.collection.insertMany(
-          Seq(sandboxApplication(UUID.randomUUID()), sandboxApplication(UUID.randomUUID()), productionApplicationToBeDeleted, productionApplicationToNotBeDeleted)
+          Seq(sandboxApplication(ApplicationId.random), sandboxApplication(ApplicationId.random), productionApplicationToBeDeleted, productionApplicationToNotBeDeleted)
         )
           toFuture ()
       )
@@ -278,11 +278,11 @@ class UnusedApplicationsRepositorySpec
 
   "deleteApplication" should {
     "correctly remove a SANDBOX application" in new Setup {
-      val sandboxApplicationId = UUID.randomUUID
+      val sandboxApplicationId = ApplicationId.random
 
       await(
         unusedApplicationRepository.collection
-          .insertMany(Seq(sandboxApplication(sandboxApplicationId), productionApplication(UUID.randomUUID()), productionApplication(UUID.randomUUID())))
+          .insertMany(Seq(sandboxApplication(sandboxApplicationId), productionApplication(ApplicationId.random), productionApplication(ApplicationId.random)))
           .toFuture()
       )
 
@@ -293,11 +293,11 @@ class UnusedApplicationsRepositorySpec
     }
 
     "correctly remove a PRODUCTION application" in new Setup {
-      val productionApplicationId = UUID.randomUUID
+      val productionApplicationId = ApplicationId.random
 
       await(
         unusedApplicationRepository.collection
-          .insertMany(Seq(sandboxApplication(UUID.randomUUID()), productionApplication(productionApplicationId)))
+          .insertMany(Seq(sandboxApplication(ApplicationId.random), productionApplication(productionApplicationId)))
           .toFuture()
       )
 
@@ -308,7 +308,7 @@ class UnusedApplicationsRepositorySpec
     }
 
     "return true if application id was not found in database" in {
-      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(PRODUCTION, UUID.randomUUID()))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(PRODUCTION, ApplicationId.random))
 
       result should be(true)
     }

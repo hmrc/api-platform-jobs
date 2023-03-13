@@ -18,7 +18,6 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, LocalDate, LocalDateTime}
-import java.util.UUID
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -29,6 +28,8 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, T
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 abstract class UpdateUnusedApplicationRecordsJob(
     thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
@@ -61,15 +62,15 @@ abstract class UpdateUnusedApplicationRecordsJob(
       .toLocalDate
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    def applicationsToUpdate(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]): (Set[UUID], Set[UUID]) = {
+    def applicationsToUpdate(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
 
-      val knownApplicationIds: Set[UUID]         = knownApplications.map(_.applicationId).toSet
-      val currentUnusedApplicationIds: Set[UUID] = currentUnusedApplications.map(_.applicationId).toSet
+      val knownApplicationIds: Set[ApplicationId]         = knownApplications.map(_.applicationId).toSet
+      val currentUnusedApplicationIds: Set[ApplicationId] = currentUnusedApplications.map(_.applicationId).toSet
 
       (currentUnusedApplicationIds.diff(knownApplicationIds), knownApplicationIds.diff(currentUnusedApplicationIds))
     }
 
-    def verifiedAdministratorDetails(adminEmails: Set[String]): Future[Map[String, Administrator]] = {
+    def verifiedAdministratorDetails(adminEmails: Set[LaxEmailAddress]): Future[Map[LaxEmailAddress, Administrator]] = {
       if (adminEmails.isEmpty) {
         Future.successful(Map.empty)
       } else {
@@ -82,11 +83,11 @@ abstract class UpdateUnusedApplicationRecordsJob(
     for {
       knownApplications                      <- unusedApplicationsRepository.unusedApplications(environment)
       currentUnusedApplications              <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
-      updatesRequired: (Set[UUID], Set[UUID]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
+      updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
       _                                                              = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
       applicationsToAdd                                              = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
-      verifiedApplicationAdministrators: Map[String, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
+      verifiedApplicationAdministrators: Map[LaxEmailAddress, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
       newUnusedApplicationRecords: Seq[UnusedApplication]            = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
       _                                                              = if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
 
@@ -95,7 +96,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
     } yield RunningOfJobSuccessful
   }
 
-  def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[String, Administrator]): UnusedApplication = {
+  def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
     val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate)

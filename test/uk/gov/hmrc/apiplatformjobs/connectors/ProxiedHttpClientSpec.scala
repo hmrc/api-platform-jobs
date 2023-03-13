@@ -28,6 +28,7 @@ import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class ProxiedHttpClientSpec extends AsyncHmrcSpec {
+  // TODO - make this an integration style test with guice injected actor system
   private val actorSystem = ActorSystem("test-actor-system")
 
   trait Setup {

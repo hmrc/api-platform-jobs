@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import play.api.libs.json.Json
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborator
 
 case class Application(
     id: ApplicationId,

@@ -27,6 +27,7 @@ import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
 class DeleteUnregisteredDevelopersJob @Inject() (
     override val lockService: DeleteUnregisteredDevelopersJobLockService,
@@ -44,7 +45,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
 
   override val isEnabled: Boolean                      = jobConfig.enabled
   implicit val hc: HeaderCarrier                       = HeaderCarrier()
-  override val deleteFunction: (String) => Future[Int] = developerConnector.deleteUnregisteredDeveloper
+  override val deleteFunction: (LaxEmailAddress) => Future[Int] = developerConnector.deleteUnregisteredDeveloper
 
   override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
     logger.info("Starting DeleteUnregisteredDevelopersJob")

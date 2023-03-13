@@ -23,13 +23,14 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 trait DeleteDeveloper {
 
   def sandboxApplicationConnector: SandboxThirdPartyApplicationConnector
   def productionApplicationConnector: ProductionThirdPartyApplicationConnector
   def developerConnector: ThirdPartyDeveloperConnector
 
-  val deleteFunction: (String) => Future[Int]
+  val deleteFunction: (LaxEmailAddress) => Future[Int]
 
   def deleteDeveloper(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[CoreUserDetails] = {
     for {

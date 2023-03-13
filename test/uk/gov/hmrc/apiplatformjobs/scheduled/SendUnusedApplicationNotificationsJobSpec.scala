@@ -17,7 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.LocalDateTime
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
@@ -27,6 +26,7 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, 
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration {
 
@@ -67,7 +67,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
 
   "SANDBOX job" should {
     "send notifications for applications that are due" in new SandboxSetup {
-      val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
+      val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(eqTo(environment), eqTo(FixedTime)))
         .thenReturn(Future.successful(List(unusedApplication)))
@@ -83,7 +83,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
     }
 
     "not remove scheduled notification date if notifications could not be sent" in new SandboxSetup {
-      val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
+      val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
@@ -91,13 +91,13 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       await(underTest.runJob)
 
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
-      verify(mockUnusedApplicationsRepository, times(0)).updateNotificationsSent(*, *, *)
+      verify(mockUnusedApplicationsRepository, times(0)).updateNotificationsSent(*, *[ApplicationId], *)
     }
   }
 
   "PRODUCTION job" should {
     "send notifications for applications that are due" in new ProductionSetup {
-      val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
+      val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(true))
@@ -110,7 +110,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
     }
 
     "not remove scheduled notification date if notifications could not be sent" in new ProductionSetup {
-      val unusedApplication: UnusedApplication = unusedApplicationRecord(UUID.randomUUID, environment)
+      val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, FixedTime)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
@@ -118,7 +118,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       await(underTest.runJob)
 
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
-      verify(mockUnusedApplicationsRepository, times(0)).updateNotificationsSent(*, *, *)
+      verify(mockUnusedApplicationsRepository, times(0)).updateNotificationsSent(*, *[ApplicationId], *)
     }
   }
 }

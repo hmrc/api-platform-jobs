@@ -18,7 +18,6 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -31,6 +30,8 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 
 import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -50,7 +51,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
   trait ApplicationToBeDeletedNotificationDetails {
     val expectedTemplateId = "apiApplicationToBeDeletedNotification"
 
-    val adminEmail       = "admin1@example.com"
+    val adminEmail       = "admin1@example.com".toLaxEmail
     val applicationName  = "Test Application"
     val userFirstName    = "Fred"
     val userLastName     = "Bloggs"
@@ -64,7 +65,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
 
     val unusedApplication =
       UnusedApplication(
-        UUID.randomUUID,
+        ApplicationId.random,
         applicationName,
         Seq(Administrator(adminEmail, userFirstName, userLastName)),
         Environment.SANDBOX,
@@ -75,7 +76,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
 
     val unusedApplicationWithMultipleAdmins =
       UnusedApplication(
-        UUID.randomUUID,
+        ApplicationId.random,
         applicationName,
         Seq(Administrator(adminEmail, userFirstName, userLastName), Administrator(adminEmail, userFirstName, userLastName)),
         Environment.SANDBOX,

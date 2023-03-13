@@ -19,7 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit.MILLIS
 import java.time.{LocalDateTime, ZoneOffset}
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
@@ -33,8 +32,12 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationId, ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, ApplicationUsageDetails, UserId}
+import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 
 class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -66,8 +69,11 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
   "fetchApplicationsByUserId" should {
     import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatApplicationResponse
 
+    val appId1 = ApplicationId.random
+    val appId2 = ApplicationId.random
+
     val userId               = UserId.random
-    val applicationResponses = List(ApplicationResponse("app id 1"), ApplicationResponse("app id 2"))
+    val applicationResponses = List(ApplicationResponse(appId1), ApplicationResponse(appId2))
 
     "return application Ids" in new Setup {
       stubFor(
@@ -82,7 +88,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       val result = await(connector.fetchApplicationsByUserId(userId))
 
       result.size shouldBe 2
-      result should contain allOf ("app id 1", "app id 2")
+      result should contain allOf (appId1, appId2)
     }
 
     "propagate error when endpoint returns error" in new Setup {
@@ -105,7 +111,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
     import ThirdPartyApplicationConnector.JsonFormatters._
 
     val appId = ApplicationId.random
-    val email = "example.com"
+    val email = "example.com".toLaxEmail
 
     "remove collaborator" in new Setup {
       val request = DeleteCollaboratorRequest(email, adminsToEmail = Set(), notifyCollaborator = false)
@@ -118,7 +124,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val result = await(connector.removeCollaborator(appId.value.toString(), email))
+      val result = await(connector.removeCollaborator(appId, email))
 
       result shouldBe OK
     }
@@ -133,7 +139,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       )
 
       intercept[UpstreamErrorResponse] {
-        await(connector.removeCollaborator(appId.value.toString(), email))
+        await(connector.removeCollaborator(appId, email))
       }.statusCode shouldBe INTERNAL_SERVER_ERROR
     }
   }
@@ -150,21 +156,21 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       val lastUseDate        = LocalDateTime.now.minusMonths(12)
       val dateString: String = dateFormatter.format(lastUseDate)
 
-      val oldApplication1Admin: String = "foo@bar.com"
+      val oldApplication1Admin = "foo@bar.com".toLaxEmail
       val oldApplication1              =
         ApplicationLastUseDate(
-          UUID.randomUUID(),
+          ApplicationId.random,
           Random.alphanumeric.take(10).mkString,
-          Set(Collaborator(oldApplication1Admin, "ADMINISTRATOR"), Collaborator("a@b.com", "DEVELOPER")),
+          Set(Collaborators.Administrator(UserId.random, oldApplication1Admin), Collaborators.Developer(UserId.random, "a@b.com".toLaxEmail)),
           LocalDateTime.now.minusMonths(12),
           Some(LocalDateTime.now.minusMonths(13))
         )
-      val oldApplication2Admin: String = "bar@baz.com"
+      val oldApplication2Admin = "bar@baz.com".toLaxEmail
       val oldApplication2              =
         ApplicationLastUseDate(
-          UUID.randomUUID(),
+          ApplicationId.random,
           Random.alphanumeric.take(10).mkString,
-          Set(Collaborator(oldApplication2Admin, "ADMINISTRATOR"), Collaborator("b@c.com", "DEVELOPER")),
+          Set(Collaborators.Administrator(UserId.random, oldApplication2Admin), Collaborators.Developer(UserId.random, "b@c.com".toLaxEmail)),
           LocalDateTime.now.minusMonths(12),
           Some(LocalDateTime.now.minusMonths(14))
         )
@@ -221,7 +227,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val response = await(connector.deleteApplication(applicationId.value, "jobId", "reasons", LocalDateTime.now))
+      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", LocalDateTime.now))
 
       response should be(ApplicationUpdateSuccessResult)
     }
@@ -237,7 +243,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val response = await(connector.deleteApplication(applicationId.value, "jobId", "reasons", LocalDateTime.now))
+      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", LocalDateTime.now))
 
       response should be(ApplicationUpdateFailureResult)
     }
@@ -262,8 +268,8 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       application.lastAccess should be(Some(lastAccess))
 
       application.collaborators.size should be(2)
-      application.collaborators should contain(Collaborator(adminEmailAddress, "ADMINISTRATOR"))
-      application.collaborators should contain(Collaborator(developerEmailAddress, "DEVELOPER"))
+      application.collaborators should contain(Collaborators.Administrator(adminUserId, adminEmailAddress))
+      application.collaborators should contain(Collaborators.Developer(developerUserId, developerEmailAddress))
     }
   }
 
@@ -290,7 +296,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
   }
 
   trait PaginatedTPAResponse {
-    val applicationId   = UUID.randomUUID()
+    val applicationId   = ApplicationId.random
     val applicationName = Random.alphanumeric.take(10).mkString
     val createdOn       = LocalDateTime.now(fixedClock).minusYears(1).truncatedTo(MILLIS)
     val lastAccess      = createdOn.plusDays(5)
@@ -300,21 +306,25 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
     val totalApplications    = 500
     val matchingApplications = 1
 
-    val adminEmailAddress     = "admin@foo.com"
-    val developerEmailAddress = "developer@foo.com"
+    val adminEmailAddress     = "admin@foo.com".toLaxEmail
+    val adminUserId = UserId.random
+    val developerEmailAddress = "developer@foo.com".toLaxEmail
+    val developerUserId = UserId.random
 
     val response = s"""{
                       |  "applications": [
                       |    {
-                      |      "id": "${applicationId.toString}",
+                      |      "id": "${applicationId.value.toString()}",
                       |      "name": "$applicationName",
                       |      "collaborators": [
                       |        {
-                      |          "emailAddress": "$adminEmailAddress",
+                      |          "userId": "${adminUserId.value}",
+                      |          "emailAddress": "${adminEmailAddress.text}",
                       |          "role": "ADMINISTRATOR"
                       |        },
                       |        {
-                      |          "emailAddress": "$developerEmailAddress",
+                      |          "userId": "${developerUserId.value}",
+                      |          "emailAddress": "${developerEmailAddress.text}",
                       |          "role": "DEVELOPER"
                       |        }
                       |      ],

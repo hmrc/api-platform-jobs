@@ -31,9 +31,10 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResp
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
 case class SendEmailRequest(
-    to: Set[String],
+    to: Set[LaxEmailAddress],
     templateId: String,
     parameters: Map[String, String],
     force: Boolean = false,
@@ -106,7 +107,7 @@ object EmailConnector {
     }
 
   private[connectors] case class UnusedApplicationToBeDeletedNotification(
-      userEmailAddress: String,
+      userEmailAddress: LaxEmailAddress,
       userFirstName: String,
       userLastName: String,
       applicationName: String,

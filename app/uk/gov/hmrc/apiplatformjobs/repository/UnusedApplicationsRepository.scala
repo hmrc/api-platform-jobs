@@ -17,7 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.repository
 
 import java.time.{Clock, LocalDateTime}
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,6 +32,7 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 @Singleton
 class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
@@ -86,7 +86,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(_.toList)
   }
 
-  def updateNotificationsSent(environment: Environment, applicationId: UUID, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[Boolean] = {
+  def updateNotificationsSent(environment: Environment, applicationId: ApplicationId, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[Boolean] = {
     val query = Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId))
 
     collection
@@ -106,7 +106,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(_.toList)
   }
 
-  def deleteUnusedApplicationRecord(environment: Environment, applicationId: UUID): Future[Boolean] = {
+  def deleteUnusedApplicationRecord(environment: Environment, applicationId: ApplicationId): Future[Boolean] = {
     collection
       .deleteOne(Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId)))
       .toFuture()

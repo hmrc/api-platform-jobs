@@ -17,23 +17,25 @@
 package uk.gov.hmrc.apiplatformjobs.models
 
 import java.time.{LocalDate, LocalDateTime}
-import java.util.UUID
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
-case class ApplicationUsageDetails(applicationId: UUID, applicationName: String, administrators: Set[String], creationDate: LocalDateTime, lastAccessDate: Option[LocalDateTime])
+case class ApplicationUsageDetails(applicationId: ApplicationId, applicationName: String, administrators: Set[LaxEmailAddress], creationDate: LocalDateTime, lastAccessDate: Option[LocalDateTime])
 
-case class Administrator(emailAddress: String, firstName: String, lastName: String)
+// TODO - what is this - has this joined TPD and Collaborator ??
+case class Administrator(emailAddress: LaxEmailAddress, firstName: String, lastName: String)
 case object Administrator {
-  def apply(emailAddress: String, firstName: String, lastName: String): Administrator = new Administrator(emailAddress, firstName, lastName)
+  def apply(emailAddress: LaxEmailAddress, firstName: String, lastName: String): Administrator = new Administrator(emailAddress, firstName, lastName)
 }
 
 case class UnusedApplication(
-    applicationId: UUID,
+    applicationId: ApplicationId,
     applicationName: String,
     administrators: Seq[Administrator],
     environment: Environment,
@@ -56,7 +58,7 @@ object MongoFormat {
   implicit val administratorFormat: Format[Administrator]   = Format(Json.reads[Administrator], Json.writes[Administrator])
 
   val unusedApplicationReads: Reads[UnusedApplication] = (
-    (JsPath \ "applicationId").read[UUID] and
+    (JsPath \ "applicationId").read[ApplicationId] and
       (JsPath \ "applicationName").read[String] and
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.LocalDateTime
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -26,6 +25,7 @@ import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, Environment}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration {
 
@@ -51,7 +51,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
 
   "SANDBOX job" should {
     "should delete application from TPA and database" in new SandboxSetup {
-      private val applicationId = UUID.randomUUID
+      private val applicationId = ApplicationId.random
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
@@ -73,13 +73,13 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
     }
 
     "should not delete from database if TPA delete failed" in new SandboxSetup {
-      private val applicationId = UUID.randomUUID
+      private val applicationId = ApplicationId.random
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
-      when(mockThirdPartyApplicationConnector.deleteApplication(*, *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateFailureResult))
+      when(mockThirdPartyApplicationConnector.deleteApplication(*[ApplicationId], *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateFailureResult))
 
       await(underTest.runJob)
 
@@ -95,13 +95,13 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
 
   "PRODUCTION job" should {
     "should delete application from TPA and database" in new ProductionSetup {
-      private val applicationId = UUID.randomUUID
+      private val applicationId = ApplicationId.random
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
-      when(mockThirdPartyApplicationConnector.deleteApplication(*, *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateSuccessResult))
+      when(mockThirdPartyApplicationConnector.deleteApplication(*[ApplicationId], *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateSuccessResult))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(environment, applicationId)).thenReturn(Future.successful(true))
 
       await(underTest.runJob)
@@ -116,13 +116,13 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
     }
 
     "should not delete from database if TPA delete failed" in new ProductionSetup {
-      private val applicationId = UUID.randomUUID
+      private val applicationId = ApplicationId.random
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
-      when(mockThirdPartyApplicationConnector.deleteApplication(*, *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateFailureResult))
+      when(mockThirdPartyApplicationConnector.deleteApplication(*[ApplicationId], *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateFailureResult))
 
       await(underTest.runJob)
 
