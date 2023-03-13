@@ -28,13 +28,17 @@ import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.util.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ProductionApplicationCommandConnector
+import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.SandboxApplicationCommandConnector
 
 class DeleteUnregisteredDevelopersJob @Inject() (
     override val lockService: DeleteUnregisteredDevelopersJobLockService,
     jobConfig: DeleteUnregisteredDevelopersJobConfig,
     val developerConnector: ThirdPartyDeveloperConnector,
     val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
-    val productionApplicationConnector: ProductionThirdPartyApplicationConnector
+    val productionApplicationConnector: ProductionThirdPartyApplicationConnector,
+    val sandboxCmdConnector: SandboxApplicationCommandConnector,
+    val productionCmdConnector: ProductionApplicationCommandConnector
 ) extends ScheduledMongoJob
     with DeleteDeveloper
     with ApplicationLogger {
@@ -54,7 +58,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
     (for {
       developerDetails <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
       _                 = logger.info(s"Found ${developerDetails.size} unregistered developers")
-      _                <- sequence(developerDetails.map(deleteDeveloper))
+      _                <- sequence(developerDetails.map(deleteDeveloper("UnregisteredUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>
       logger.error("Could not delete unregistered developers", e)
       Future.failed(RunningOfJobFailed(name, e))

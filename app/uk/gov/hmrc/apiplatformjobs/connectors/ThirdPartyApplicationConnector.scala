@@ -61,15 +61,12 @@ object ThirdPartyApplicationConnector {
   private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate], page: Int, pageSize: Int, total: Int, matching: Int)
 
   case class ThirdPartyApplicationConnectorConfig(
-      applicationSandboxBaseUrl: String,
-      applicationSandboxUseProxy: Boolean,
-      applicationSandboxBearerToken: String,
-      applicationSandboxApiKey: String,
+      sandboxBaseUrl: String,
+      sandboxUseProxy: Boolean,
+      sandboxBearerToken: String,
+      sandboxApiKey: String,
       sandboxAuthorisationKey: String,
-      applicationProductionBaseUrl: String,
-      applicationProductionUseProxy: Boolean,
-      applicationProductionBearerToken: String,
-      applicationProductionApiKey: String,
+      productionBaseUrl: String,
       productionAuthorisationKey: String
   )
 
@@ -102,14 +99,9 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
 abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends RepsonseUtils with ApplicationUpdateFormatters {
 
   protected val httpClient: HttpClient
-  protected val proxiedHttpClient: ProxiedHttpClient
   val serviceBaseUrl: String
-  val useProxy: Boolean
-  val bearerToken: String
-  val apiKey: String
   val authorisationKey: String
-
-  def http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
+  val http: HttpClient
 
   def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] =
     http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
@@ -118,13 +110,6 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     http
       .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.toString}/applications")
       .map(_.map(_.id))
-  }
-
-  def removeCollaborator(applicationId: ApplicationId, email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Int] = {
-    val request = DeleteCollaboratorRequest(email = email, adminsToEmail = Set(), notifyCollaborator = false)
-    http
-      .POST[DeleteCollaboratorRequest, ErrorOr[HttpResponse]](s"$serviceBaseUrl/application/${applicationId.value.toString}/collaborator/delete", request)
-      .map(statusOrThrow)
   }
 
   def applicationsLastUsedBefore(lastUseDate: LocalDateTime): Future[List[ApplicationUsageDetails]] = {
@@ -151,32 +136,31 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
 @Singleton
 class SandboxThirdPartyApplicationConnector @Inject() (
-    val config: ThirdPartyApplicationConnectorConfig,
+    config: ThirdPartyApplicationConnectorConfig,
     override val httpClient: HttpClient,
-    override val proxiedHttpClient: ProxiedHttpClient
+    proxiedHttpClient: ProxiedHttpClient
 )(implicit override val ec: ExecutionContext)
     extends ThirdPartyApplicationConnector {
 
-  val serviceBaseUrl           = config.applicationSandboxBaseUrl
-  val useProxy                 = config.applicationSandboxUseProxy
-  val bearerToken              = config.applicationSandboxBearerToken
-  val apiKey                   = config.applicationSandboxApiKey
+  val serviceBaseUrl           = config.sandboxBaseUrl
+  val useProxy                 = config.sandboxUseProxy
+  val bearerToken              = config.sandboxBearerToken
+  val apiKey                   = config.sandboxApiKey
   val authorisationKey: String = encodeBase64String(config.sandboxAuthorisationKey.getBytes(UTF_8))
+  
+  override lazy val http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
 
 }
 
 @Singleton
 class ProductionThirdPartyApplicationConnector @Inject() (
     val config: ThirdPartyApplicationConnectorConfig,
-    override val httpClient: HttpClient,
-    override val proxiedHttpClient: ProxiedHttpClient
+    override val httpClient: HttpClient
 )(implicit override val ec: ExecutionContext)
     extends ThirdPartyApplicationConnector {
 
-  val serviceBaseUrl           = config.applicationProductionBaseUrl
-  val useProxy                 = config.applicationProductionUseProxy
-  val bearerToken              = config.applicationProductionBearerToken
-  val apiKey                   = config.applicationProductionApiKey
+  val serviceBaseUrl           = config.productionBaseUrl
   val authorisationKey: String = encodeBase64String(config.productionAuthorisationKey.getBytes(UTF_8))
 
+  val http = httpClient
 }

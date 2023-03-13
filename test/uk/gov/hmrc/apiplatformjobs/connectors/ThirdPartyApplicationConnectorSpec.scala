@@ -53,16 +53,12 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
     val authorisationKeyTest = "TestAuthorisationKey"
 
     val mockConfig = mock[ThirdPartyApplicationConnectorConfig]
-    when(mockConfig.applicationProductionBaseUrl).thenReturn(wireMockUrl)
-    when(mockConfig.applicationProductionUseProxy).thenReturn(proxyEnabled)
-    when(mockConfig.applicationProductionBearerToken).thenReturn("TestBearerToken")
-    when(mockConfig.applicationProductionApiKey).thenReturn(apiKeyTest)
+    when(mockConfig.productionBaseUrl).thenReturn(wireMockUrl)
     when(mockConfig.productionAuthorisationKey).thenReturn(authorisationKeyTest)
 
     val connector = new ProductionThirdPartyApplicationConnector(
       mockConfig,
-      app.injector.instanceOf[HttpClient],
-      app.injector.instanceOf[ProxiedHttpClient]
+      app.injector.instanceOf[HttpClient]
     )
   }
 
@@ -103,44 +99,6 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       intercept[UpstreamErrorResponse] {
         await(connector.fetchApplicationsByUserId(userId))
       }.statusCode shouldBe NOT_FOUND
-    }
-  }
-
-  "removeCollaborator" should {
-    import ThirdPartyApplicationConnector.DeleteCollaboratorRequest
-    import ThirdPartyApplicationConnector.JsonFormatters._
-
-    val appId = ApplicationId.random
-    val email = "example.com".toLaxEmail
-
-    "remove collaborator" in new Setup {
-      val request = DeleteCollaboratorRequest(email, adminsToEmail = Set(), notifyCollaborator = false)
-      stubFor(
-        post(urlPathEqualTo(s"/application/${appId.value}/collaborator/delete"))
-          .withJsonRequestBody(request)
-          .willReturn(
-            aResponse()
-              .withStatus(OK)
-          )
-      )
-
-      val result = await(connector.removeCollaborator(appId, email))
-
-      result shouldBe OK
-    }
-
-    "propagate error when endpoint returns error" in new Setup {
-      stubFor(
-        post(urlPathEqualTo(s"/application/${appId.value}/collaborator/delete"))
-          .willReturn(
-            aResponse()
-              .withStatus(INTERNAL_SERVER_ERROR)
-          )
-      )
-
-      intercept[UpstreamErrorResponse] {
-        await(connector.removeCollaborator(appId, email))
-      }.statusCode shouldBe INTERNAL_SERVER_ERROR
     }
   }
 

@@ -57,7 +57,7 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
     "return developer emails" in new Setup {
 
       stubFor(
-        get(urlPathEqualTo("/developers"))
+        get(urlPathMatching("/developers"))
           .withQueryParam("createdBefore", equalTo("20200201"))
           .withQueryParam("limit", equalTo(s"${limit}"))
           .withQueryParam("status", equalTo("UNVERIFIED"))
