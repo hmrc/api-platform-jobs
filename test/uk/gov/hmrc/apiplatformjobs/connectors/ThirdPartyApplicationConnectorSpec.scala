@@ -72,7 +72,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
 
     "return application Ids" in new Setup {
       stubFor(
-        get(urlPathEqualTo(s"/developer/${userId}/applications"))
+        get(urlPathEqualTo(s"/developer/${userId.asText}/applications"))
           .willReturn(
             aResponse()
               .withStatus(OK)

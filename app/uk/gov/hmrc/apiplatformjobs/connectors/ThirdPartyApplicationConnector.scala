@@ -116,7 +116,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationId]] = {
     http
-      .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.toString}/applications")
+      .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.asText}/applications")
       .map(_.map(_.id))
   }
 
