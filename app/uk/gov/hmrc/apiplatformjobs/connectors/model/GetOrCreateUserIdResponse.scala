@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors.model
 
 import play.api.libs.json.Json
 
-import uk.gov.hmrc.apiplatformjobs.models.UserId
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 case class GetOrCreateUserIdResponse(userId: UserId)
 

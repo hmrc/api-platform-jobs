@@ -23,11 +23,11 @@ import com.google.inject.AbstractModule
 
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
-
 import uk.gov.hmrc.apiplatformjobs.scheduled._
 import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
 class SchedulerModule extends AbstractModule {
+
   override def configure(): Unit = {
     bind(classOf[Scheduler]).asEagerSingleton()
   }
@@ -45,8 +45,9 @@ class Scheduler @Inject() (
     deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
     override val applicationLifecycle: ApplicationLifecycle,
     override val application: Application
-)(implicit val ec: ExecutionContext)
-    extends RunningOfScheduledJobs {
+  )(implicit val ec: ExecutionContext
+  ) extends RunningOfScheduledJobs {
+
   override lazy val scheduledJobs: Seq[ScheduledJob] =
     Seq(
       deleteUnverifiedDevelopersJob,

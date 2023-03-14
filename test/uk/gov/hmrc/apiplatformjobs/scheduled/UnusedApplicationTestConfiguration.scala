@@ -17,15 +17,15 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.{LocalDateTime, ZoneOffset}
-import java.util.UUID
 import scala.util.Random
 
 import com.typesafe.config.ConfigFactory
 
 import play.api.Configuration
-
 import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 trait UnusedApplicationTestConfiguration {
 
@@ -39,7 +39,7 @@ trait UnusedApplicationTestConfiguration {
       notifyDeletionPendingInAdvanceForProduction: Seq[Int] = Seq(30),
       sandboxEnvironmentName: String = "Sandbox",
       productionEnvironmentName: String = "Production"
-  ): Configuration = {
+    ): Configuration = {
     val sandboxNotificationsString    = notifyDeletionPendingInAdvanceForSandbox.mkString("", "d,", "d")
     val productionNotificationsString = notifyDeletionPendingInAdvanceForProduction.mkString("", "d,", "d")
 
@@ -102,7 +102,7 @@ trait UnusedApplicationTestConfiguration {
                                                    |""".stripMargin))
   }
 
-  def unusedApplicationRecord(applicationId: UUID, environment: Environment): UnusedApplication =
+  def unusedApplicationRecord(applicationId: ApplicationId, environment: Environment): UnusedApplication =
     UnusedApplication(
       applicationId,
       Random.alphanumeric.take(10).mkString, // scalastyle:off magic.number

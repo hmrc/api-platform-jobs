@@ -2,7 +2,8 @@ import scoverage.ScoverageKeys._
 
 object ScoverageSettings {
   def apply() = Seq(
-    coverageMinimum := 75,
+    coverageMinimumStmtTotal := 75.0,
+    coverageMinimumBranchTotal := 60.0,
     coverageFailOnMinimum := true,
     coverageHighlighting := true,
     coverageExcludedPackages :=  Seq(
@@ -15,6 +16,9 @@ object ScoverageSettings {
       "com.kenshoo.play.metrics.*",
       ".*definition.*",
       "uk.gov.hmrc.BuildInfo.*",
+      "uk\\.gov\\.hmrc\\.apiplatform\\.modules\\.applications\\..*",
+      "uk\\.gov\\.hmrc\\.apiplatform\\.modules\\.developers\\..*",
+      "uk\\.gov\\.hmrc\\.apiplatform\\.modules\\.common\\..*"
     ).mkString(";")
   )
 }

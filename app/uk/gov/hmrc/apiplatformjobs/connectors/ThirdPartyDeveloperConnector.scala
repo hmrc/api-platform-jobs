@@ -24,24 +24,25 @@ import scala.concurrent.{ExecutionContext, Future}
 import play.api.http.ContentTypes._
 import play.api.http.HeaderNames._
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HttpClient, _}
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
 import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
-import uk.gov.hmrc.apiplatformjobs.models.UserId
+import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{HttpClient, _}
+
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 object ThirdPartyDeveloperConnector {
 
-  case class CoreUserDetails(email: String, id: UserId)
+  case class CoreUserDetails(email: LaxEmailAddress, id: UserId)
 
-  private[connectors] case class FindUserIdRequest(email: String)
+  private[connectors] case class FindUserIdRequest(email: LaxEmailAddress)
   private[connectors] case class FindUserIdResponse(userId: UserId)
-  private[connectors] case class DeleteDeveloperRequest(emailAddress: String)
-  private[connectors] case class DeleteUnregisteredDevelopersRequest(emails: Seq[String])
-  case class DeveloperResponse(email: String, firstName: String, lastName: String, verified: Boolean, userId: UserId)
-  private[connectors] case class UnregisteredDeveloperResponse(email: String, userId: UserId)
+  private[connectors] case class DeleteDeveloperRequest(emailAddress: LaxEmailAddress)
+  private[connectors] case class DeleteUnregisteredDevelopersRequest(emails: Seq[LaxEmailAddress])
+  case class DeveloperResponse(email: LaxEmailAddress, firstName: String, lastName: String, verified: Boolean, userId: UserId)
+  private[connectors] case class UnregisteredDeveloperResponse(email: LaxEmailAddress, userId: UserId)
 
   case class ThirdPartyDeveloperConnectorConfig(baseUrl: String)
 
@@ -62,7 +63,7 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
 
   val dateFormatter = DateTimeFormatter.BASIC_ISO_DATE
 
-  def fetchUserId(email: String)(implicit hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
+  def fetchUserId(email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
     http
       .POST[FindUserIdRequest, Option[FindUserIdResponse]](s"${config.baseUrl}/developers/find-user-id", FindUserIdRequest(email))
       .map(_.map(userIdResponse => CoreUserDetails(email, userIdResponse.userId)))
@@ -91,22 +92,22 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
       .map(_.map(u => CoreUserDetails(u.email, u.userId)))
   }
 
-  def fetchVerifiedDevelopers(emailAddresses: Set[String]): Future[Seq[DeveloperResponse]] = {
+  def fetchVerifiedDevelopers(emailAddresses: Set[LaxEmailAddress]): Future[Seq[DeveloperResponse]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     for {
-      developerDetails  <- http.POST[Seq[String], Seq[DeveloperResponse]](s"${config.baseUrl}/developers/get-by-emails", emailAddresses.toSeq)
+      developerDetails  <- http.POST[Seq[LaxEmailAddress], Seq[DeveloperResponse]](s"${config.baseUrl}/developers/get-by-emails", emailAddresses.toSeq)
       verifiedDevelopers = developerDetails.filter(_.verified)
     } yield verifiedDevelopers
   }
 
-  def deleteDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
+  def deleteDeveloper(email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Int] = {
     http
       .POST[DeleteDeveloperRequest, ErrorOr[HttpResponse]](s"${config.baseUrl}/developer/delete?notifyDeveloper=false", DeleteDeveloperRequest(email))
       .map(statusOrThrow)
   }
 
-  def deleteUnregisteredDeveloper(email: String)(implicit hc: HeaderCarrier): Future[Int] = {
+  def deleteUnregisteredDeveloper(email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Int] = {
     http
       .POST[DeleteUnregisteredDevelopersRequest, ErrorOr[HttpResponse]](s"${config.baseUrl}/unregistered-developer/delete", DeleteUnregisteredDevelopersRequest(Seq(email)))
       .map(statusOrThrow)

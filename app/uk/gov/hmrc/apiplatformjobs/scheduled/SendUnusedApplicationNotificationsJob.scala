@@ -21,11 +21,10 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.LockRepository
-
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.mongo.lock.LockRepository
 
 abstract class SendUnusedApplicationNotificationsJob(
     unusedApplicationsRepository: UnusedApplicationsRepository,
@@ -34,7 +33,7 @@ abstract class SendUnusedApplicationNotificationsJob(
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
+  ) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     val notificationTime = LocalDateTime.now(clock)
@@ -60,7 +59,7 @@ class SendUnusedSandboxApplicationNotificationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, clock, lockRepository)
+  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, clock, lockRepository)
 
 @Singleton
 class SendUnusedProductionApplicationNotificationsJob @Inject() (
@@ -69,4 +68,4 @@ class SendUnusedProductionApplicationNotificationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, clock, lockRepository)
+  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, clock, lockRepository)

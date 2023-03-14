@@ -22,12 +22,11 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig}
 import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 class ConfigurationModule extends Module {
 
@@ -83,9 +82,6 @@ class ThirdPartyApplicationConnectorConfigProvider @Inject() (val sc: ServicesCo
       apiKey("third-party-application-sandbox"),
       authorisationKey("third-party-application-sandbox"),
       serviceUrl("third-party-application")("third-party-application-production"),
-      useProxy("third-party-application-production"),
-      bearerToken("third-party-application-production"),
-      apiKey("third-party-application-production"),
       authorisationKey("third-party-application-production")
     )
   }
@@ -94,7 +90,7 @@ class ThirdPartyApplicationConnectorConfigProvider @Inject() (val sc: ServicesCo
 @Singleton
 class DeleteUnverifiedDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnverifiedDevelopersJobConfig] {
 
-    // scalastyle:off magic.number
+  // scalastyle:off magic.number
   override def get(): DeleteUnverifiedDevelopersJobConfig = {
     val initialDelay = configuration
       .getOptional[String]("deleteUnverifiedDevelopersJob.initialDelay")
@@ -135,6 +131,7 @@ class EmailConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[Em
 }
 
 object ConfigHelper {
+
   def getConfig[T](key: String, f: String => Option[T]): T = {
     f(key).getOrElse(throw new RuntimeException(s"[$key] is not configured!"))
   }

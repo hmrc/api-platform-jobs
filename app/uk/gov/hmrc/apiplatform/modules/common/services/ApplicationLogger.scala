@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.connectors.model
+package uk.gov.hmrc.apiplatform.modules.common.services
 
-import uk.gov.hmrc.apiplatformjobs.models.UserId
+import play.api.Logger
 
-case class FixCollaboratorRequest(emailAddress: String, userId: UserId)
-
-object FixCollaboratorRequest {
-  import play.api.libs.json._
-  implicit val fixCollaboratorRequestFormat = Json.format[FixCollaboratorRequest]
+trait ApplicationLogger {
+  val logger = Logger("application")
 }

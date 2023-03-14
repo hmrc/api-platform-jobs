@@ -14,10 +14,27 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.util
+package uk.gov.hmrc.apiplatform.modules.common.services
 
-import play.api.Logger
+import cats.data.{NonEmptyList => NEL}
 
-trait ApplicationLogger {
-  val logger = Logger("application")
+import play.api.libs.json._
+
+trait NonEmptyListFormatters {
+
+  implicit def nelReads[A](implicit r: Reads[A]): Reads[NEL[A]] =
+    Reads
+      .of[List[A]]
+      .collect(
+        JsonValidationError("expected a NonEmptyList but got an empty list")
+      ) { case head :: tail =>
+        NEL(head, tail)
+      }
+
+  implicit def nelWrites[A](implicit w: Writes[A]): Writes[NEL[A]] =
+    Writes
+      .of[List[A]]
+      .contramap(_.toList)
 }
+
+object NonEmptyListFormatters extends NonEmptyListFormatters

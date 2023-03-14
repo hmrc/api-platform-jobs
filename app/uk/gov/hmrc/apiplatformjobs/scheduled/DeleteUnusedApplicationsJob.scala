@@ -21,13 +21,12 @@ import javax.inject.{Inject, Named, Singleton}
 import scala.util.control.NonFatal
 
 import play.api.Configuration
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.LockRepository
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.lock.LockRepository
 
 abstract class DeleteUnusedApplicationsJob(
     thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
@@ -36,7 +35,7 @@ abstract class DeleteUnusedApplicationsJob(
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, lockRepository) {
+  ) extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, lockRepository) {
 
   import scala.concurrent._
 
@@ -103,7 +102,7 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, SANDBOX, configuration, clock, lockRepository)
+  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, SANDBOX, configuration, clock, lockRepository)
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject() (
@@ -112,4 +111,4 @@ class DeleteUnusedProductionApplicationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, PRODUCTION, configuration, clock, lockRepository)
+  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, PRODUCTION, configuration, clock, lockRepository)

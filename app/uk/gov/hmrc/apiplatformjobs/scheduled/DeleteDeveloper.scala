@@ -16,27 +16,39 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.time.LocalDateTime
 import scala.concurrent.Future.sequence
 import scala.concurrent.{ExecutionContext, Future}
 
-import uk.gov.hmrc.http.HeaderCarrier
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.http.HeaderCarrier
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
+import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.{ProductionApplicationCommandConnector, SandboxApplicationCommandConnector}
+
 trait DeleteDeveloper {
 
   def sandboxApplicationConnector: SandboxThirdPartyApplicationConnector
   def productionApplicationConnector: ProductionThirdPartyApplicationConnector
+  def sandboxCmdConnector: SandboxApplicationCommandConnector
+  def productionCmdConnector: ProductionApplicationCommandConnector
   def developerConnector: ThirdPartyDeveloperConnector
 
-  val deleteFunction: (String) => Future[Int]
+  val deleteFunction: (LaxEmailAddress) => Future[Int]
 
-  def deleteDeveloper(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[CoreUserDetails] = {
+  def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[CoreUserDetails] = {
+    val timestamp            = LocalDateTime.now()
+    val collaboratorToDelete = Collaborators.Developer(developer.id, developer.email)
+
     for {
       sandboxAppIds    <- sandboxApplicationConnector.fetchApplicationsByUserId(developer.id)
       productionAppIds <- productionApplicationConnector.fetchApplicationsByUserId(developer.id)
-      _                <- sequence(sandboxAppIds.map(sandboxApplicationConnector.removeCollaborator(_, developer.email)))
-      _                <- sequence(productionAppIds.map(productionApplicationConnector.removeCollaborator(_, developer.email)))
+      command           = RemoveCollaborator(Actors.ScheduledJob(s"Delete-$jobLabel"), collaboratorToDelete, timestamp)
+      _                <- sequence(sandboxAppIds.map(sandboxCmdConnector.dispatch(_, command, Set.empty)))
+      _                <- sequence(productionAppIds.map(productionCmdConnector.dispatch(_, command, Set.empty)))
       _                <- deleteFunction(developer.email)
     } yield developer
   }

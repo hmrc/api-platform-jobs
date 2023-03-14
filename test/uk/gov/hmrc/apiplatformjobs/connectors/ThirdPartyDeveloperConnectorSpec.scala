@@ -25,12 +25,13 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status.{OK, _}
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.http._
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.http._
+
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPerSuite with WiremockSugar {
 
@@ -44,7 +45,7 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
     val httpClient                 = app.injector.instanceOf[HttpClient]
 
     val config                 = ThirdPartyDeveloperConnectorConfig(wireMockUrl)
-    val devEmail               = "joe.bloggs@example.com"
+    val devEmail               = "joe.bloggs@example.com".toLaxEmail
     val userId                 = UserId.random
     def endpoint(path: String) = s"$wireMockUrl/$path"
 
@@ -56,7 +57,7 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
     "return developer emails" in new Setup {
 
       stubFor(
-        get(urlPathEqualTo("/developers"))
+        get(urlPathMatching("/developers"))
           .withQueryParam("createdBefore", equalTo("20200201"))
           .withQueryParam("limit", equalTo(s"${limit}"))
           .withQueryParam("status", equalTo("UNVERIFIED"))
@@ -153,10 +154,10 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
 
   "fetchVerifiedDevelopers" should {
     "return only verified developer details" in new Setup {
-      val verifiedUserEmail     = "foo@baz.com"
+      val verifiedUserEmail     = "foo@baz.com".toLaxEmail
       val verifiedUserFirstName = "Fred"
       val verifiedUserLastName  = "Bloggs"
-      val unverifiedUserEmail   = "bar@baz.com"
+      val unverifiedUserEmail   = "bar@baz.com".toLaxEmail
       val unverifiedId          = UserId.random
 
       val dr1 = DeveloperResponse(verifiedUserEmail, verifiedUserFirstName, verifiedUserLastName, verified = true, userId)
@@ -180,8 +181,8 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
     }
 
     "propagate error when endpoint returns error" in new Setup {
-      val verifiedUserEmail   = "foo@baz.com"
-      val unverifiedUserEmail = "bar@baz.com"
+      val verifiedUserEmail   = "foo@baz.com".toLaxEmail
+      val unverifiedUserEmail = "bar@baz.com".toLaxEmail
 
       stubFor(
         post(urlEqualTo("/developers/get-by-emails"))

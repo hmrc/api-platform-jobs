@@ -22,6 +22,8 @@ import scala.util.matching.Regex
 
 import play.api.libs.json.Json
 
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+
 trait DeveloperIdentifier {
   def asText: String = DeveloperIdentifier.asText(this)
 }
@@ -30,6 +32,7 @@ case class UuidIdentifier(val userId: UserId) extends DeveloperIdentifier
 
 object EmailIdentifier {
   private[this] val simplestEmailRegex: Regex      = """^.+@.+\..+$""".r
+
   def parse(text: String): Option[EmailIdentifier] =
     simplestEmailRegex.findFirstIn(text).map(EmailIdentifier(_))
 
@@ -37,9 +40,11 @@ object EmailIdentifier {
 }
 
 object UuidIdentifier      {
+
   def parse(text: String): Option[UuidIdentifier] =
     Try(UUID.fromString(text)).toOption.map(u => UuidIdentifier(UserId(u)))
 }
+
 object DeveloperIdentifier {
   def apply(text: String): Option[DeveloperIdentifier] = EmailIdentifier.parse(text) orElse UuidIdentifier.parse(text)
 

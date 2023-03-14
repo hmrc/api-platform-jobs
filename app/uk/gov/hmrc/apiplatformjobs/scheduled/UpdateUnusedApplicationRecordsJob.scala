@@ -18,17 +18,18 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, LocalDate, LocalDateTime}
-import java.util.UUID
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.LockRepository
-
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.mongo.lock.LockRepository
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
 abstract class UpdateUnusedApplicationRecordsJob(
     thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
@@ -38,7 +39,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
+  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
 
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
@@ -61,15 +62,15 @@ abstract class UpdateUnusedApplicationRecordsJob(
       .toLocalDate
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    def applicationsToUpdate(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]): (Set[UUID], Set[UUID]) = {
+    def applicationsToUpdate(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
 
-      val knownApplicationIds: Set[UUID]         = knownApplications.map(_.applicationId).toSet
-      val currentUnusedApplicationIds: Set[UUID] = currentUnusedApplications.map(_.applicationId).toSet
+      val knownApplicationIds: Set[ApplicationId]         = knownApplications.map(_.applicationId).toSet
+      val currentUnusedApplicationIds: Set[ApplicationId] = currentUnusedApplications.map(_.applicationId).toSet
 
       (currentUnusedApplicationIds.diff(knownApplicationIds), knownApplicationIds.diff(currentUnusedApplicationIds))
     }
 
-    def verifiedAdministratorDetails(adminEmails: Set[String]): Future[Map[String, Administrator]] = {
+    def verifiedAdministratorDetails(adminEmails: Set[LaxEmailAddress]): Future[Map[LaxEmailAddress, Administrator]] = {
       if (adminEmails.isEmpty) {
         Future.successful(Map.empty)
       } else {
@@ -80,22 +81,22 @@ abstract class UpdateUnusedApplicationRecordsJob(
     }
 
     for {
-      knownApplications                      <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications              <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
-      updatesRequired: (Set[UUID], Set[UUID]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
+      knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
+      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
+      updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
-      _                                                              = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
-      applicationsToAdd                                              = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
-      verifiedApplicationAdministrators: Map[String, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
-      newUnusedApplicationRecords: Seq[UnusedApplication]            = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
-      _                                                              = if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
+      _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
+      applicationsToAdd                                                       = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
+      verifiedApplicationAdministrators: Map[LaxEmailAddress, Administrator] <- verifiedAdministratorDetails(applicationsToAdd.flatMap(_.administrators).toSet)
+      newUnusedApplicationRecords: Seq[UnusedApplication]                     = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
+      _                                                                       = if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
 
       _ = logInfo(s"Found ${updatesRequired._2.size} applications that have been used since last update")
       _ = if (updatesRequired._2.nonEmpty) Future.sequence(updatesRequired._2.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))
     } yield RunningOfJobSuccessful
   }
 
-  def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[String, Administrator]): UnusedApplication = {
+  def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
     val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate)
@@ -123,7 +124,7 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UpdateUnusedApplicationRecordsJob(
+  ) extends UpdateUnusedApplicationRecordsJob(
       thirdPartyApplicationConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
@@ -141,7 +142,7 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-) extends UpdateUnusedApplicationRecordsJob(
+  ) extends UpdateUnusedApplicationRecordsJob(
       thirdPartyApplicationConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,

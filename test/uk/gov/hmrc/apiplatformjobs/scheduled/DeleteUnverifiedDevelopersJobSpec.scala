@@ -25,16 +25,24 @@ import scala.concurrent.duration.FiniteDuration
 import org.scalatest.BeforeAndAfterAll
 
 import play.api.http.Status.OK
-import uk.gov.hmrc.http.HeaderCarrier
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.UserId
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.http.HeaderCarrier
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
+import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.{ProductionApplicationCommandConnector, SandboxApplicationCommandConnector}
 
 class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
 
   val FixedTimeNow: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
+
+  val joeBloggs = "joe.bloggs@example.com".toLaxEmail
+  val johnDoe   = "john.doe@example.com".toLaxEmail
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -58,23 +66,31 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector                         = mock[ThirdPartyDeveloperConnector]
     val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
     val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
+    val mockSandboxApplicationCmdConnector: SandboxApplicationCommandConnector                 = mock[SandboxApplicationCommandConnector]
+    val mockProductionApplicationCmdConnector: ProductionApplicationCommandConnector           = mock[ProductionApplicationCommandConnector]
+
     val underTest                                                                              = new DeleteUnverifiedDevelopersJob(
       mockLockKeeper,
       deleteUnverifiedDevelopersJobConfig,
       mockThirdPartyDeveloperConnector,
       mockSandboxThirdPartyApplicationConnector,
-      mockProductionThirdPartyApplicationConnector
+      mockProductionThirdPartyApplicationConnector,
+      mockSandboxApplicationCmdConnector,
+      mockProductionApplicationCmdConnector
     )
   }
 
   trait SuccessfulSetup extends Setup {
-    val developers = Seq(CoreUserDetails("joe.bloggs@example.com", UserId.random), CoreUserDetails("john.doe@example.com", UserId.random))
+    val productionAppId = ApplicationId.random
+    val sandboxAppId    = ApplicationId.random
+
+    val developers = Seq(CoreUserDetails(joeBloggs, UserId.random), CoreUserDetails(johnDoe, UserId.random))
     when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
-    when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq("sandbox 1")))
-    when(mockSandboxThirdPartyApplicationConnector.removeCollaborator(*, *)(*)).thenReturn(successful(OK))
-    when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq("prod 1")))
-    when(mockProductionThirdPartyApplicationConnector.removeCollaborator(*, *)(*)).thenReturn(successful(OK))
-    when(mockThirdPartyDeveloperConnector.deleteDeveloper(*)(*)).thenReturn(successful(OK))
+    when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(sandboxAppId)))
+    when(mockSandboxApplicationCmdConnector.dispatch(*[ApplicationId], *, *)(*)).thenReturn(successful(Right(())))
+    when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(productionAppId)))
+    when(mockProductionApplicationCmdConnector.dispatch(*[ApplicationId], *, *)(*)).thenReturn(successful(Right(())))
+    when(mockThirdPartyDeveloperConnector.deleteDeveloper(*[LaxEmailAddress])(*)).thenReturn(successful(OK))
   }
 
   "DeleteUnverifiedDevelopersJob" should {
@@ -83,18 +99,35 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     "delete unverified developers" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(eqTo("joe.bloggs@example.com"))(*)
-      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(eqTo("john.doe@example.com"))(*)
+      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(eqTo(joeBloggs))(*)
+      verify(mockThirdPartyDeveloperConnector, times(1)).deleteDeveloper(eqTo(johnDoe))(*)
       result.message shouldBe "DeleteUnverifiedDevelopersJob Job ran successfully."
     }
 
     "remove unverified developers as collaborators" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockSandboxThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("sandbox 1"), eqTo("joe.bloggs@example.com"))(*)
-      verify(mockSandboxThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("sandbox 1"), eqTo("john.doe@example.com"))(*)
-      verify(mockProductionThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("prod 1"), eqTo("joe.bloggs@example.com"))(*)
-      verify(mockProductionThirdPartyApplicationConnector, times(1)).removeCollaborator(eqTo("prod 1"), eqTo("john.doe@example.com"))(*)
+      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(sandboxAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        *
+      )(*)
+      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(sandboxAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        *
+      )(*)
+      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(productionAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        *
+      )(*)
+      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+        eqTo(productionAppId),
+        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        *
+      )(*)
+
       result.message shouldBe "DeleteUnverifiedDevelopersJob Job ran successfully."
     }
 
@@ -112,7 +145,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(*)(*)
+      verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(*[LaxEmailAddress])(*)
       result.message shouldBe "The execution of scheduled job DeleteUnverifiedDevelopersJob failed with error 'Failed'. " +
         "The next execution of the job will do retry."
     }
