@@ -28,8 +28,10 @@ import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{Appl
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+import uk.gov.hmrc.http.BadRequestException
 
-abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) {
+abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) extends ApplicationLogger {
 
   val serviceBaseUrl: String
   val http: HttpClient
@@ -39,7 +41,7 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) {
       command: ApplicationCommand,
       adminsToEmail: Set[LaxEmailAddress]
     )(implicit hc: HeaderCarrier
-    ): Future[Either[NonEmptyList[CommandFailure], Unit]] = {
+    ): Future[Unit] = {
 
     import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.CommandFailureJsonFormatters._
     import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
@@ -49,24 +51,29 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) {
 
     def baseApplicationUrl(applicationId: ApplicationId) = s"$serviceBaseUrl/application/${applicationId.value.toString()}"
 
-    def parseErrorResponse(responseBody: String): NonEmptyList[CommandFailure] =
-      Json
-        .parse(responseBody)
-        .asOpt[NonEmptyList[CommandFailure]]
-        .fold(throw new InternalServerException("Failed parsing error response to dispatch"))(identity)
+    def parseWithLogAndThrow[T](input: String)(implicit reads: Reads[T]): T = {
+      Json.parse(input).validate[T] match {
+        case JsSuccess(t, _) => 
+          logger.debug(s"Found dispatch command failure(s) - $t")
+          t
+        case JsError(err) => 
+          logger.error(s"Failed to parse >>$input<< due to errors $err")
+          throw new InternalServerException("Failed parsing response to dispatch")
+      }
+    }
 
     val url          = s"${baseApplicationUrl(applicationId)}/dispatch"
     val request      = DispatchRequest(command, adminsToEmail)
     val extraHeaders = Seq.empty[(String, String)]
-    import cats.syntax.either._
 
     http
       .PATCH[DispatchRequest, HttpResponse](url, request, extraHeaders)
       .map(response =>
         response.status match {
-          case OK          => ().asRight[NonEmptyList[CommandFailure]]
-          case BAD_REQUEST => parseErrorResponse(response.body).asLeft[Unit]
-          case status      => throw new InternalServerException("Failed calling dispatch")
+          case OK          => ()
+          case BAD_REQUEST => parseWithLogAndThrow[NonEmptyList[CommandFailure]](response.body)
+                              throw new BadRequestException("Dispatch failed - bad request")
+          case status      => throw new InternalServerException(s"Failed calling dispatch http Status: $status")
         }
       )
   }

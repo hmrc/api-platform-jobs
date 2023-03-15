@@ -20,7 +20,6 @@ import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import cats.data.NonEmptyList
-import cats.syntax.either._
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
@@ -36,6 +35,7 @@ import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.Stri
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.http.BadRequestException
 
 class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -81,12 +81,10 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
           )
       )
 
-      val result = await(connector.dispatch(appId, command, Set.empty))
-
-      result shouldBe ().asRight[NonEmptyList[CommandFailure]]
+      await(connector.dispatch(appId, command, Set.empty)) shouldBe (())
     }
 
-    "propagate error when endpoint returns bad request" in new Setup {
+    "throw when a command fails" in new Setup {
       val errors = NonEmptyList.one[CommandFailure](CommandFailures.CannotRemoveLastAdmin)
       import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
       import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.CommandFailureJsonFormatters._
@@ -100,7 +98,24 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
           )
       )
 
-      await(connector.dispatch(appId, command, Set.empty)) shouldBe errors.asLeft[Unit]
+      intercept[BadRequestException] {
+        await(connector.dispatch(appId, command, Set.empty))
+      }
+    }
+
+    "throw when a command fails and failures are unparseable" in new Setup {
+      stubFor(
+        patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
+          .willReturn(
+            aResponse()
+              .withStatus(BAD_REQUEST)
+              .withJsonBody("{}")
+          )
+      )
+
+      intercept[InternalServerException] {
+        await(connector.dispatch(appId, command, Set.empty))
+      }
     }
 
     "throw exception when endpoint returns internal server error" in new Setup {
