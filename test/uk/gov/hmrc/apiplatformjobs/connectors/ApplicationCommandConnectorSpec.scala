@@ -35,7 +35,6 @@ import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{Comm
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ProductionApplicationCommandConnector
 
 class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 

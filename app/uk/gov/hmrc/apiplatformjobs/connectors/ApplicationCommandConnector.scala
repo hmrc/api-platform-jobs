@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.thirdpartydeveloperfrontend.connectors
+package uk.gov.hmrc.apiplatformjobs.connectors
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -82,9 +82,10 @@ class SandboxApplicationCommandConnector @Inject() (
 
   val serviceBaseUrl = config.sandboxBaseUrl
   val useProxy       = config.sandboxUseProxy
+  val bearerToken    = config.sandboxBearerToken
   val apiKey         = config.sandboxApiKey
 
-  val http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(apiKey) else httpClient
+  val http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
 }
 
 @Singleton
