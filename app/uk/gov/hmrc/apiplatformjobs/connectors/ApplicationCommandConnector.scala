@@ -21,13 +21,13 @@ import scala.concurrent.{ExecutionContext, Future}
 import cats.data.NonEmptyList
 import com.google.inject.{Inject, Singleton}
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ProxiedHttpClient
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, InternalServerException}
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 
 abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) {
 

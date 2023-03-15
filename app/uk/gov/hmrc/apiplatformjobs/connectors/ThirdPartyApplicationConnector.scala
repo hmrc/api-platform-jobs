@@ -28,15 +28,16 @@ import org.apache.commons.codec.binary.Base64.encodeBase64String
 
 import play.api.libs.json.Writes.LocalDateTimeEpochMilliWrites
 import play.api.libs.json._
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
-import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
+import uk.gov.hmrc.apiplatformjobs.models._
 
 object ThirdPartyApplicationConnector {
 

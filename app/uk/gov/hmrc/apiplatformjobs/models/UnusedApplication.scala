@@ -20,11 +20,12 @@ import java.time.{LocalDate, LocalDateTime}
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 
 case class ApplicationUsageDetails(
     applicationId: ApplicationId,

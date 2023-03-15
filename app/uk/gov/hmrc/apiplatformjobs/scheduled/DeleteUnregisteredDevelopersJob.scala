@@ -21,6 +21,13 @@ import scala.concurrent.Future.sequence
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
+
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
+
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+
 import uk.gov.hmrc.apiplatformjobs.connectors.{
   ProductionApplicationCommandConnector,
   ProductionThirdPartyApplicationConnector,
@@ -28,10 +35,6 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{
   SandboxThirdPartyApplicationConnector,
   ThirdPartyDeveloperConnector
 }
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 class DeleteUnregisteredDevelopersJob @Inject() (
     override val lockService: DeleteUnregisteredDevelopersJobLockService,

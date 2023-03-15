@@ -23,6 +23,7 @@ import com.google.inject.AbstractModule
 
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
+
 import uk.gov.hmrc.apiplatformjobs.scheduled._
 import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
 
