@@ -24,7 +24,13 @@ import scala.concurrent.duration.FiniteDuration
 import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionApplicationCommandConnector, ProductionThirdPartyApplicationConnector, SandboxApplicationCommandConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.{
+  ProductionApplicationCommandConnector,
+  ProductionThirdPartyApplicationConnector,
+  SandboxApplicationCommandConnector,
+  SandboxThirdPartyApplicationConnector,
+  ThirdPartyDeveloperConnector
+}
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}

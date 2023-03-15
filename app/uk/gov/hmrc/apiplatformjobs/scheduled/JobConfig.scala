@@ -32,7 +32,7 @@ case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, ena
 
 object JobConfig {
 
-  private implicit class ToFiniteDuration(d: Duration) {
+  implicit private class ToFiniteDuration(d: Duration) {
     def finite(): FiniteDuration = FiniteDuration(d.toNanos, TimeUnit.NANOSECONDS)
   }
 
