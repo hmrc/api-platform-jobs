@@ -27,7 +27,6 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, InternalServerException}
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
@@ -35,7 +34,8 @@ import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{Comm
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.ProductionApplicationCommandConnector
+
+import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 
 class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 

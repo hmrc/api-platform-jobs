@@ -20,14 +20,20 @@ import java.time.LocalDateTime
 import scala.concurrent.Future.sequence
 import scala.concurrent.{ExecutionContext, Future}
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
-import uk.gov.hmrc.thirdpartydeveloperfrontend.connectors.{ProductionApplicationCommandConnector, SandboxApplicationCommandConnector}
+
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
+import uk.gov.hmrc.apiplatformjobs.connectors.{
+  ProductionApplicationCommandConnector,
+  ProductionThirdPartyApplicationConnector,
+  SandboxApplicationCommandConnector,
+  SandboxThirdPartyApplicationConnector,
+  ThirdPartyDeveloperConnector
+}
 
 trait DeleteDeveloper {
 

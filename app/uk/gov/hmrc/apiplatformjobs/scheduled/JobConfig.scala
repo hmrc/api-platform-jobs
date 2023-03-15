@@ -23,16 +23,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import com.typesafe.config.Config
 
-import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 import uk.gov.hmrc.mongo.lock.LockService
 
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+
+import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
 
 object JobConfig {
 
-  private implicit class ToFiniteDuration(d: Duration) {
+  implicit private class ToFiniteDuration(d: Duration) {
     def finite(): FiniteDuration = FiniteDuration(d.toNanos, TimeUnit.NANOSECONDS)
   }
 

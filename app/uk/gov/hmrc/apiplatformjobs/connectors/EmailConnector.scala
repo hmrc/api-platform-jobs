@@ -25,13 +25,14 @@ import scala.util.{Failure, Success, Try}
 
 import play.api.libs.json.{Json, OFormat}
 import play.mvc.Http.Status._
-import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResponse}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+
+import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
 case class SendEmailRequest(
     to: Set[LaxEmailAddress],

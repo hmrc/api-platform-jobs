@@ -22,10 +22,11 @@ import scala.util.Random
 import com.typesafe.config.ConfigFactory
 
 import play.api.Configuration
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+
+import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
 trait UnusedApplicationTestConfiguration {
 

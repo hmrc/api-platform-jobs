@@ -21,10 +21,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.Configuration
+import uk.gov.hmrc.mongo.lock.LockRepository
+
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.mongo.lock.LockRepository
 
 abstract class SendUnusedApplicationNotificationsJob(
     unusedApplicationsRepository: UnusedApplicationsRepository,
