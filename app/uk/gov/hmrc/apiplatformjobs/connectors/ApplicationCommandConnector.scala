@@ -17,18 +17,15 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import scala.concurrent.{ExecutionContext, Future}
-
 import cats.data.NonEmptyList
 import com.google.inject.{Inject, Singleton}
-
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, InternalServerException}
-
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.http.BadRequestException
 
 abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) extends ApplicationLogger {
@@ -40,8 +37,7 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
       applicationId: ApplicationId,
       command: ApplicationCommand,
       adminsToEmail: Set[LaxEmailAddress]
-    )(implicit hc: HeaderCarrier
-    ): Future[Unit] = {
+    )(implicit hc: HeaderCarrier): Future[HasSucceeded] = {
 
     import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.CommandFailureJsonFormatters._
     import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
@@ -53,10 +49,10 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
 
     def parseWithLogAndThrow[T](input: String)(implicit reads: Reads[T]): T = {
       Json.parse(input).validate[T] match {
-        case JsSuccess(t, _) => 
+        case JsSuccess(t, _) =>
           logger.debug(s"Found dispatch command failure(s) - $t")
           t
-        case JsError(err) => 
+        case JsError(err) =>
           logger.error(s"Failed to parse >>$input<< due to errors $err")
           throw new InternalServerException("Failed parsing response to dispatch")
       }
@@ -70,7 +66,7 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
       .PATCH[DispatchRequest, HttpResponse](url, request, extraHeaders)
       .map(response =>
         response.status match {
-          case OK          => ()
+          case OK          => HasSucceeded
           case BAD_REQUEST => parseWithLogAndThrow[NonEmptyList[CommandFailure]](response.body)
                               throw new BadRequestException("Dispatch failed - bad request")
           case status      => throw new InternalServerException(s"Failed calling dispatch http Status: $status")

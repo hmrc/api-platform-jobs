@@ -57,7 +57,7 @@ object ThirdPartyApplicationConnector {
       notifyCollaborator: Boolean
     )
 
-  private[connectors] case class ApplicationResponse(id: ApplicationId)
+  case class ApplicationResponse(id: ApplicationId, collaborators: Set[Collaborator])
 
   private[connectors] case class ApplicationLastUseDate(
       id: ApplicationId,
@@ -115,10 +115,9 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
   def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] =
     http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
 
-  def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationId]] = {
+  def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationResponse]] = {
     http
       .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.asText}/applications")
-      .map(_.map(_.id))
   }
 
   def applicationsLastUsedBefore(lastUseDate: LocalDateTime): Future[List[ApplicationUsageDetails]] = {
