@@ -21,23 +21,20 @@ import java.time.temporal.ChronoUnit.MILLIS
 import java.time.{LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
-
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-
 import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
-
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.apiplatform.modules.events.applications.domain.models.CollaboratorAddedV2
 
 class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -69,11 +66,24 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
     val appId2 = ApplicationId.random
 
     val userId               = UserId.random
-    val applicationResponses = List(ApplicationResponse(appId1), ApplicationResponse(appId2))
+    val user1Id = UserId.random
+    val user1Email = "bob@example.com".toLaxEmail
+    val user2Id = UserId.random
+    val user2Email = "alice@example.com".toLaxEmail
+    val user3Id = UserId.random
+    val user3Email = "charlie@example.com".toLaxEmail
+
+    val appAADUsers = Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Administrator(user2Id, user2Email), Collaborators.Developer(user3Id, user3Email))
+    val appADUsers = Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Developer(user2Id, user2Email))
+
+    val app1 = ApplicationResponse(appId1, appAADUsers)
+    val app2 = ApplicationResponse(appId2, appADUsers)
+
+    val applicationResponses = List(app1, app2)
 
     "return application Ids" in new Setup {
       stubFor(
-        get(urlPathEqualTo(s"/developer/${userId.asText}/applications"))
+        get(urlPathEqualTo(s"/developer/${user1Id.asText}/applications"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -81,15 +91,15 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val result = await(connector.fetchApplicationsByUserId(userId))
+      val result = await(connector.fetchApplicationsByUserId(user1Id))
 
       result.size shouldBe 2
-      result should contain allOf (appId1, appId2)
+      result.map(_.id) should contain allOf (appId1, appId2)
     }
 
     "propagate error when endpoint returns error" in new Setup {
       stubFor(
-        get(urlPathEqualTo(s"/developer/${userId}/applications"))
+        get(urlPathEqualTo(s"/developer/${userId.asText}/applications"))
           .willReturn(
             aResponse()
               .withStatus(NOT_FOUND)
@@ -194,7 +204,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       val applicationId = ApplicationId.random
 
       stubFor(
-        post(urlPathEqualTo(s"/application/${applicationId.value}/delete"))
+        patch(urlPathEqualTo(s"/application/${applicationId.value}"))
           .willReturn(
             aResponse()
               .withStatus(BAD_REQUEST)
