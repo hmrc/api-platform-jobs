@@ -25,7 +25,7 @@ import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator, Collaborators}
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
@@ -121,22 +121,22 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
       verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(sandboxAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
       verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(sandboxAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
       verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(productionAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
       verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(productionAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
 
@@ -153,22 +153,22 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
       verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(sandboxAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
       verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(sandboxAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
       verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(productionAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
       verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
         eqTo(productionAppId),
-        argMatching({ case RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
       verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(*[LaxEmailAddress])(*)
