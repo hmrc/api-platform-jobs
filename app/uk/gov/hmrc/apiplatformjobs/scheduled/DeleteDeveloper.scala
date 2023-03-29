@@ -17,7 +17,7 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborator
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.RemoveCollaborator
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
@@ -52,7 +52,7 @@ trait DeleteDeveloper {
     def process(tpaConnector: ThirdPartyApplicationConnector, cmdConnector: ApplicationCommandConnector): Future[HasSucceeded] = {
       def processApp(appResponse: ApplicationResponse): Future[HasSucceeded] = {
         val collaborator = appResponse.collaborators.find(matchesCoreDetails).get // Safe to do here
-        val command      = RemoveCollaborator(Actors.ScheduledJob(s"Delete-$jobLabel"), collaborator, timestamp)
+        val command      = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob(s"Delete-$jobLabel"), collaborator, timestamp)
         logger.info(s"Removing user:${collaborator.userId.value} from app:${appResponse.id.value}")
         cmdConnector.dispatch(appResponse.id, command, Set.empty)
       }

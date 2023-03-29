@@ -25,7 +25,7 @@ import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, InternalServerException}
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{CommandFailure, CommandFailures, DispatchRequest, RemoveCollaborator}
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
@@ -69,9 +69,9 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
     "dispatch request" should {
         val anAdminEmail = "admin@example.com".toLaxEmail
         val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
-        val jsonText = s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
+        val jsonText = s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
         val timestamp = LocalDateTime.of(2020,1,1,12,0,0)
-        val cmd = RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
+        val cmd = ApplicationCommands.RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
         val req = DispatchRequest(cmd, Set(anAdminEmail))
         import cats.syntax.option._
 
@@ -86,9 +86,9 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
 
        "dispatch request with no emails" should {
         val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
-        val jsonText = s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
+        val jsonText = s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
         val timestamp = LocalDateTime.of(2020,1,1,12,0,0)
-        val cmd = RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
+        val cmd = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
         val req = DispatchRequest(cmd, Set.empty)
         import cats.syntax.option._
 
@@ -103,7 +103,7 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
 
 
     "dispatch" should {
-      val command = RemoveCollaborator(actor, collaborator, timestamp)
+      val command = ApplicationCommands.RemoveCollaborator(actor, collaborator, timestamp)
       val request = DispatchRequest(command, Set.empty)
 
       "removeCollaborator" in new Setup {
@@ -121,7 +121,6 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       "throw when a command fails" in new Setup {
         val errors = NonEmptyList.one[CommandFailure](CommandFailures.CannotRemoveLastAdmin)
         import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
-        import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.CommandFailureJsonFormatters._
 
         stubFor(
           patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))

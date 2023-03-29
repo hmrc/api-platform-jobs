@@ -39,7 +39,6 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
       adminsToEmail: Set[LaxEmailAddress]
     )(implicit hc: HeaderCarrier): Future[HasSucceeded] = {
 
-    import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.CommandFailureJsonFormatters._
     import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
     import play.api.libs.json._
     import uk.gov.hmrc.http.HttpReads.Implicits._
