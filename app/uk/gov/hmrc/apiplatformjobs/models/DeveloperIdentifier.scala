@@ -24,7 +24,7 @@ import play.api.libs.json.Json
 
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
-trait DeveloperIdentifier {
+sealed trait DeveloperIdentifier {
   def asText: String = DeveloperIdentifier.asText(this)
 }
 case class EmailIdentifier(val email: String) extends DeveloperIdentifier

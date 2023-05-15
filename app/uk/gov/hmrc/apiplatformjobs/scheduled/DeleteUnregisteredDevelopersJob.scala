@@ -54,6 +54,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
 
   override val isEnabled: Boolean                               = jobConfig.enabled
   implicit val hc: HeaderCarrier                                = HeaderCarrier()
+
   override val deleteFunction: (LaxEmailAddress) => Future[Int] = (email) => {
     developerConnector.deleteUnregisteredDeveloper(email)
   }

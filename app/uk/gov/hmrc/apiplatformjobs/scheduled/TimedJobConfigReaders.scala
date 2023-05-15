@@ -46,7 +46,7 @@ trait TimedJobConfigReaders {
 
   implicit def unusedApplicationsConfigurationReader: ValueReader[UnusedApplicationsConfiguration] =
     ValueReader.relative[UnusedApplicationsConfiguration] { config =>
-      def environmentConfiguration(environment: Environment.Value): UnusedApplicationsEnvironmentConfiguration =
+      def environmentConfiguration(environment: Environment): UnusedApplicationsEnvironmentConfiguration =
         UnusedApplicationsEnvironmentConfiguration(
           config.as[FiniteDuration](s"$environment.deleteUnusedApplicationsAfter"),
           config.as[Set[FiniteDuration]](s"$environment.sendNotificationsInAdvance"),

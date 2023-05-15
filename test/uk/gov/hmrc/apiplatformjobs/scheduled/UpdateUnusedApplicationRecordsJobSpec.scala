@@ -31,8 +31,8 @@ import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.DeveloperResponse
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
-import uk.gov.hmrc.apiplatformjobs.models._
+import uk.gov.hmrc.apiplatformjobs.models.Environment.{PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, _}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 

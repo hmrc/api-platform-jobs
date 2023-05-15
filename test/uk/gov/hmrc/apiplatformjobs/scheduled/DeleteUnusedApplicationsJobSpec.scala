@@ -23,7 +23,6 @@ import scala.concurrent.Future
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, Environment}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec

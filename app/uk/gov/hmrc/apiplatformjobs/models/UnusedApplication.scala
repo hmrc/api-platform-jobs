@@ -25,8 +25,6 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-
 case class ApplicationUsageDetails(
     applicationId: ApplicationId,
     applicationName: String,
@@ -52,18 +50,28 @@ case class UnusedApplication(
     scheduledDeletionDate: LocalDate
   )
 
-object Environment extends Enumeration {
-  type Environment = Value
-  val SANDBOX, PRODUCTION = Value
+import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
+
+sealed trait Environment extends EnumEntry {
+  def isSandbox: Boolean = this == Environment.SANDBOX
+
+  def isProduction: Boolean = this == Environment.PRODUCTION
+}
+
+object Environment extends Enum[Environment] with PlayJsonEnum[Environment] {
+  val values = findValues
+
+  final case object PRODUCTION extends Environment
+  final case object SANDBOX    extends Environment
+
+  def from(env: String) = values.find(e => e.toString == env.toUpperCase)
 }
 
 object MongoFormat {
   implicit val localDateTimeFormat = MongoJavatimeFormats.localDateTimeFormat
   implicit val localDateFormat     = MongoJavatimeFormats.localDateFormat
 
-  implicit def environmentWrites: Writes[Environment.Value] = (v: Environment.Value) => JsString(v.toString)
-  implicit val environmentFormat: Format[Environment.Value] = Format(environmentReads(), environmentWrites)
-  implicit val administratorFormat: Format[Administrator]   = Format(Json.reads[Administrator], Json.writes[Administrator])
+  implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
 
   val unusedApplicationReads: Reads[UnusedApplication] = (
     (JsPath \ "applicationId").read[ApplicationId] and
@@ -75,15 +83,13 @@ object MongoFormat {
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
   )(UnusedApplication.apply _)
 
-  def environmentReads(): Reads[Environment.Value] = {
+  def environmentReads(): Reads[Environment] = {
     case JsString("SANDBOX")    => JsSuccess(Environment.SANDBOX)
     case JsString("PRODUCTION") => JsSuccess(Environment.PRODUCTION)
     case JsString(s)            =>
-      try {
-        JsSuccess(Environment.withName(s))
-      } catch {
-        case _: NoSuchElementException =>
-          JsError(s"Enumeration expected of type: Environment, but it does not contain '$s'")
+      Environment.from(s) match {
+        case None    => JsError(s"Enumeration expected of type: Environment, but it does not contain '$s'")
+        case Some(s) => JsSuccess(s)
       }
     case _                      => JsError("String value expected")
   }

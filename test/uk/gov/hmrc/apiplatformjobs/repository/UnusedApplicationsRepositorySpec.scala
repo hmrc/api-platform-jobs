@@ -47,15 +47,15 @@ class UnusedApplicationsRepositorySpec
 
   override protected def repository: PlayMongoRepository[UnusedApplication] = unusedApplicationRepository
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     super.beforeEach()
     await(unusedApplicationRepository.collection.drop().toFuture())
     await(unusedApplicationRepository.ensureIndexes)
   }
 
-  override protected def afterAll() {
+  override protected def afterAll(): Unit = {
     super.afterAll()
-    await(unusedApplicationRepository.collection.drop.toFuture())
+    await(unusedApplicationRepository.collection.drop().toFuture())
   }
 
   trait Setup {
@@ -280,7 +280,7 @@ class UnusedApplicationsRepositorySpec
             productionApplicationToNotBeDeleted
           )
         )
-          toFuture ()
+          .toFuture()
       )
 
       val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, LocalDateTime.now))

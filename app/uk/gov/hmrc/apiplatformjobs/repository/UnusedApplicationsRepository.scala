@@ -32,8 +32,7 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, MongoFormat, UnusedApplication}
 
 @Singleton
 class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
