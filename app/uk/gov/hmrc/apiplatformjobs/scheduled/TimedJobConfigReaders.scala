@@ -24,7 +24,7 @@ import com.typesafe.config.{Config, ConfigException}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ValueReader
 
-import uk.gov.hmrc.apiplatformjobs.models.Environment
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
 
 trait TimedJobConfigReaders {
 
@@ -53,7 +53,7 @@ trait TimedJobConfigReaders {
           config.as[String](s"$environment.environmentName")
         )
 
-      UnusedApplicationsConfiguration(environmentConfiguration(Environment.SANDBOX), environmentConfiguration(Environment.PRODUCTION))
+      UnusedApplicationsConfiguration(environmentConfiguration(Environments.SANDBOX), environmentConfiguration(Environments.PRODUCTION))
     }
 
 }

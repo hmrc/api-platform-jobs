@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import scala.concurrent.duration.FiniteDuration
 
 import uk.gov.hmrc.apiplatformjobs.models.Environment
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models.Environments._
 
 trait UnusedApplicationsTimings {
   val unusedApplicationsConfiguration: UnusedApplicationsConfiguration

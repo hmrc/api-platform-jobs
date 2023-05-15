@@ -30,7 +30,7 @@ import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
-import uk.gov.hmrc.apiplatformjobs.models.Environment._
+import uk.gov.hmrc.apiplatformjobs.models.Environments._
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
@@ -45,12 +45,12 @@ class UnusedApplicationsRepositorySpec
 
   private val unusedApplicationRepository = new UnusedApplicationsRepository(mongoComponent, fixedClock)
 
-  override protected def repository: PlayMongoRepository[UnusedApplication] = unusedApplicationRepository
+  override protected val repository: PlayMongoRepository[UnusedApplication] = unusedApplicationRepository
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     await(unusedApplicationRepository.collection.drop().toFuture())
-    await(unusedApplicationRepository.ensureIndexes)
+    await(unusedApplicationRepository.ensureIndexes())
   }
 
   override protected def afterAll(): Unit = {
@@ -125,6 +125,7 @@ class UnusedApplicationsRepositorySpec
           )
           .toFuture()
       )
+      println("XXXX " + await(unusedApplicationRepository.collection.countDocuments().toFuture()))
 
       val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
 

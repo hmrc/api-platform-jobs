@@ -26,6 +26,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, Environment}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.models.Environments
 
 class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration {
 
@@ -36,14 +37,14 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
   }
 
   trait SandboxSetup extends Setup {
-    val environment: Environment = Environment.SANDBOX
+    val environment: Environment = Environments.SANDBOX
 
     val underTest =
       new DeleteUnusedSandboxApplicationsJob(mockThirdPartyApplicationConnector, mockUnusedApplicationsRepository, defaultConfiguration, fixedClock, mockLockRepository)
   }
 
   trait ProductionSetup extends Setup {
-    val environment: Environment = Environment.PRODUCTION
+    val environment: Environment = Environments.PRODUCTION
 
     val underTest =
       new DeleteUnusedProductionApplicationsJob(mockThirdPartyApplicationConnector, mockUnusedApplicationsRepository, defaultConfiguration, fixedClock, mockLockRepository)

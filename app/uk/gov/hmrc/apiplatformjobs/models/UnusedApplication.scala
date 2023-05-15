@@ -50,26 +50,36 @@ case class UnusedApplication(
     scheduledDeletionDate: LocalDate
   )
 
-import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
+sealed trait Environment {
+  def isSandbox: Boolean = this == Environments.SANDBOX
 
-sealed trait Environment extends EnumEntry {
-  def isSandbox: Boolean = this == Environment.SANDBOX
-
-  def isProduction: Boolean = this == Environment.PRODUCTION
+  def isProduction: Boolean = this == Environments.PRODUCTION
 }
 
-object Environment extends Enum[Environment] with PlayJsonEnum[Environment] {
-  val values = findValues
+object Environment {
+  
+  def from(env: String) = env.toUpperCase match {
+    case "PRODUCTION" => Some(Environments.PRODUCTION)
+    case "SANDBOX" => Some(Environments.SANDBOX)
+    case _ => None
+  }
 
+  private val convert: String => JsResult[Environment] = (s) => Environment.from(s).fold[JsResult[Environment]](JsError(s"$s is not an environment"))(JsSuccess(_))
+
+  implicit val reads: Reads[Environment] = (JsPath.read[String]).flatMapResult(convert(_))
+
+  implicit val writes: Writes[Environment] = Writes[Environment](role => JsString(role.toString))
+
+  implicit val format = Format(reads, writes)
+}
+
+object Environments {
   final case object PRODUCTION extends Environment
   final case object SANDBOX    extends Environment
-
-  def from(env: String) = values.find(e => e.toString == env.toUpperCase)
 }
 
 object MongoFormat {
-  implicit val localDateTimeFormat = MongoJavatimeFormats.localDateTimeFormat
-  implicit val localDateFormat     = MongoJavatimeFormats.localDateFormat
+  import MongoJavatimeFormats.Implicits._
 
   implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
 
@@ -84,8 +94,8 @@ object MongoFormat {
   )(UnusedApplication.apply _)
 
   def environmentReads(): Reads[Environment] = {
-    case JsString("SANDBOX")    => JsSuccess(Environment.SANDBOX)
-    case JsString("PRODUCTION") => JsSuccess(Environment.PRODUCTION)
+    case JsString("SANDBOX")    => JsSuccess(Environments.SANDBOX)
+    case JsString("PRODUCTION") => JsSuccess(Environments.PRODUCTION)
     case JsString(s)            =>
       Environment.from(s) match {
         case None    => JsError(s"Enumeration expected of type: Environment, but it does not contain '$s'")

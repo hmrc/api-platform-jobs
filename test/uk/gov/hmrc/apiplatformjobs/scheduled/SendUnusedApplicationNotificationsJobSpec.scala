@@ -24,7 +24,7 @@ import scala.concurrent.Future.successful
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models.Environments.{PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
