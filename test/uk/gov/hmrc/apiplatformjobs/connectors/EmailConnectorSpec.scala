@@ -31,7 +31,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 
-import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environment, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environments, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 
 class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
@@ -69,7 +69,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
         ApplicationId.random,
         applicationName,
         Seq(Administrator(adminEmail, userFirstName, userLastName)),
-        Environment.SANDBOX,
+        Environments.SANDBOX,
         lastAccessDate,
         Seq.empty,
         scheduledDeletionDate
@@ -80,7 +80,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
         ApplicationId.random,
         applicationName,
         Seq(Administrator(adminEmail, userFirstName, userLastName), Administrator(adminEmail, userFirstName, userLastName)),
-        Environment.SANDBOX,
+        Environments.SANDBOX,
         lastAccessDate,
         Seq.empty,
         scheduledDeletionDate

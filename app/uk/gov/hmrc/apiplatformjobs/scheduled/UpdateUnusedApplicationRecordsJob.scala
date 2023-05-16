@@ -28,8 +28,7 @@ import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
-import uk.gov.hmrc.apiplatformjobs.models._
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments, _}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class UpdateUnusedApplicationRecordsJob(
@@ -129,7 +128,7 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject() (
       thirdPartyApplicationConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
-      SANDBOX,
+      Environments.SANDBOX,
       configuration,
       clock,
       lockRepository
@@ -147,7 +146,7 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject() (
       thirdPartyApplicationConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
-      PRODUCTION,
+      Environments.PRODUCTION,
       configuration,
       clock,
       lockRepository

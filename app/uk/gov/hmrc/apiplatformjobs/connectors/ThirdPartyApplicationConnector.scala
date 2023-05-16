@@ -83,7 +83,7 @@ object ThirdPartyApplicationConnector {
     implicit val dateTimeWriter: Writes[LocalDateTime] = LocalDateTimeEpochMilliWrites
 
     implicit val dateTimeReader: Reads[LocalDateTime] = {
-      case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue()).atZone(ZoneOffset.UTC).toLocalDateTime)
+      case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue).atZone(ZoneOffset.UTC).toLocalDateTime)
       case _           => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
     }
 

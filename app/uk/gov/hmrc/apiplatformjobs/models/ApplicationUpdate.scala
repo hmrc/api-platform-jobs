@@ -30,7 +30,7 @@ trait ApplicationUpdateFormatters {
 
   implicit val deleteUnusedApplicationFormatter = Json
     .writes[DeleteUnusedApplication]
-    .transform(_.as[JsObject] + ("updateType" -> JsString("deleteUnusedApplication")))
+    .transform((o: JsObject) => o + ("updateType" -> JsString("deleteUnusedApplication")))
 }
 
 sealed trait ApplicationUpdateResult

@@ -24,7 +24,7 @@ import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class SendUnusedApplicationNotificationsJob(
@@ -60,7 +60,7 @@ class SendUnusedSandboxApplicationNotificationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, SANDBOX, configuration, clock, lockRepository)
+  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, Environments.SANDBOX, configuration, clock, lockRepository)
 
 @Singleton
 class SendUnusedProductionApplicationNotificationsJob @Inject() (
@@ -69,4 +69,4 @@ class SendUnusedProductionApplicationNotificationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, PRODUCTION, configuration, clock, lockRepository)
+  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, Environments.PRODUCTION, configuration, clock, lockRepository)

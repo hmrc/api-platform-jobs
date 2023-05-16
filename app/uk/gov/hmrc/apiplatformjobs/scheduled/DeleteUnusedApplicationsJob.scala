@@ -25,8 +25,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockRepository
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.Environment.{Environment, PRODUCTION, SANDBOX}
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, Environment, Environments, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class DeleteUnusedApplicationsJob(
@@ -103,7 +102,7 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, SANDBOX, configuration, clock, lockRepository)
+  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, Environments.SANDBOX, configuration, clock, lockRepository)
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject() (
@@ -112,4 +111,4 @@ class DeleteUnusedProductionApplicationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, PRODUCTION, configuration, clock, lockRepository)
+  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, Environments.PRODUCTION, configuration, clock, lockRepository)

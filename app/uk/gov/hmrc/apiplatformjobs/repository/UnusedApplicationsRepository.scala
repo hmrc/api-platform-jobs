@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.time.{Clock, LocalDateTime}
+import java.time.{Clock, LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -32,8 +32,7 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
-import uk.gov.hmrc.apiplatformjobs.models.Environment.Environment
-import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, MongoFormat, UnusedApplication}
 
 @Singleton
 class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
@@ -68,6 +67,10 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
     )
     with MongoJavatimeFormats.Implicits {
 
+  override lazy val requiresTtlIndex: Boolean = false // Entries are managed by scheduled jobs
+
+  def bsonLDT(ldt: LocalDateTime) = Codecs.toBson(ldt.toInstant(ZoneOffset.UTC))
+
   def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = {
     collection
       .find(equal("environment", Codecs.toBson(environment)))
@@ -80,7 +83,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .find(
         and(
           equal("environment", Codecs.toBson(environment)),
-          lte("scheduledNotificationDates", Codecs.toBson(notificationDate))
+          lte("scheduledNotificationDates", bsonLDT(notificationDate))
         )
       )
       .toFuture()
@@ -93,7 +96,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
     collection
       .findOneAndUpdate(
         filter = query,
-        update = Updates.pullByFilter(lte("scheduledNotificationDates", Codecs.toBson(notificationDate))),
+        update = Updates.pullByFilter(lte("scheduledNotificationDates", bsonLDT(notificationDate))),
         options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
       )
       .toFuture()
@@ -102,7 +105,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
 
   def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
     collection
-      .find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", Codecs.toBson(deletionDate))))
+      .find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", bsonLDT(deletionDate))))
       .toFuture()
       .map(_.toList)
   }

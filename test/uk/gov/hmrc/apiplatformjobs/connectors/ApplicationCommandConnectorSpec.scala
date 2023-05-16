@@ -18,22 +18,25 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
+
 import cats.data.NonEmptyList
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+
+import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, InternalServerException}
+import play.api.libs.json.Json
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpClient, InternalServerException}
+
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
-import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
-import uk.gov.hmrc.http.BadRequestException
-import play.api.libs.json.Json
-import play.api.Application
+
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
+import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 
 class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -64,43 +67,42 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       mockConfig
     )
   }
-  
+
   "ApplicationCommandConnector" when {
     "dispatch request" should {
-        val anAdminEmail = "admin@example.com".toLaxEmail
-        val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
-        val jsonText = s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
-        val timestamp = LocalDateTime.of(2020,1,1,12,0,0)
-        val cmd = ApplicationCommands.RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
-        val req = DispatchRequest(cmd, Set(anAdminEmail))
-        import cats.syntax.option._
+      val anAdminEmail          = "admin@example.com".toLaxEmail
+      val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
+      val jsonText              =
+        s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
+      val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0)
+      val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
+      val req                   = DispatchRequest(cmd, Set(anAdminEmail))
+      import cats.syntax.option._
 
-        "write to json" in {
-           println(Json.toJson(req).toString())
-          Json.toJson(req).toString() shouldBe jsonText
-        }
-        "read from json" in {
-          Json.parse(jsonText).asOpt[DispatchRequest] shouldBe req.some
-        }
+      "write to json" in {
+        Json.toJson(req).toString() shouldBe jsonText
       }
-
-       "dispatch request with no emails" should {
-        val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
-        val jsonText = s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
-        val timestamp = LocalDateTime.of(2020,1,1,12,0,0)
-        val cmd = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
-        val req = DispatchRequest(cmd, Set.empty)
-        import cats.syntax.option._
-
-        "write to json" in {
-          println(Json.toJson(req).toString())
-          Json.toJson(req).toString() shouldBe jsonText
-        }
-        "read from json" in {
-          Json.parse(jsonText).asOpt[DispatchRequest] shouldBe req.some
-        }
+      "read from json" in {
+        Json.parse(jsonText).asOpt[DispatchRequest] shouldBe req.some
       }
+    }
 
+    "dispatch request with no emails" should {
+      val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
+      val jsonText              =
+        s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
+      val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0)
+      val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
+      val req                   = DispatchRequest(cmd, Set.empty)
+      import cats.syntax.option._
+
+      "write to json" in {
+        Json.toJson(req).toString() shouldBe jsonText
+      }
+      "read from json" in {
+        Json.parse(jsonText).asOpt[DispatchRequest] shouldBe req.some
+      }
+    }
 
     "dispatch" should {
       val command = ApplicationCommands.RemoveCollaborator(actor, collaborator, timestamp)

@@ -21,17 +21,27 @@ import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import scala.concurrent.Future
 import scala.concurrent.Future._
 import scala.concurrent.duration.FiniteDuration
+
 import org.scalatest.BeforeAndAfterAll
+
 import play.api.http.Status.OK
 import uk.gov.hmrc.http.HeaderCarrier
+
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ApplicationResponse
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionApplicationCommandConnector, ProductionThirdPartyApplicationConnector, SandboxApplicationCommandConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors.{
+  ProductionApplicationCommandConnector,
+  ProductionThirdPartyApplicationConnector,
+  SandboxApplicationCommandConnector,
+  SandboxThirdPartyApplicationConnector,
+  ThirdPartyDeveloperConnector
+}
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
@@ -80,24 +90,23 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
   trait SuccessfulSetup extends Setup {
     val productionAppId = ApplicationId.random
-    val sandboxAppId = ApplicationId.random
+    val sandboxAppId    = ApplicationId.random
 
-
-    val userId = UserId.random
-    val user1Id = UserId.random
-    val user1Email = "bob@example.com".toLaxEmail
-    val johnDoeId = UserId.random
+    val userId      = UserId.random
+    val user1Id     = UserId.random
+    val user1Email  = "bob@example.com".toLaxEmail
+    val johnDoeId   = UserId.random
     val joeBloggsId = UserId.random
 
-    val appAADUsers = Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Administrator(johnDoeId, johnDoe), Collaborators.Developer(joeBloggsId, joeBloggs))
-    val appADUsers = Set[Collaborator](Collaborators.Administrator(joeBloggsId, joeBloggs), Collaborators.Developer(johnDoeId, johnDoe))
+    val appAADUsers =
+      Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Administrator(johnDoeId, johnDoe), Collaborators.Developer(joeBloggsId, joeBloggs))
+    val appADUsers  = Set[Collaborator](Collaborators.Administrator(joeBloggsId, joeBloggs), Collaborators.Developer(johnDoeId, johnDoe))
 
-
-    val prodApp = ApplicationResponse(productionAppId, appAADUsers)
+    val prodApp    = ApplicationResponse(productionAppId, appAADUsers)
     val sandBoxApp = ApplicationResponse(sandboxAppId, appADUsers)
 
     val developers = Seq(CoreUserDetails(joeBloggs, joeBloggsId), CoreUserDetails(johnDoe, johnDoeId))
-    when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*,*)(*)).thenReturn(successful(developers))
+    when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
     when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(sandBoxApp)))
     when(mockSandboxApplicationCmdConnector.dispatch(*[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(prodApp)))
@@ -140,7 +149,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
         *
       )(*)
 
-      //called twice as tpd fetchExpiredUnregisteredDevelopers returns 2 records
+      // called twice as tpd fetchExpiredUnregisteredDevelopers returns 2 records
       verify(mockThirdPartyDeveloperConnector, times(2)).deleteDeveloper(*[LaxEmailAddress])(*)
 
       result.message shouldBe "DeleteUnverifiedDevelopersJob Job ran successfully."
