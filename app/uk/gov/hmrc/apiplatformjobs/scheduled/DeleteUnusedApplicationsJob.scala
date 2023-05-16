@@ -25,8 +25,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockRepository
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, Environment, Environments, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class DeleteUnusedApplicationsJob(

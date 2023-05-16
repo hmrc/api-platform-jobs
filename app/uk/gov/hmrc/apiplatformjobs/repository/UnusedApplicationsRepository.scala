@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.time.{Clock, LocalDateTime}
+import java.time.{Clock, LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,7 +33,6 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, MongoFormat, UnusedApplication}
-import java.time.ZoneOffset
 
 @Singleton
 class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)

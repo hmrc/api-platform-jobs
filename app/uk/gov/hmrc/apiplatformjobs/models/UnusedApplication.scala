@@ -57,11 +57,11 @@ sealed trait Environment {
 }
 
 object Environment {
-  
+
   def from(env: String) = env.toUpperCase match {
     case "PRODUCTION" => Some(Environments.PRODUCTION)
-    case "SANDBOX" => Some(Environments.SANDBOX)
-    case _ => None
+    case "SANDBOX"    => Some(Environments.SANDBOX)
+    case _            => None
   }
 
   private val convert: String => JsResult[Environment] = (s) => Environment.from(s).fold[JsResult[Environment]](JsError(s"$s is not an environment"))(JsSuccess(_))

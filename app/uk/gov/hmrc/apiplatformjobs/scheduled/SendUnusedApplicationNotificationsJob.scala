@@ -24,8 +24,7 @@ import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
-import uk.gov.hmrc.apiplatformjobs.models.Environment
-import uk.gov.hmrc.apiplatformjobs.models.Environments
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class SendUnusedApplicationNotificationsJob(
