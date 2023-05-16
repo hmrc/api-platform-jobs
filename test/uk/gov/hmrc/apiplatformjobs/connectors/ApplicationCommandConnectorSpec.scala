@@ -80,7 +80,6 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       import cats.syntax.option._
 
       "write to json" in {
-        println(Json.toJson(req).toString())
         Json.toJson(req).toString() shouldBe jsonText
       }
       "read from json" in {
@@ -98,7 +97,6 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       import cats.syntax.option._
 
       "write to json" in {
-        println(Json.toJson(req).toString())
         Json.toJson(req).toString() shouldBe jsonText
       }
       "read from json" in {

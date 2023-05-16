@@ -125,8 +125,6 @@ class UnusedApplicationsRepositorySpec
           )
           .toFuture()
       )
-      println("XXXX " + await(unusedApplicationRepository.collection.countDocuments().toFuture()))
-
       val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
 
       results.size should be(1)
