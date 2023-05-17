@@ -64,7 +64,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
     val scheduledDeletionDate      = LocalDateTime.now.plusDays(30).toLocalDate
     val dateTimeFormatter          = DateTimeFormatter.ofPattern("dd MMMM yyyy")
     val expectedDeletionDateString = scheduledDeletionDate.format(dateTimeFormatter)
-    val daysToDeletion = daysSince(scheduledDeletionDate.atStartOfDay()).toString
+    val daysToDeletion             = daysSince(scheduledDeletionDate.atStartOfDay()).toString
 
     val unusedApplication =
       UnusedApplication(
@@ -93,12 +93,12 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
     "send unused application to be deleted email" in new Setup with ApplicationToBeDeletedNotificationDetails {
       val expectedToEmails                        = Set(adminEmail)
       val expectedParameters: Map[String, String] = Map(
-        "userFirstName"           -> userFirstName,
-        "userLastName"            -> userLastName,
-        "applicationName"         -> applicationName,
-        "environmentName"         -> environmentName,
-        "timeSinceLastUse"        -> timeSinceLastUse,
-        "daysToDeletion"          -> daysToDeletion
+        "userFirstName"    -> userFirstName,
+        "userLastName"     -> userLastName,
+        "applicationName"  -> applicationName,
+        "environmentName"  -> environmentName,
+        "timeSinceLastUse" -> timeSinceLastUse,
+        "daysToDeletion"   -> daysToDeletion
       )
 
       stubFor(

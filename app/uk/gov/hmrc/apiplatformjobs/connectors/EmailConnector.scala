@@ -119,12 +119,12 @@ object EmailConnector {
 
     def parameters(): Map[String, String] =
       Map(
-        "userFirstName"           -> userFirstName,
-        "userLastName"            -> userLastName,
-        "applicationName"         -> applicationName,
-        "environmentName"         -> environmentName,
-        "timeSinceLastUse"        -> timeSinceLastUse,
-        "daysToDeletion"          -> daysToDeletion
+        "userFirstName"    -> userFirstName,
+        "userLastName"     -> userLastName,
+        "applicationName"  -> applicationName,
+        "environmentName"  -> environmentName,
+        "timeSinceLastUse" -> timeSinceLastUse,
+        "daysToDeletion"   -> daysToDeletion
       )
   }
 }
