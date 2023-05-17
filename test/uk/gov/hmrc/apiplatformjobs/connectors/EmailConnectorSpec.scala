@@ -18,6 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -50,6 +51,8 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
   }
 
   trait ApplicationToBeDeletedNotificationDetails {
+    def daysSince(date: LocalDateTime): Long = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
+
     val expectedTemplateId = "apiApplicationToBeDeletedNotification"
 
     val adminEmail       = "admin1@example.com".toLaxEmail
@@ -63,6 +66,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
     val scheduledDeletionDate      = LocalDateTime.now.plusDays(30).toLocalDate
     val dateTimeFormatter          = DateTimeFormatter.ofPattern("dd MMMM yyyy")
     val expectedDeletionDateString = scheduledDeletionDate.format(dateTimeFormatter)
+    val daysToDeletion             = daysSince(scheduledDeletionDate.atStartOfDay()).toString
 
     val unusedApplication =
       UnusedApplication(
@@ -91,12 +95,12 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
     "send unused application to be deleted email" in new Setup with ApplicationToBeDeletedNotificationDetails {
       val expectedToEmails                        = Set(adminEmail)
       val expectedParameters: Map[String, String] = Map(
-        "userFirstName"           -> userFirstName,
-        "userLastName"            -> userLastName,
-        "applicationName"         -> applicationName,
-        "environmentName"         -> environmentName,
-        "timeSinceLastUse"        -> timeSinceLastUse,
-        "dateOfScheduledDeletion" -> expectedDeletionDateString
+        "userFirstName"    -> userFirstName,
+        "userLastName"     -> userLastName,
+        "applicationName"  -> applicationName,
+        "environmentName"  -> environmentName,
+        "timeSinceLastUse" -> timeSinceLastUse,
+        "daysToDeletion"   -> daysToDeletion
       )
 
       stubFor(

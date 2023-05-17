@@ -125,7 +125,7 @@ class UnusedApplicationsRepositorySpec
           )
           .toFuture()
       )
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
+      val results       = await(unusedApplicationRepository.unusedApplicationsToBeNotified(SANDBOX))
 
       results.size should be(1)
       results.head.applicationId should be(applicationId)

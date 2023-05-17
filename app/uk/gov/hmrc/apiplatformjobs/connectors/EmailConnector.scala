@@ -103,7 +103,7 @@ object EmailConnector {
         unusedApplication.applicationName,
         environmentName,
         s"${daysSince(unusedApplication.lastInteractionDate)} days",
-        dateFormatter.format(unusedApplication.scheduledDeletionDate)
+        daysSince(unusedApplication.scheduledDeletionDate.atStartOfDay()).toString
       )
     }
 
@@ -114,17 +114,17 @@ object EmailConnector {
       applicationName: String,
       environmentName: String,
       timeSinceLastUse: String,
-      dateOfScheduledDeletion: String
+      daysToDeletion: String
     ) {
 
     def parameters(): Map[String, String] =
       Map(
-        "userFirstName"           -> userFirstName,
-        "userLastName"            -> userLastName,
-        "applicationName"         -> applicationName,
-        "environmentName"         -> environmentName,
-        "timeSinceLastUse"        -> timeSinceLastUse,
-        "dateOfScheduledDeletion" -> dateOfScheduledDeletion
+        "userFirstName"    -> userFirstName,
+        "userLastName"     -> userLastName,
+        "applicationName"  -> applicationName,
+        "environmentName"  -> environmentName,
+        "timeSinceLastUse" -> timeSinceLastUse,
+        "daysToDeletion"   -> daysToDeletion
       )
   }
 }
