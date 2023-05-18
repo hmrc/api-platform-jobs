@@ -16,18 +16,21 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.time.{LocalDate, LocalDateTime}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.time.{LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+
 import play.api.libs.json.{Json, OFormat}
 import play.mvc.Http.Status._
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResponse}
+
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
@@ -88,14 +91,15 @@ class EmailConnector @Inject() (httpClient: HttpClient, config: EmailConfig)(imp
 
 object EmailConnector {
 
-  def daysSince(date: LocalDateTime): Long = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
+  def daysSince(date: LocalDateTime): Long                     = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
+
   def daysToDeletion(scheduledDeletionDate: LocalDate): String = {
     val daysToDeletion = daysSince(scheduledDeletionDate.atStartOfDay())
     if (daysToDeletion == 1) s"${daysToDeletion.toString} day"
     else s"${daysToDeletion.toString} days"
   }
 
-  val dateFormatter: DateTimeFormatter     = DateTimeFormatter.ofPattern("dd MMMM yyyy")
+  val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
 
   def toNotifications(unusedApplication: UnusedApplication, environmentName: String): Seq[UnusedApplicationToBeDeletedNotification] =
     unusedApplication.administrators.map { administrator =>
