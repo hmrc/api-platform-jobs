@@ -51,7 +51,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
   }
 
   trait ApplicationToBeDeletedNotificationDetails {
-    def daysSince(date: LocalDateTime): Long = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
+    def daysSince(date: LocalDateTime): Long = ChronoUnit.DAYS.between(LocalDateTime.now().toLocalDate, date.toLocalDate)
 
     val expectedTemplateId = "apiApplicationToBeDeletedNotification"
 

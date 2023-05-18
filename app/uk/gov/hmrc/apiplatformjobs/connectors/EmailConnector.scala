@@ -91,10 +91,10 @@ class EmailConnector @Inject() (httpClient: HttpClient, config: EmailConfig)(imp
 
 object EmailConnector {
 
-  def daysSince(date: LocalDateTime): Long                     = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
+  def daysSince(date: LocalDateTime): Long = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
 
   def daysToDeletion(scheduledDeletionDate: LocalDate): String = {
-    val daysToDeletion = daysSince(scheduledDeletionDate.atStartOfDay())
+    val daysToDeletion = ChronoUnit.DAYS.between(LocalDateTime.now().toLocalDate, scheduledDeletionDate.atStartOfDay())
     if (daysToDeletion == 1) s"${daysToDeletion.toString} day"
     else s"${daysToDeletion.toString} days"
   }
