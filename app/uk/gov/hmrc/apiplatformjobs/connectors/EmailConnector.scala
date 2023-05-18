@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.time.{LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -92,7 +92,14 @@ class EmailConnector @Inject() (httpClient: HttpClient, config: EmailConfig)(imp
 object EmailConnector {
 
   def daysSince(date: LocalDateTime): Long = ChronoUnit.DAYS.between(date.toLocalDate, LocalDateTime.now().toLocalDate)
-  val dateFormatter: DateTimeFormatter     = DateTimeFormatter.ofPattern("dd MMMM yyyy")
+
+  def daysToDeletion(scheduledDeletionDate: LocalDate): String = {
+    val daysToDeletion = ChronoUnit.DAYS.between(LocalDateTime.now().toLocalDate, scheduledDeletionDate.atStartOfDay())
+    if (daysToDeletion == 1) s"${daysToDeletion.toString} day"
+    else s"${daysToDeletion.toString} days"
+  }
+
+  val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
 
   def toNotifications(unusedApplication: UnusedApplication, environmentName: String): Seq[UnusedApplicationToBeDeletedNotification] =
     unusedApplication.administrators.map { administrator =>
@@ -103,7 +110,7 @@ object EmailConnector {
         unusedApplication.applicationName,
         environmentName,
         s"${daysSince(unusedApplication.lastInteractionDate)} days",
-        daysSince(unusedApplication.scheduledDeletionDate.atStartOfDay()).toString
+        daysToDeletion(unusedApplication.scheduledDeletionDate)
       )
     }
 
