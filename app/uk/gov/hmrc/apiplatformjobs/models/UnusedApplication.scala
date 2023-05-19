@@ -24,6 +24,8 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+import java.time.Instant
+import java.time.ZoneOffset
 
 case class ApplicationUsageDetails(
     applicationId: ApplicationId,
@@ -79,7 +81,18 @@ object Environments {
 }
 
 object MongoFormat {
-  import MongoJavatimeFormats.Implicits._
+  private final val localDateTimeReads: Reads[LocalDateTime] =
+    Reads.at[String](__ \ "$date" \ "$numberLong")
+      .map(dateTime => Instant.ofEpochMilli(dateTime.toLong).atZone(ZoneOffset.UTC).toLocalDateTime)
+
+  private final val localDateTimeWrites: Writes[LocalDateTime] =
+    Writes.at[String](__ \ "$date" \ "$numberLong")
+      .contramap(_.toInstant(ZoneOffset.UTC).toEpochMilli.toString)
+
+  implicit final val localDateTimeFormat: Format[LocalDateTime] =
+    Format(localDateTimeReads, localDateTimeWrites)
+
+  implicit val localDateFormat     = MongoJavatimeFormats.localDateFormat
 
   implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
 
