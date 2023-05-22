@@ -17,15 +17,14 @@
 package uk.gov.hmrc.apiplatformjobs.models
 
 import java.time.{LocalDate, LocalDateTime}
-
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import java.time.Instant
-import java.time.ZoneOffset
+
+import java.time.format.DateTimeFormatter
+
 
 case class ApplicationUsageDetails(
     applicationId: ApplicationId,
@@ -47,7 +46,7 @@ case class UnusedApplication(
     applicationName: String,
     administrators: Seq[Administrator],
     environment: Environment,
-    lastInteractionDate: LocalDateTime,
+    lastInteractionDate: LocalDate,
     scheduledNotificationDates: Seq[LocalDate],
     scheduledDeletionDate: LocalDate
   )
@@ -81,16 +80,6 @@ object Environments {
 }
 
 object MongoFormat {
-  private final val localDateTimeReads: Reads[LocalDateTime] =
-    Reads.at[String](__ \ "$date" \ "$numberLong")
-      .map(dateTime => Instant.ofEpochMilli(dateTime.toLong).atZone(ZoneOffset.UTC).toLocalDateTime)
-
-  private final val localDateTimeWrites: Writes[LocalDateTime] =
-    Writes.at[String](__ \ "$date" \ "$numberLong")
-      .contramap(_.toInstant(ZoneOffset.UTC).toEpochMilli.toString)
-
-  implicit final val localDateTimeFormat: Format[LocalDateTime] =
-    Format(localDateTimeReads, localDateTimeWrites)
 
   implicit val localDateFormat     = MongoJavatimeFormats.localDateFormat
 
@@ -101,7 +90,7 @@ object MongoFormat {
       (JsPath \ "applicationName").read[String] and
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
-      (JsPath \ "lastInteractionDate").read[LocalDateTime] and
+      ((JsPath \ "lastInteractionDate").read[LocalDate] or (JsPath \ "lastInteractionDate").read[String].map(raw => LocalDate.parse(raw, DateTimeFormatter.ISO_DATE_TIME)) ) and
       (JsPath \ "scheduledNotificationDates").read[List[LocalDate]] and
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
   )(UnusedApplication.apply _)

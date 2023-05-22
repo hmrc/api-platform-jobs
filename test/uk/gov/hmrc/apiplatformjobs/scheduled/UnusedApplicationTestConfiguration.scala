@@ -16,15 +16,11 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.{LocalDate, ZoneOffset}
 import scala.util.Random
-
 import com.typesafe.config.ConfigFactory
-
 import play.api.Configuration
-
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
-
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
 
 trait UnusedApplicationTestConfiguration {
@@ -108,8 +104,8 @@ trait UnusedApplicationTestConfiguration {
       Random.alphanumeric.take(10).mkString, // scalastyle:off magic.number
       Seq.empty,
       environment,
-      LocalDateTime.now.minusYears(1),
+      LocalDate.now.minusYears(1),
       List.empty,
-      LocalDateTime.now(ZoneOffset.UTC).toLocalDate
+      LocalDate.now(ZoneOffset.UTC)
     )
 }
