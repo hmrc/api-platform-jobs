@@ -16,22 +16,18 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.time.LocalDateTime
+import java.time.{LocalDate, LocalDateTime}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-
 import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
-
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-
 import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environments, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 
@@ -62,8 +58,8 @@ class EmailConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneA
     val environmentName  = "Sandbox"
     val timeSinceLastUse = "335 days"
 
-    val lastAccessDate             = LocalDateTime.now.minusDays(335)
-    val scheduledDeletionDate      = LocalDateTime.now.plusDays(30).toLocalDate
+    val lastAccessDate             = LocalDate.now.minusDays(335)
+    val scheduledDeletionDate      = LocalDate.now.plusDays(30)
     val dateTimeFormatter          = DateTimeFormatter.ofPattern("dd MMMM yyyy")
     val expectedDeletionDateString = scheduledDeletionDate.format(dateTimeFormatter)
     val daysToDeletion             = s"${daysSince(scheduledDeletionDate.atStartOfDay()).toString} days"

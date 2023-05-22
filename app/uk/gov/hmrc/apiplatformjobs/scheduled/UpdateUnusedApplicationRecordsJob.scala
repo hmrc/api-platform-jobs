@@ -56,10 +56,9 @@ abstract class UpdateUnusedApplicationRecordsJob(
       .toSeq
 
   /** The date we will be deleting the application */
-  def calculateScheduledDeletionDate(lastInteractionDate: LocalDateTime): LocalDate =
+  def calculateScheduledDeletionDate(lastInteractionDate: LocalDate): LocalDate =
     lastInteractionDate
-      .plus(deleteUnusedApplicationsAfter(environment).toMillis, ChronoUnit.MILLIS)
-      .toLocalDate
+      .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def applicationsToUpdate(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
@@ -99,7 +98,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
   def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
-    val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate)
+    val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).toLocalDate
     val scheduledDeletionDate             = calculateScheduledDeletionDate(lastInteractionDate)
     val notificationSchedule              = calculateNotificationDates(scheduledDeletionDate)
 

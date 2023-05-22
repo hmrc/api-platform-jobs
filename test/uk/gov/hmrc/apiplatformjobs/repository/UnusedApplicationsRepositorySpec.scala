@@ -19,19 +19,17 @@ package uk.gov.hmrc.apiplatformjobs.repository
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
-
 import akka.stream.testkit.NoMaterializer
+import org.mongodb.scala.Document
 import org.mongodb.scala.model.Filters
+import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
-
 import uk.gov.hmrc.apiplatformjobs.models.Environments._
-import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
+import uk.gov.hmrc.apiplatformjobs.models.{Environments, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class UnusedApplicationsRepositorySpec
@@ -47,22 +45,11 @@ class UnusedApplicationsRepositorySpec
 
   override protected val repository: PlayMongoRepository[UnusedApplication] = unusedApplicationRepository
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    await(unusedApplicationRepository.collection.drop().toFuture())
-    await(unusedApplicationRepository.ensureIndexes())
-  }
-
-  override protected def afterAll(): Unit = {
-    super.afterAll()
-    await(unusedApplicationRepository.collection.drop().toFuture())
-  }
-
   trait Setup {
 
     def sandboxApplication(
         applicationId: ApplicationId,
-        lastInteractionDate: LocalDateTime = LocalDateTime.now(fixedClock),
+        lastInteractionDate: LocalDate = LocalDate.now(fixedClock),
         scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
         scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)
       ) =
@@ -70,7 +57,7 @@ class UnusedApplicationsRepositorySpec
 
     def productionApplication(
         applicationId: ApplicationId,
-        lastInteractionDate: LocalDateTime = LocalDateTime.now(fixedClock),
+        lastInteractionDate: LocalDate = LocalDate.now(fixedClock),
         scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
         scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)
       ) =
@@ -326,6 +313,31 @@ class UnusedApplicationsRepositorySpec
 
       result should be(true)
     }
+
+  }
+
+  "ensure fix for loss of LDT in mongo java time Implicits works whilst we have 'bad' date (in string format)" should {
+    "read date as string for last interactionDate" in {
+      val rawMongoDoc = """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : "2019-05-25T09:09:06.896", "scheduledNotificationDates" : [ ISODate("2023-05-21T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2023-05-21T00:00:00Z") }
+                          |""".stripMargin
+      saveRawMongoJson(rawMongoDoc).wasAcknowledged() shouldBe true
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environments.SANDBOX))
+      results.size shouldBe 1
+    }
+
+    "read date as LocalDate for last interactionDate" in {
+      val rawMongoDoc =
+        """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : ISODate("2019-05-21T00:00:00Z"), "scheduledNotificationDates" : [ ISODate("2023-05-21T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2023-05-21T00:00:00Z") }
+          |""".stripMargin
+      saveRawMongoJson(rawMongoDoc).wasAcknowledged() shouldBe true
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environments.SANDBOX))
+      results.size shouldBe 1
+    }
+  }
+
+  def saveRawMongoJson(raw: String): InsertOneResult = {
+
+    await(mongoDatabase.getCollection("unusedApplications").insertOne(Document(raw)).toFuture())
   }
 
 }

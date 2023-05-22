@@ -116,8 +116,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
   "calculateScheduledDeletionDate" should {
     "correctly calculate date that application should be deleted" in new SandboxJobSetup {
-      val lastUseDate          = LocalDateTime.now(fixedClock)
-      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter).toLocalDate
+      val lastUseDate          = LocalDate.now(fixedClock)
+      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
 
       val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
 
@@ -330,7 +330,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     val applicationId        = ApplicationId.random
     val applicationName      = Random.alphanumeric.take(10).mkString
     val administratorDetails = administrators.map(admin => new Administrator(admin, "Foo", "Bar"))
-    val lastInteractionDate  = lastAccessDate.getOrElse(creationDate)
+    val lastInteractionDate  = lastAccessDate.getOrElse(creationDate).toLocalDate
 
     (
       ApplicationUsageDetails(applicationId, applicationName, administrators, creationDate, lastAccessDate),
@@ -340,8 +340,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
         administratorDetails.toSeq,
         environment,
         lastInteractionDate,
-        List(lastInteractionDate.plusDays(335).toLocalDate),
-        lastInteractionDate.plusDays(365).toLocalDate
+        List(lastInteractionDate.plusDays(335)),
+        lastInteractionDate.plusDays(365)
       )
     )
   }
