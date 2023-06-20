@@ -65,7 +65,10 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
   trait ProductionJobSetup extends Setup {
     val deleteUnusedApplicationsAfter  = 365
     val notifyDeletionPendingInAdvance = 30
-    val configuration                  = jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = Seq(notifyDeletionPendingInAdvance))
+    val startDeletingOn                = LocalDate.now(fixedClock).plusDays(notifyDeletionPendingInAdvance)
+
+    val configuration                  =
+      jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = Seq(notifyDeletionPendingInAdvance), startDeletingOn = startDeletingOn)
 
     val underTest = new UpdateUnusedProductionApplicationRecordsJob(
       mockProductionThirdPartyApplicationConnector,
@@ -115,13 +118,71 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
   }
 
   "calculateScheduledDeletionDate" should {
-    "correctly calculate date that application should be deleted" in new SandboxJobSetup {
+    "correctly calculate date that Sandbox application should be deleted" in new SandboxJobSetup {
       val lastUseDate          = LocalDate.now(fixedClock)
       val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
 
       val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
 
-      calculatedDeletionDate shouldBe (expectedDeletionDate)
+      calculatedDeletionDate shouldBe expectedDeletionDate
+    }
+
+    "correctly calculate date that Sandbox application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter+100" in new SandboxJobSetup {
+      val lastUseDate            = LocalDate.now(fixedClock).minusDays(deleteUnusedApplicationsAfter).minusDays(100)
+      val expectedDeletionDate   = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
+      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
+
+      calculatedDeletionDate shouldBe expectedDeletionDate
+    }
+
+    "correctly calculate date that Production application should be deleted when lastUseDate is today" in new ProductionJobSetup {
+      val lastUseDate          = LocalDate.now(fixedClock)
+      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
+
+      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
+
+      calculatedDeletionDate shouldBe expectedDeletionDate
+    }
+
+    "correctly calculate date that Production application should be deleted when lastUseDate is 364 days before startDeletingOn" in new ProductionJobSetup {
+      val lastUseDate          = startDeletingOn.minusDays(deleteUnusedApplicationsAfter - 1)
+      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
+
+      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
+
+      calculatedDeletionDate shouldBe expectedDeletionDate
+    }
+
+    "correctly calculate date that Production application should be deleted when lastUseDate is a year before startDeletingOn" in new ProductionJobSetup {
+      val lastUseDate          = startDeletingOn.minusDays(deleteUnusedApplicationsAfter)
+
+      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
+
+      calculatedDeletionDate shouldBe startDeletingOn
+    }
+
+    "correctly calculate date that Production application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter" in new ProductionJobSetup {
+      val lastUseDate = LocalDate.now(fixedClock).minusDays(deleteUnusedApplicationsAfter)
+
+      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
+
+      calculatedDeletionDate shouldBe startDeletingOn
+    }
+
+    "correctly calculate date that Production application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter+1" in new ProductionJobSetup {
+      val lastUseDate = LocalDate.now(fixedClock).minusDays(deleteUnusedApplicationsAfter).minusDays(1)
+
+      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
+
+      calculatedDeletionDate shouldBe startDeletingOn
+    }
+
+    "correctly calculate date that Production application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter+100" in new ProductionJobSetup {
+      val lastUseDate = LocalDate.now(fixedClock).minusDays(deleteUnusedApplicationsAfter).minusDays(100)
+
+      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
+
+      calculatedDeletionDate shouldBe startDeletingOn
     }
   }
 //

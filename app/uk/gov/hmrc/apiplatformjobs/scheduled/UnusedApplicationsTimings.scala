@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.time.LocalDate
 import scala.concurrent.duration.FiniteDuration
 
 import uk.gov.hmrc.apiplatformjobs.models.Environment
@@ -50,7 +51,20 @@ trait UnusedApplicationsTimings {
       case SANDBOX    => unusedApplicationsConfiguration.sandbox.environmentName
       case PRODUCTION => unusedApplicationsConfiguration.production.environmentName
     }
+
+  /** The date to start deleting Prod apps on. For Sandbox apps this is always None */
+  def startDeletingOn(environment: Environment): Option[LocalDate] =
+    environment match {
+      case SANDBOX    => None
+      case PRODUCTION => unusedApplicationsConfiguration.production.startDeletingOn
+    }
 }
 
 case class UnusedApplicationsConfiguration(sandbox: UnusedApplicationsEnvironmentConfiguration, production: UnusedApplicationsEnvironmentConfiguration)
-case class UnusedApplicationsEnvironmentConfiguration(deleteUnusedApplicationsAfter: FiniteDuration, sendNotificationsInAdvance: Set[FiniteDuration], environmentName: String)
+
+case class UnusedApplicationsEnvironmentConfiguration(
+    deleteUnusedApplicationsAfter: FiniteDuration,
+    sendNotificationsInAdvance: Set[FiniteDuration],
+    environmentName: String,
+    startDeletingOn: Option[LocalDate]
+  )

@@ -16,14 +16,20 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, ZoneOffset}
 import scala.util.Random
-import com.typesafe.config.ConfigFactory
-import play.api.Configuration
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
 
-trait UnusedApplicationTestConfiguration {
+import com.typesafe.config.ConfigFactory
+
+import play.api.Configuration
+
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+
+import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.util.FixedClock
+
+trait UnusedApplicationTestConfiguration extends FixedClock {
 
   def defaultConfiguration: Configuration = jobConfiguration()
 
@@ -34,10 +40,12 @@ trait UnusedApplicationTestConfiguration {
       notifyDeletionPendingInAdvanceForSandbox: Seq[Int] = Seq(30),
       notifyDeletionPendingInAdvanceForProduction: Seq[Int] = Seq(30),
       sandboxEnvironmentName: String = "Sandbox",
-      productionEnvironmentName: String = "Production"
+      productionEnvironmentName: String = "Production",
+      startDeletingOn: LocalDate = LocalDate.now(fixedClock)
     ): Configuration = {
     val sandboxNotificationsString    = notifyDeletionPendingInAdvanceForSandbox.mkString("", "d,", "d")
     val productionNotificationsString = notifyDeletionPendingInAdvanceForProduction.mkString("", "d,", "d")
+    val startDeletingOnString         = startDeletingOn.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
     new Configuration(ConfigFactory.parseString(s"""
                                                    |UnusedApplications {
@@ -51,6 +59,7 @@ trait UnusedApplicationTestConfiguration {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$productionNotificationsString]
                                                    |    environmentName = "$productionEnvironmentName"
+                                                   |    startDeletingOn = $startDeletingOnString
                                                    |  }
                                                    |}
                                                    |

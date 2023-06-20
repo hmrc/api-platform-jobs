@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
+import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime}
+
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+
 import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-
-import java.time.format.DateTimeFormatter
-
 
 case class ApplicationUsageDetails(
     applicationId: ApplicationId,
@@ -81,7 +81,7 @@ object Environments {
 
 object MongoFormat {
 
-  implicit val localDateFormat     = MongoJavatimeFormats.localDateFormat
+  implicit val localDateFormat = MongoJavatimeFormats.localDateFormat
 
   implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
 
@@ -90,7 +90,7 @@ object MongoFormat {
       (JsPath \ "applicationName").read[String] and
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
-      ((JsPath \ "lastInteractionDate").read[LocalDate] or (JsPath \ "lastInteractionDate").read[String].map(raw => LocalDate.parse(raw, DateTimeFormatter.ISO_DATE_TIME)) ) and
+      ((JsPath \ "lastInteractionDate").read[LocalDate] or (JsPath \ "lastInteractionDate").read[String].map(raw => LocalDate.parse(raw, DateTimeFormatter.ISO_DATE_TIME))) and
       (JsPath \ "scheduledNotificationDates").read[List[LocalDate]] and
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
   )(UnusedApplication.apply _)
