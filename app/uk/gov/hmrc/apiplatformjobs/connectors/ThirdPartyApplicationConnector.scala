@@ -125,11 +125,11 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     def getQueryParams(lastUseDate: Option[LocalDateTime], allowAutoDelete: Boolean): Seq[(String, String)] = {
       val allowAutoDeleteAndSort: Seq[(String, String)] = Seq(
         "allowAutoDelete" -> allowAutoDelete.toString,
-        "sort" -> "NO_SORT"
+        "sort"            -> "NO_SORT"
       )
       lastUseDate match {
-        case Some(date: LocalDateTime) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" ->  DateTimeFormatter.ISO_DATE_TIME.format(date))
-        case None => allowAutoDeleteAndSort
+        case Some(date: LocalDateTime) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date))
+        case None                      => allowAutoDeleteAndSort
       }
     }
 
