@@ -160,7 +160,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val results = await(connector.applicationsLastUsedBefore(lastUseDate, allowAutoDelete))
+      val results = await(connector.applicationSearch(Some(lastUseDate), allowAutoDelete))
 
       results should contain
       ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.createdOn, oldApplication1.lastAccess)
@@ -184,7 +184,24 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val results = await(connector.applicationsLastUsedBefore(lastUseDate, allowAutoDelete))
+      val results = await(connector.applicationSearch(Some(lastUseDate), allowAutoDelete))
+
+      results.size should be(0)
+    }
+
+    "ensure lastUseBefore is not in query param when lastUseDate is None" in new Setup {
+      stubFor(
+        get(urlPathEqualTo("/applications"))
+          .withQueryParam("allowAutoDelete", equalTo(allowAutoDelete.toString))
+          .withQueryParam("sort", equalTo("NO_SORT"))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withJsonBody(paginatedResponse(List.empty))
+          )
+      )
+
+      val results = await(connector.applicationSearch(None, allowAutoDelete))
 
       results.size should be(0)
     }

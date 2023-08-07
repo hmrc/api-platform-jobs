@@ -93,7 +93,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
     for {
       knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate(), true)
+      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationSearch(Some(notificationCutoffDate()), true)
       updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
       _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")

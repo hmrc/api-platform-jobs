@@ -120,17 +120,25 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.asText}/applications")
   }
 
-  def applicationsLastUsedBefore(lastUseDate: LocalDateTime, allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {
+  def applicationSearch(lastUseDate: Option[LocalDateTime], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {
+
+    def getQueryParams(lastUseDate: Option[LocalDateTime], allowAutoDelete: Boolean): Seq[(String, String)] = {
+      val allowAutoDeleteAndSort: Seq[(String, String)] = Seq(
+        "allowAutoDelete" -> allowAutoDelete.toString,
+        "sort" -> "NO_SORT"
+      )
+      lastUseDate match {
+        case Some(date: LocalDateTime) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" ->  DateTimeFormatter.ISO_DATE_TIME.format(date))
+        case None => allowAutoDeleteAndSort
+      }
+    }
+
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     http
       .GET[PaginatedApplicationLastUseResponse](
         url = s"$serviceBaseUrl/applications",
-        queryParams = Seq(
-          "lastUseBefore"   -> DateTimeFormatter.ISO_DATE_TIME.format(lastUseDate),
-          "allowAutoDelete" -> allowAutoDelete.toString,
-          "sort"            -> "NO_SORT"
-        )
+        queryParams = getQueryParams(lastUseDate, allowAutoDelete)
       )
       .map(page => toDomain(page.applications))
   }
