@@ -67,7 +67,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     val notifyDeletionPendingInAdvance = 30
     val startDeletingOn                = LocalDate.now(fixedClock).plusDays(notifyDeletionPendingInAdvance)
 
-    val configuration                  =
+    val configuration =
       jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = Seq(notifyDeletionPendingInAdvance), startDeletingOn = startDeletingOn)
 
     val underTest = new UpdateUnusedProductionApplicationRecordsJob(
@@ -154,7 +154,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     }
 
     "correctly calculate date that Production application should be deleted when lastUseDate is a year before startDeletingOn" in new ProductionJobSetup {
-      val lastUseDate          = startDeletingOn.minusDays(deleteUnusedApplicationsAfter)
+      val lastUseDate = startDeletingOn.minusDays(deleteUnusedApplicationsAfter)
 
       val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate)
 
@@ -192,7 +192,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(Environments.SANDBOX, LocalDateTime.now(fixedClock).minusMonths(13), Some(LocalDateTime.now(fixedClock).minusMonths(13)), Set(adminUserEmail))
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
+      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *))
         .thenReturn(successful(List(applicationWithLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
@@ -219,7 +219,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(SANDBOX, LocalDateTime.now(fixedClock).minusMonths(13), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
+      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
       when(mockUnusedApplicationsRepository.unusedApplications(SANDBOX)).thenReturn(Future(List.empty))
@@ -248,7 +248,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
+      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *))
         .thenReturn(successful(List(application._1)))
       when(mockUnusedApplicationsRepository.unusedApplications(SANDBOX)).thenReturn(Future(List(application._2)))
 
@@ -267,7 +267,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(successful(List.empty))
+      when(mockSandboxThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *)).thenReturn(successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplications(SANDBOX)).thenReturn(Future(List(application._2)))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(eqTo(SANDBOX), *[ApplicationId])).thenReturn(successful(true))
 
@@ -292,7 +292,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
           Set(adminUserEmail)
         ) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
+      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *))
         .thenReturn(successful(List(applicationWithLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
@@ -317,7 +317,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(Environments.PRODUCTION, LocalDateTime.now(fixedClock).minusMonths(13), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
+      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
       when(mockUnusedApplicationsRepository.unusedApplications(PRODUCTION)).thenReturn(Future(List.empty))
@@ -345,7 +345,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*))
+      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *))
         .thenReturn(successful(List(application._1)))
       when(mockUnusedApplicationsRepository.unusedApplications(PRODUCTION)).thenReturn(Future(List(application._2)))
 
@@ -367,7 +367,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*)).thenReturn(successful(List.empty))
+      when(mockProductionThirdPartyApplicationConnector.applicationsLastUsedBefore(*, *)).thenReturn(successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplications(eqTo(PRODUCTION))).thenReturn(Future(List(application._2)))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(eqTo(PRODUCTION), *[ApplicationId])).thenReturn(successful(true))
 

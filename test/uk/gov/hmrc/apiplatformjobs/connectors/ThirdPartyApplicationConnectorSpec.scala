@@ -123,6 +123,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       PaginatedApplicationLastUseResponse(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
+    val allowAutoDelete                  = true
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val lastUseDate        = LocalDateTime.now.minusMonths(12)
@@ -150,6 +151,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       stubFor(
         get(urlPathEqualTo("/applications"))
           .withQueryParam("lastUseBefore", equalTo(dateString))
+          .withQueryParam("allowAutoDelete", equalTo(allowAutoDelete.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
@@ -158,7 +160,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val results = await(connector.applicationsLastUsedBefore(lastUseDate))
+      val results = await(connector.applicationsLastUsedBefore(lastUseDate, allowAutoDelete))
 
       results should contain
       ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.createdOn, oldApplication1.lastAccess)
@@ -173,6 +175,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       stubFor(
         get(urlPathEqualTo("/applications"))
           .withQueryParam("lastUseBefore", equalTo(dateString))
+          .withQueryParam("allowAutoDelete", equalTo(allowAutoDelete.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
@@ -181,7 +184,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val results = await(connector.applicationsLastUsedBefore(lastUseDate))
+      val results = await(connector.applicationsLastUsedBefore(lastUseDate, allowAutoDelete))
 
       results.size should be(0)
     }
