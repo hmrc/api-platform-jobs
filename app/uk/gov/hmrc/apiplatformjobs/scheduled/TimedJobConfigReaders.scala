@@ -48,15 +48,11 @@ trait TimedJobConfigReaders {
     ValueReader.relative[UnusedApplicationsConfiguration] { config =>
       def environmentConfiguration(environment: Environment): UnusedApplicationsEnvironmentConfiguration = {
 
-        val maybeStartDeletingOn =
-          if (environment == Environments.PRODUCTION) config.as[Option[LocalDate]](s"$environment.startDeletingOn")
-          else None
-
         UnusedApplicationsEnvironmentConfiguration(
           config.as[FiniteDuration](s"$environment.deleteUnusedApplicationsAfter"),
           config.as[Set[FiniteDuration]](s"$environment.sendNotificationsInAdvance"),
           config.as[String](s"$environment.environmentName"),
-          maybeStartDeletingOn
+          config.as[Option[LocalDate]](s"$environment.startDeletingOn")
         )
       }
 

@@ -57,16 +57,16 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
   /** The date we will be deleting the application */
   def calculateScheduledDeletionDate(lastInteractionDate: LocalDate): LocalDate = {
-    def calculateScheduledDeletionDateForProd(lastInteractionDate: LocalDate, startDeletingProdAppsOn: LocalDate): LocalDate = {
+    def calculateScheduledDeletionDateUsingStartDeletingOn(lastInteractionDate: LocalDate, startDeletingOn: LocalDate): LocalDate = {
       val proposedDeletionDate = lastInteractionDate
         .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
 
-      if (proposedDeletionDate.isBefore(startDeletingProdAppsOn)) startDeletingProdAppsOn
+      if (proposedDeletionDate.isBefore(startDeletingOn)) startDeletingOn
       else proposedDeletionDate
     }
 
     startDeletingOn(environment) match {
-      case Some(date) => calculateScheduledDeletionDateForProd(lastInteractionDate, date)
+      case Some(date) => calculateScheduledDeletionDateUsingStartDeletingOn(lastInteractionDate, date)
       case None       => lastInteractionDate
           .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
     }
@@ -93,7 +93,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
     for {
       knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
+      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate(), true)
       updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
       _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")

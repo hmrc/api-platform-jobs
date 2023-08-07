@@ -55,7 +55,7 @@ trait UnusedApplicationsTimings {
   /** The date to start deleting Prod apps on. For Sandbox apps this is always None */
   def startDeletingOn(environment: Environment): Option[LocalDate] =
     environment match {
-      case SANDBOX    => None
+      case SANDBOX    => unusedApplicationsConfiguration.sandbox.startDeletingOn
       case PRODUCTION => unusedApplicationsConfiguration.production.startDeletingOn
     }
 }
