@@ -25,6 +25,7 @@ import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, Environment, Environments}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration {
@@ -32,6 +33,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
   trait Setup extends BaseSetup {
     val mockThirdPartyApplicationConnector: ThirdPartyApplicationConnector = mock[ThirdPartyApplicationConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository     = mock[UnusedApplicationsRepository]
+    val mockUnusedApplicationsService: UnusedApplicationsService           = mock[UnusedApplicationsService]
     when(mockUnusedApplicationsRepository.clock).thenReturn(fixedClock)
   }
 
@@ -39,14 +41,28 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
     val environment: Environment = Environments.SANDBOX
 
     val underTest =
-      new DeleteUnusedSandboxApplicationsJob(mockThirdPartyApplicationConnector, mockUnusedApplicationsRepository, defaultConfiguration, fixedClock, mockLockRepository)
+      new DeleteUnusedSandboxApplicationsJob(
+        mockThirdPartyApplicationConnector,
+        mockUnusedApplicationsRepository,
+        mockUnusedApplicationsService,
+        defaultConfiguration,
+        fixedClock,
+        mockLockRepository
+      )
   }
 
   trait ProductionSetup extends Setup {
     val environment: Environment = Environments.PRODUCTION
 
     val underTest =
-      new DeleteUnusedProductionApplicationsJob(mockThirdPartyApplicationConnector, mockUnusedApplicationsRepository, defaultConfiguration, fixedClock, mockLockRepository)
+      new DeleteUnusedProductionApplicationsJob(
+        mockThirdPartyApplicationConnector,
+        mockUnusedApplicationsRepository,
+        mockUnusedApplicationsService,
+        defaultConfiguration,
+        fixedClock,
+        mockLockRepository
+      )
   }
 
   "SANDBOX job" should {
@@ -55,6 +71,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
+      when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockThirdPartyApplicationConnector.deleteApplication(eqTo(applicationId), eqTo(underTest.name), eqTo(reasons), eqTo(LocalDateTime.now(fixedClock)))(*))
@@ -63,6 +80,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
 
       await(underTest.runJob)
 
+      verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockThirdPartyApplicationConnector).deleteApplication(
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.SANDBOX"),
@@ -77,12 +95,14 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
+      when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockThirdPartyApplicationConnector.deleteApplication(*[ApplicationId], *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateFailureResult))
 
       await(underTest.runJob)
 
+      verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockThirdPartyApplicationConnector).deleteApplication(
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.SANDBOX"),
@@ -99,6 +119,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
+      when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockThirdPartyApplicationConnector.deleteApplication(*[ApplicationId], *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateSuccessResult))
@@ -106,6 +127,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
 
       await(underTest.runJob)
 
+      verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockThirdPartyApplicationConnector).deleteApplication(
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.PRODUCTION"),
@@ -120,12 +142,14 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val unusedApp     = unusedApplicationRecord(applicationId, environment)
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
+      when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockThirdPartyApplicationConnector.deleteApplication(*[ApplicationId], *, *, *)(*)).thenReturn(Future.successful(ApplicationUpdateFailureResult))
 
       await(underTest.runJob)
 
+      verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockThirdPartyApplicationConnector).deleteApplication(
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.PRODUCTION"),
