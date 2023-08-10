@@ -57,19 +57,15 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
   /** The date we will be deleting the application */
   def calculateScheduledDeletionDate(lastInteractionDate: LocalDate): LocalDate = {
-    def calculateScheduledDeletionDateUsingStartDeletingOn(lastInteractionDate: LocalDate, startDeletingOn: LocalDate): LocalDate = {
-      val proposedDeletionDate = lastInteractionDate
-        .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
+    val proposedDeletionDate = lastInteractionDate
+      .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
 
-      if (proposedDeletionDate.isBefore(startDeletingOn)) startDeletingOn
-      else proposedDeletionDate
-    }
+    val dateOfFirstNotification = proposedDeletionDate.minusDays(30)
+    val today                   = LocalDate.now(clock)
 
-    startDeletingOn(environment) match {
-      case Some(date) => calculateScheduledDeletionDateUsingStartDeletingOn(lastInteractionDate, date)
-      case None       => lastInteractionDate
-          .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
-    }
+    if (dateOfFirstNotification.isBefore(today)) today.plusDays(30)
+    else proposedDeletionDate
+
   }
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
