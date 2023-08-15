@@ -27,10 +27,12 @@ import uk.gov.hmrc.mongo.lock.LockRepository
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, Environment, Environments, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 
 abstract class DeleteUnusedApplicationsJob(
     thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
+    unusedApplicationsService: UnusedApplicationsService,
     environment: Environment,
     configuration: Configuration,
     clock: Clock,
@@ -88,6 +90,7 @@ abstract class DeleteUnusedApplicationsJob(
     }
 
     for {
+      _                    <- unusedApplicationsService.updateUnusedApplications()
       applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment)
       _                     = logInfo(s"Found [${applicationsToDelete.size}] applications to delete")
       _                    <- sequentialFutures(deleteApplication)(applicationsToDelete)
@@ -99,16 +102,34 @@ abstract class DeleteUnusedApplicationsJob(
 class DeleteUnusedSandboxApplicationsJob @Inject() (
     @Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
+    unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, Environments.SANDBOX, configuration, clock, lockRepository)
+  ) extends DeleteUnusedApplicationsJob(
+      thirdPartyApplicationConnector,
+      unusedApplicationsRepository,
+      unusedApplicationsService,
+      Environments.SANDBOX,
+      configuration,
+      clock,
+      lockRepository
+    )
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject() (
     @Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
+    unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends DeleteUnusedApplicationsJob(thirdPartyApplicationConnector, unusedApplicationsRepository, Environments.PRODUCTION, configuration, clock, lockRepository)
+  ) extends DeleteUnusedApplicationsJob(
+      thirdPartyApplicationConnector,
+      unusedApplicationsRepository,
+      unusedApplicationsService,
+      Environments.PRODUCTION,
+      configuration,
+      clock,
+      lockRepository
+    )

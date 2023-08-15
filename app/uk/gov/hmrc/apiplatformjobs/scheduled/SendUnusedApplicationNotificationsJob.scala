@@ -26,10 +26,12 @@ import uk.gov.hmrc.mongo.lock.LockRepository
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 
 abstract class SendUnusedApplicationNotificationsJob(
     unusedApplicationsRepository: UnusedApplicationsRepository,
     emailConnector: EmailConnector,
+    unusedApplicationsService: UnusedApplicationsService,
     environment: Environment,
     configuration: Configuration,
     clock: Clock,
@@ -40,6 +42,7 @@ abstract class SendUnusedApplicationNotificationsJob(
     val notificationTime = LocalDateTime.now(clock)
 
     for {
+      _            <- unusedApplicationsService.updateUnusedApplications()
       appsToNotify <- unusedApplicationsRepository.unusedApplicationsToBeNotified(environment, notificationTime)
       _            <- Future.sequence(appsToNotify.map { app =>
                         emailConnector.sendApplicationToBeDeletedNotifications(app, environmentName(environment)) map {
@@ -57,16 +60,34 @@ abstract class SendUnusedApplicationNotificationsJob(
 class SendUnusedSandboxApplicationNotificationsJob @Inject() (
     unusedApplicationsRepository: UnusedApplicationsRepository,
     emailConnector: EmailConnector,
+    unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, Environments.SANDBOX, configuration, clock, lockRepository)
+  ) extends SendUnusedApplicationNotificationsJob(
+      unusedApplicationsRepository,
+      emailConnector,
+      unusedApplicationsService,
+      Environments.SANDBOX,
+      configuration,
+      clock,
+      lockRepository
+    )
 
 @Singleton
 class SendUnusedProductionApplicationNotificationsJob @Inject() (
     unusedApplicationsRepository: UnusedApplicationsRepository,
     emailConnector: EmailConnector,
+    unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends SendUnusedApplicationNotificationsJob(unusedApplicationsRepository, emailConnector, Environments.PRODUCTION, configuration, clock, lockRepository)
+  ) extends SendUnusedApplicationNotificationsJob(
+      unusedApplicationsRepository,
+      emailConnector,
+      unusedApplicationsService,
+      Environments.PRODUCTION,
+      configuration,
+      clock,
+      lockRepository
+    )

@@ -57,19 +57,15 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
   /** The date we will be deleting the application */
   def calculateScheduledDeletionDate(lastInteractionDate: LocalDate): LocalDate = {
-    def calculateScheduledDeletionDateForProd(lastInteractionDate: LocalDate, startDeletingProdAppsOn: LocalDate): LocalDate = {
-      val proposedDeletionDate = lastInteractionDate
-        .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
+    val proposedDeletionDate = lastInteractionDate
+      .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
 
-      if (proposedDeletionDate.isBefore(startDeletingProdAppsOn)) startDeletingProdAppsOn
-      else proposedDeletionDate
-    }
+    val dateOfFirstNotification = proposedDeletionDate.minusDays(30)
+    val today                   = LocalDate.now(clock)
 
-    startDeletingOn(environment) match {
-      case Some(date) => calculateScheduledDeletionDateForProd(lastInteractionDate, date)
-      case None       => lastInteractionDate
-          .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
-    }
+    if (dateOfFirstNotification.isBefore(today)) today.plusDays(30)
+    else proposedDeletionDate
+
   }
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
@@ -93,7 +89,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
     for {
       knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationsLastUsedBefore(notificationCutoffDate())
+      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationSearch(Some(notificationCutoffDate()), true)
       updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
       _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")

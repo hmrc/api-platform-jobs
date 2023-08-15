@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, ZoneOffset}
 import scala.util.Random
 
@@ -40,12 +39,10 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
       notifyDeletionPendingInAdvanceForSandbox: Seq[Int] = Seq(30),
       notifyDeletionPendingInAdvanceForProduction: Seq[Int] = Seq(30),
       sandboxEnvironmentName: String = "Sandbox",
-      productionEnvironmentName: String = "Production",
-      startDeletingOn: LocalDate = LocalDate.now(fixedClock)
+      productionEnvironmentName: String = "Production"
     ): Configuration = {
     val sandboxNotificationsString    = notifyDeletionPendingInAdvanceForSandbox.mkString("", "d,", "d")
     val productionNotificationsString = notifyDeletionPendingInAdvanceForProduction.mkString("", "d,", "d")
-    val startDeletingOnString         = startDeletingOn.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
     new Configuration(ConfigFactory.parseString(s"""
                                                    |UnusedApplications {
@@ -59,7 +56,6 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$productionNotificationsString]
                                                    |    environmentName = "$productionEnvironmentName"
-                                                   |    startDeletingOn = $startDeletingOnString
                                                    |  }
                                                    |}
                                                    |

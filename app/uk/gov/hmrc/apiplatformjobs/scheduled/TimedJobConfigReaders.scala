@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.{LocalDate, LocalTime}
+import java.time.LocalTime
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
@@ -48,15 +48,10 @@ trait TimedJobConfigReaders {
     ValueReader.relative[UnusedApplicationsConfiguration] { config =>
       def environmentConfiguration(environment: Environment): UnusedApplicationsEnvironmentConfiguration = {
 
-        val maybeStartDeletingOn =
-          if (environment == Environments.PRODUCTION) config.as[Option[LocalDate]](s"$environment.startDeletingOn")
-          else None
-
         UnusedApplicationsEnvironmentConfiguration(
           config.as[FiniteDuration](s"$environment.deleteUnusedApplicationsAfter"),
           config.as[Set[FiniteDuration]](s"$environment.sendNotificationsInAdvance"),
-          config.as[String](s"$environment.environmentName"),
-          maybeStartDeletingOn
+          config.as[String](s"$environment.environmentName")
         )
       }
 
