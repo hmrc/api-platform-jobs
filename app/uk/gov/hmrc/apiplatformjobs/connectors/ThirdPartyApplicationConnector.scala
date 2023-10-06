@@ -31,9 +31,9 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborator
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.UserId
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
@@ -117,7 +117,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationResponse]] = {
     http
-      .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/${userId.asText}/applications")
+      .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/$userId/applications")
   }
 
   def applicationSearch(lastUseDate: Option[LocalDateTime], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {

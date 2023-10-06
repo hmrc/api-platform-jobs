@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.services
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector}
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
