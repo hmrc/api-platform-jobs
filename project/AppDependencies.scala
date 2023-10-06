@@ -12,7 +12,8 @@ object AppDependencies {
     "com.beachape"                %% "enumeratum-play-json"               % "1.7.0",
     "org.typelevel"               %% "cats-core"                          % "2.6.1",
     "commons-codec"               %  "commons-codec"                      % "1.15",
-    "uk.gov.hmrc"                 %% "api-platform-application-commands"  % "0.22.0"
+//    "uk.gov.hmrc"                 %% "api-platform-api-domain"            % "0.6.0",
+    "uk.gov.hmrc"                 %% "api-platform-application-domain"    % "0.21.0"
   )
 
   private lazy val testDeps = Seq(

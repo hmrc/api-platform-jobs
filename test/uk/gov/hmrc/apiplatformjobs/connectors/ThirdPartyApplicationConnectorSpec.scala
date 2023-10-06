@@ -31,9 +31,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{ApplicationId, Collaborator, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.developers.domain.models.UserId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, UserId}
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
@@ -87,7 +87,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
 
     "return application Ids" in new Setup {
       stubFor(
-        get(urlPathEqualTo(s"/developer/${user1Id.asText}/applications"))
+        get(urlPathEqualTo(s"/developer/$user1Id/applications"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -103,7 +103,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
 
     "propagate error when endpoint returns error" in new Setup {
       stubFor(
-        get(urlPathEqualTo(s"/developer/${userId.asText}/applications"))
+        get(urlPathEqualTo(s"/developer/$userId/applications"))
           .willReturn(
             aResponse()
               .withStatus(NOT_FOUND)
