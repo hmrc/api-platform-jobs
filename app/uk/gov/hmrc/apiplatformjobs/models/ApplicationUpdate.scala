@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.models
 
 import java.time.LocalDateTime
 
-import play.api.libs.json.{Json, _}
+import play.api.libs.json._
 
 trait ApplicationUpdate {
   def timestamp: LocalDateTime
@@ -28,7 +28,7 @@ case class DeleteUnusedApplication(jobId: String, authorisationKey: String, reas
 
 trait ApplicationUpdateFormatters {
 
-  implicit val deleteUnusedApplicationFormatter = Json
+  implicit val deleteUnusedApplicationFormatter: Writes[DeleteUnusedApplication] = Json
     .writes[DeleteUnusedApplication]
     .transform((o: JsObject) => o + ("updateType" -> JsString("deleteUnusedApplication")))
 }

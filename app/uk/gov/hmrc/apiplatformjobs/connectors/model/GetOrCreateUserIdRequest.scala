@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors.model
 
-import play.api.libs.json.Json
+import play.api.libs.json._
 
 case class GetOrCreateUserIdRequest(email: String)
 
 object GetOrCreateUserIdRequest {
-  implicit val getOrCreateUserIdRequestFormat = Json.format[GetOrCreateUserIdRequest]
+  implicit val getOrCreateUserIdRequestFormat: Format[GetOrCreateUserIdRequest] = Json.format[GetOrCreateUserIdRequest]
 }

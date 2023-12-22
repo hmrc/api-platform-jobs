@@ -24,11 +24,13 @@ import net.ceedubs.ficus.readers.ValueReader
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
+import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
+
 import uk.gov.hmrc.apiplatformjobs.models.Environment
 
-abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, clock: Clock, lockRepository: LockRepository)
+abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, val clock: Clock, lockRepository: LockRepository)
     extends TimedJob(s"$jobName.$environment", configuration, clock, lockRepository)
-    with UnusedApplicationsTimings {
+    with UnusedApplicationsTimings with ClockNow {
 
   override val unusedApplicationsConfiguration: UnusedApplicationsConfiguration =
     configuration.underlying.as[UnusedApplicationsConfiguration]("UnusedApplications")

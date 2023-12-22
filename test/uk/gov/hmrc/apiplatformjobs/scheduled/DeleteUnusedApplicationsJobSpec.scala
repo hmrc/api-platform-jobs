@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, Environment, Environments}
@@ -28,13 +28,13 @@ import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration {
+class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with FixedClock {
 
   trait Setup extends BaseSetup {
     val mockThirdPartyApplicationConnector: ThirdPartyApplicationConnector = mock[ThirdPartyApplicationConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository     = mock[UnusedApplicationsRepository]
     val mockUnusedApplicationsService: UnusedApplicationsService           = mock[UnusedApplicationsService]
-    when(mockUnusedApplicationsRepository.clock).thenReturn(fixedClock)
+    when(mockUnusedApplicationsRepository.clock).thenReturn(clock)
   }
 
   trait SandboxSetup extends Setup {
@@ -46,7 +46,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         mockUnusedApplicationsRepository,
         mockUnusedApplicationsService,
         defaultConfiguration,
-        fixedClock,
+        clock,
         mockLockRepository
       )
   }
@@ -60,7 +60,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         mockUnusedApplicationsRepository,
         mockUnusedApplicationsService,
         defaultConfiguration,
-        fixedClock,
+        clock,
         mockLockRepository
       )
   }
@@ -74,7 +74,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
         .thenReturn(Future.successful(List(unusedApp)))
-      when(mockThirdPartyApplicationConnector.deleteApplication(eqTo(applicationId), eqTo(underTest.name), eqTo(reasons), eqTo(LocalDateTime.now(fixedClock)))(*))
+      when(mockThirdPartyApplicationConnector.deleteApplication(eqTo(applicationId), eqTo(underTest.name), eqTo(reasons), eqTo(now))(*))
         .thenReturn(Future.successful(ApplicationUpdateSuccessResult))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(environment, applicationId)).thenReturn(Future.successful(true))
 
@@ -85,7 +85,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.SANDBOX"),
         eqTo(reasons),
-        eqTo(LocalDateTime.now(fixedClock))
+        eqTo(now)
       )(*)
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
     }
@@ -107,7 +107,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.SANDBOX"),
         eqTo(reasons),
-        eqTo(LocalDateTime.now(fixedClock))
+        eqTo(now)
       )(*)
       verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
     }
@@ -132,7 +132,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.PRODUCTION"),
         eqTo(reasons),
-        eqTo(LocalDateTime.now(fixedClock))
+        eqTo(now)
       )(*)
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
     }
@@ -154,7 +154,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
         eqTo(applicationId),
         eqTo("DeleteUnusedApplicationsJob.PRODUCTION"),
         eqTo(reasons),
-        eqTo(LocalDateTime.now(fixedClock))
+        eqTo(now)
       )(*)
       verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
     }

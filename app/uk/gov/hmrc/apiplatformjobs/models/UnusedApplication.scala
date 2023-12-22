@@ -70,7 +70,7 @@ object Environment {
 
   implicit val writes: Writes[Environment] = Writes[Environment](role => JsString(role.toString))
 
-  implicit val format = Format(reads, writes)
+  implicit val format: Format[Environment] = Format(reads, writes)
 }
 
 object Environments {
@@ -80,7 +80,7 @@ object Environments {
 
 object MongoFormat {
 
-  implicit val localDateFormat = MongoJavatimeFormats.localDateFormat
+  implicit val localDateFormat: Format[LocalDate] = MongoJavatimeFormats.localDateFormat
 
   implicit val administratorFormat: Format[Administrator] = Format(Json.reads[Administrator], Json.writes[Administrator])
 

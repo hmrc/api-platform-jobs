@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import scala.concurrent.Future
 import scala.concurrent.Future._
@@ -27,7 +26,7 @@ import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
 import uk.gov.hmrc.http.HeaderCarrier
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{Collaborator, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, LaxEmailAddress, UserId}
@@ -45,10 +44,8 @@ import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
 class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
-
-  val FixedTimeNow: LocalDateTime = LocalDateTime.now(fixedClock)
-  val joeBloggs                   = "joe.bloggs@example.com".toLaxEmail
-  val johnDoe                     = "john.doe@example.com".toLaxEmail
+  val joeBloggs = "joe.bloggs@example.com".toLaxEmail
+  val johnDoe   = "john.doe@example.com".toLaxEmail
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -59,7 +56,7 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
   }
 
   trait Setup extends BaseSetup {
-    implicit val hc                                                = HeaderCarrier()
+    implicit val hc: HeaderCarrier                                 = HeaderCarrier()
     val lockKeeperSuccess: () => Boolean                           = () => true
     val mockLockKeeper: DeleteUnregisteredDevelopersJobLockService = new DeleteUnregisteredDevelopersJobLockService(mockLockRepository)
 

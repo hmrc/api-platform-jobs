@@ -23,7 +23,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.http.ContentTypes._
 import play.api.http.HeaderNames._
-import play.api.libs.json.Json
+import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
 
@@ -48,8 +48,8 @@ object ThirdPartyDeveloperConnector {
 
   object JsonFormatters {
     import play.api.libs.json.Format
-    implicit val FindUserIdResponseReads                                                                = Json.reads[FindUserIdResponse]
-    implicit val FindUserIdRequestWrite                                                                 = Json.writes[FindUserIdRequest]
+    implicit val FindUserIdResponseReads: Reads[FindUserIdResponse]                                     = Json.reads[FindUserIdResponse]
+    implicit val FindUserIdRequestWrite: Writes[FindUserIdRequest]                                      = Json.writes[FindUserIdRequest]
     implicit val formatDeleteDeveloperRequest: Format[DeleteDeveloperRequest]                           = Json.format[DeleteDeveloperRequest]
     implicit val formatDeleteUnregisteredDevelopersRequest: Format[DeleteUnregisteredDevelopersRequest] = Json.format[DeleteUnregisteredDevelopersRequest]
     implicit val formatDeveloperResponse: Format[DeveloperResponse]                                     = Json.format[DeveloperResponse]
