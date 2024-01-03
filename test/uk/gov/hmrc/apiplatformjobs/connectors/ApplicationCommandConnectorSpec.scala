@@ -29,7 +29,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpClient, InternalServerException}
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborators
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborators
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, UserId}
@@ -52,10 +52,10 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       .build()
 
   class Setup(proxyEnabled: Boolean = false) {
-    implicit val hc          = HeaderCarrier()
-    val apiKeyTest           = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
-    val bearer               = "TestBearerToken"
-    val authorisationKeyTest = "TestAuthorisationKey"
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val apiKeyTest                 = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
+    val bearer                     = "TestBearerToken"
+    val authorisationKeyTest       = "TestAuthorisationKey"
 
     val mockConfig = mock[ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig]
     when(mockConfig.productionBaseUrl).thenReturn(wireMockUrl)

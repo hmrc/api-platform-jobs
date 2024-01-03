@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
+import akka.stream.Materializer
 import akka.stream.testkit.NoMaterializer
 import org.mongodb.scala.Document
 import org.mongodb.scala.model.Filters
@@ -31,6 +32,7 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.models.Environments._
 import uk.gov.hmrc.apiplatformjobs.models.{Environments, UnusedApplication}
@@ -41,29 +43,32 @@ class UnusedApplicationsRepositorySpec
     with GuiceOneAppPerSuite
     with DefaultPlayMongoRepositorySupport[UnusedApplication]
     with BeforeAndAfterEach
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with FixedClock {
 
-  implicit val materializer = NoMaterializer
+  implicit val materializer: Materializer = NoMaterializer
 
-  private val unusedApplicationRepository = new UnusedApplicationsRepository(mongoComponent, fixedClock)
+  private val unusedApplicationRepository = new UnusedApplicationsRepository(mongoComponent, FixedClock.clock)
 
   override protected val repository: PlayMongoRepository[UnusedApplication] = unusedApplicationRepository
+
+  val todaysDate = now.toLocalDate()
 
   trait Setup {
 
     def sandboxApplication(
         applicationId: ApplicationId,
-        lastInteractionDate: LocalDate = LocalDate.now(fixedClock),
-        scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
-        scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)
+        lastInteractionDate: LocalDate = todaysDate,
+        scheduledNotificationDates: Seq[LocalDate] = Seq(todaysDate.plusDays(1)),
+        scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate()
       ) =
       UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), SANDBOX, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
 
     def productionApplication(
         applicationId: ApplicationId,
-        lastInteractionDate: LocalDate = LocalDate.now(fixedClock),
-        scheduledNotificationDates: Seq[LocalDate] = List(LocalDate.now(fixedClock).plusDays(1)),
-        scheduledDeletionDate: LocalDate = LocalDate.now(fixedClock).plusDays(30)
+        lastInteractionDate: LocalDate = todaysDate,
+        scheduledNotificationDates: Seq[LocalDate] = Seq(now.plusDays(1).toLocalDate()),
+        scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate()
       ) =
       UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), PRODUCTION, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
   }
@@ -109,9 +114,9 @@ class UnusedApplicationsRepositorySpec
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
-              sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
-              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              sandboxApplication(applicationId, scheduledNotificationDates = Seq(todaysDate.minusDays(1))),
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1))),
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1)))
             )
           )
           .toFuture()
@@ -129,9 +134,9 @@ class UnusedApplicationsRepositorySpec
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
-              sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
-              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              sandboxApplication(applicationId, scheduledNotificationDates = Seq(todaysDate.minusDays(2), todaysDate.minusDays(1))),
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1))),
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1)))
             )
           )
           .toFuture()
@@ -150,9 +155,9 @@ class UnusedApplicationsRepositorySpec
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
-              productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(1))),
-              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              productionApplication(applicationId, scheduledNotificationDates = Seq(todaysDate.minusDays(1))),
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1))),
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1)))
             )
           )
           .toFuture()
@@ -171,9 +176,9 @@ class UnusedApplicationsRepositorySpec
         unusedApplicationRepository.collection
           .insertMany(
             Seq(
-              productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1))),
-              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1))),
-              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(LocalDate.now.plusDays(1)))
+              productionApplication(applicationId, scheduledNotificationDates = Seq(todaysDate.minusDays(2), todaysDate.minusDays(1))),
+              productionApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1))),
+              sandboxApplication(ApplicationId.random, scheduledNotificationDates = Seq(todaysDate.plusDays(1)))
             )
           )
           .toFuture()
@@ -191,7 +196,7 @@ class UnusedApplicationsRepositorySpec
       val applicationId = ApplicationId.random
       await(
         unusedApplicationRepository.collection
-          .insertOne(sandboxApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1))))
+          .insertOne(sandboxApplication(applicationId, scheduledNotificationDates = Seq(todaysDate.minusDays(2), todaysDate.minusDays(1), todaysDate.plusDays(1))))
           .toFuture()
       )
 
@@ -206,14 +211,14 @@ class UnusedApplicationsRepositorySpec
             .map(_.toList.head)
         )
       updatedApplication.scheduledNotificationDates.size should be(1)
-      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be(true)
+      updatedApplication.scheduledNotificationDates.head.isAfter(todaysDate) should be(true)
     }
 
     "remove all scheduled notifications for PRODUCTION apps prior to a specific date" in new Setup {
       val applicationId = ApplicationId.random
       await(
         unusedApplicationRepository.collection
-          .insertOne(productionApplication(applicationId, scheduledNotificationDates = Seq(LocalDate.now.minusDays(2), LocalDate.now.minusDays(1), LocalDate.now.plusDays(1))))
+          .insertOne(productionApplication(applicationId, scheduledNotificationDates = Seq(todaysDate.minusDays(2), todaysDate.minusDays(1), todaysDate.plusDays(1))))
           .toFuture()
       )
 
@@ -228,14 +233,14 @@ class UnusedApplicationsRepositorySpec
             .map(_.toList.head)
         )
       updatedApplication.scheduledNotificationDates.size should be(1)
-      updatedApplication.scheduledNotificationDates.head.isAfter(LocalDate.now) should be(true)
+      updatedApplication.scheduledNotificationDates.head.isAfter(todaysDate) should be(true)
     }
   }
 
   "applicationsToBeDeleted" should {
     "correctly retrieve SANDBOX applications that are scheduled to be deleted" in new Setup {
-      val sandboxApplicationToBeDeleted: UnusedApplication    = sandboxApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.minusDays(1))
-      val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.plusDays(1))
+      val sandboxApplicationToBeDeleted: UnusedApplication    = sandboxApplication(ApplicationId.random, scheduledDeletionDate = todaysDate.minusDays(1))
+      val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(ApplicationId.random, scheduledDeletionDate = todaysDate.plusDays(1))
 
       await(
         unusedApplicationRepository.collection
@@ -250,7 +255,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(SANDBOX, LocalDateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(SANDBOX, now))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)
@@ -258,8 +263,8 @@ class UnusedApplicationsRepositorySpec
     }
 
     "correctly retrieve PRODUCTION applications that are scheduled to be deleted" in new Setup {
-      val productionApplicationToBeDeleted: UnusedApplication    = productionApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.minusDays(1))
-      val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(ApplicationId.random, scheduledDeletionDate = LocalDate.now.plusDays(1))
+      val productionApplicationToBeDeleted: UnusedApplication    = productionApplication(ApplicationId.random, scheduledDeletionDate = todaysDate.minusDays(1))
+      val productionApplicationToNotBeDeleted: UnusedApplication = productionApplication(ApplicationId.random, scheduledDeletionDate = todaysDate.plusDays(1))
 
       await(
         unusedApplicationRepository.collection.insertMany(
@@ -273,7 +278,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, LocalDateTime.now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, now))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)
@@ -323,7 +328,7 @@ class UnusedApplicationsRepositorySpec
   "ensure fix for loss of LDT in mongo java time Implicits works whilst we have 'bad' date (in string format)" should {
     "read date as string for last interactionDate" in {
       val rawMongoDoc =
-        """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : "2019-05-25T09:09:06.896", "scheduledNotificationDates" : [ ISODate("2023-05-21T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2023-05-21T00:00:00Z") }
+        """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : "2019-01-02T09:09:06.896", "scheduledNotificationDates" : [ ISODate("2020-01-01T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2020-01-01T00:00:00Z") }
           |""".stripMargin
       saveRawMongoJson(rawMongoDoc).wasAcknowledged() shouldBe true
       val results     = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environments.SANDBOX))
@@ -332,7 +337,7 @@ class UnusedApplicationsRepositorySpec
 
     "read date as LocalDate for last interactionDate" in {
       val rawMongoDoc =
-        """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : ISODate("2019-05-21T00:00:00Z"), "scheduledNotificationDates" : [ ISODate("2023-05-21T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2023-05-21T00:00:00Z") }
+        """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : ISODate("2019-01-02T00:00:00Z"), "scheduledNotificationDates" : [ ISODate("2020-01-01T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2020-01-01T00:00:00Z") }
           |""".stripMargin
       saveRawMongoJson(rawMongoDoc).wasAcknowledged() shouldBe true
       val results     = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environments.SANDBOX))

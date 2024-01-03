@@ -24,9 +24,9 @@ import com.typesafe.config.ConfigFactory
 import play.api.Configuration
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
-import uk.gov.hmrc.apiplatformjobs.util.FixedClock
 
 trait UnusedApplicationTestConfiguration extends FixedClock {
 

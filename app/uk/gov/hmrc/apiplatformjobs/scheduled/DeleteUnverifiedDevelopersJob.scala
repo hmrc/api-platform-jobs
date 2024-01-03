@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.Clock
 import javax.inject.Inject
 import scala.concurrent.Future.sequence
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -27,7 +27,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
-import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{
   ProductionApplicationCommandConnector,
@@ -44,10 +44,12 @@ class DeleteUnverifiedDevelopersJob @Inject() (
     val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
     val productionApplicationConnector: ProductionThirdPartyApplicationConnector,
     val sandboxCmdConnector: SandboxApplicationCommandConnector,
-    val productionCmdConnector: ProductionApplicationCommandConnector
+    val productionCmdConnector: ProductionApplicationCommandConnector,
+    val clock: Clock
   ) extends ScheduledMongoJob
     with DeleteDeveloper
-    with ApplicationLogger {
+    with ApplicationLogger
+    with ClockNow {
 
   override def name: String                                     = "DeleteUnverifiedDevelopersJob"
   override def interval: FiniteDuration                         = jobConfig.interval
@@ -61,7 +63,7 @@ class DeleteUnverifiedDevelopersJob @Inject() (
     logger.info("Starting DeleteUnverifiedDevelopersJob")
 
     (for {
-      developerDetails <- developerConnector.fetchUnverifiedDevelopers(LocalDateTime.now(ZoneOffset.UTC).minusDays(createdBeforeInDays), jobConfig.limit)
+      developerDetails <- developerConnector.fetchUnverifiedDevelopers(now().minusDays(createdBeforeInDays), jobConfig.limit)
       _                 = logger.info(s"Found ${developerDetails.size} unverified developers")
       _                <- sequence(developerDetails.map(deleteDeveloper("UnverifiedUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>

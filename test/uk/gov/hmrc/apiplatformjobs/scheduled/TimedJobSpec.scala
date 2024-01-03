@@ -17,16 +17,17 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime, LocalTime}
 import scala.concurrent.{ExecutionContext, Future}
 
 import com.typesafe.config.ConfigFactory
 
 import play.api.Configuration
 
+import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
+
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class TimedJobSpec extends AsyncHmrcSpec {
+class TimedJobSpec extends AsyncHmrcSpec with FixedClock {
 
   trait TestJobSetup extends BaseSetup {
 
@@ -40,7 +41,7 @@ class TimedJobSpec extends AsyncHmrcSpec {
                                                        |    enabled = $enabled
                                                        |  }""".stripMargin))
 
-      new TimedJob(jobName, configuration, fixedClock, mockLockRepository) {
+      new TimedJob(jobName, configuration, FixedClock.clock, mockLockRepository) {
         override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] =
           Future.successful(RunningOfJobSuccessful)
       }
@@ -49,8 +50,8 @@ class TimedJobSpec extends AsyncHmrcSpec {
 
   "calculateInitialDelay()" should {
     "correctly calculate time until first run if time is later today" in new TestJobSetup {
-      val futureTime    = LocalTime.now(fixedClock).plusHours(1).withSecond(0).withNano(0)
-      val expectedDelay = LocalDateTime.of(LocalDate.now(fixedClock), futureTime).toInstant(utc).toEpochMilli - LocalDateTime.now(fixedClock).toInstant(utc).toEpochMilli
+      val futureTime    = now.plusHours(1).withSecond(0).withNano(0)
+      val expectedDelay = futureTime.toInstant(utc).toEpochMilli - instant.toEpochMilli
 
       val jobToTest = testJob(futureTime.format(DateTimeFormatter.ofPattern("HH:mm")), "1d")
 
@@ -58,8 +59,8 @@ class TimedJobSpec extends AsyncHmrcSpec {
     }
 
     "correctly calculate time until first run if time is earlier today" in new TestJobSetup {
-      val pastTime      = LocalTime.now(fixedClock).minusHours(1).withSecond(0).withNano(0)
-      val expectedDelay = LocalDateTime.of(LocalDate.now(fixedClock), pastTime).plusDays(1).toInstant(utc).toEpochMilli - LocalDateTime.now(fixedClock).toInstant(utc).toEpochMilli
+      val pastTime      = now.minusHours(1).withSecond(0).withNano(0)
+      val expectedDelay = pastTime.plusDays(1).toInstant(utc).toEpochMilli - instant.toEpochMilli
 
       val jobToTest = testJob(pastTime.format(DateTimeFormatter.ofPattern("HH:mm")), "1d")
 

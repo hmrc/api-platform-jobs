@@ -31,6 +31,7 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, MongoFormat, UnusedApplication}
 
@@ -65,6 +66,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       ),
       replaceIndexes = true
     )
+    with ClockNow
     with MongoJavatimeFormats.Implicits {
 
   override lazy val requiresTtlIndex: Boolean = false // Entries are managed by scheduled jobs
@@ -78,7 +80,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(_.toList)
   }
 
-  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
+  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: LocalDateTime = now()): Future[List[UnusedApplication]] = {
     collection
       .find(
         and(
@@ -90,7 +92,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(_.toList)
   }
 
-  def updateNotificationsSent(environment: Environment, applicationId: ApplicationId, notificationDate: LocalDateTime = LocalDateTime.now(clock)): Future[Boolean] = {
+  def updateNotificationsSent(environment: Environment, applicationId: ApplicationId, notificationDate: LocalDateTime = now()): Future[Boolean] = {
     val query = Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId))
 
     collection
@@ -103,7 +105,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(!_.scheduledNotificationDates.exists(y => y.atStartOfDay.isBefore(notificationDate))) // No notification dates prior to specified date
   }
 
-  def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: LocalDateTime = LocalDateTime.now(clock)): Future[List[UnusedApplication]] = {
+  def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: LocalDateTime = now()): Future[List[UnusedApplication]] = {
     collection
       .find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", bsonLDT(deletionDate))))
       .toFuture()

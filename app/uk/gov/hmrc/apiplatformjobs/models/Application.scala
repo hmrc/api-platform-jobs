@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.Collaborator
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborator
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 
 case class Application(
@@ -27,5 +27,5 @@ case class Application(
   )
 
 object Application {
-  implicit val format = Json.format[Application]
+  implicit val format: Format[Application] = Json.format[Application]
 }

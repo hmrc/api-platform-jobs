@@ -22,19 +22,19 @@ import scala.concurrent.Future
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector}
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUsageDetails, Environments}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class UnusedApplicationsServiceSpec extends AsyncHmrcSpec {
+class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
 
   trait Setup extends BaseSetup {
     val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
     val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository                         = mock[UnusedApplicationsRepository]
-    when(mockUnusedApplicationsRepository.clock).thenReturn(fixedClock)
 
     val underTest    =
       new UnusedApplicationsService(mockProductionThirdPartyApplicationConnector, mockSandboxThirdPartyApplicationConnector, mockUnusedApplicationsRepository)

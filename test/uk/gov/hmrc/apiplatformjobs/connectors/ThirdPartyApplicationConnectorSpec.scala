@@ -31,7 +31,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{Collaborator, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, UserId}
 
@@ -47,10 +47,10 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
       .build()
 
   class Setup(proxyEnabled: Boolean = false) {
-    implicit val hc          = HeaderCarrier()
-    val apiKeyTest           = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
-    val bearer               = "TestBearerToken"
-    val authorisationKeyTest = "TestAuthorisationKey"
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val apiKeyTest                 = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
+    val bearer                     = "TestBearerToken"
+    val authorisationKeyTest       = "TestAuthorisationKey"
 
     val mockConfig = mock[ThirdPartyApplicationConnectorConfig]
     when(mockConfig.productionBaseUrl).thenReturn(wireMockUrl)
@@ -290,7 +290,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
   trait PaginatedTPAResponse {
     val applicationId   = ApplicationId.random
     val applicationName = Random.alphanumeric.take(10).mkString
-    val createdOn       = LocalDateTime.now(fixedClock).minusYears(1).truncatedTo(MILLIS)
+    val createdOn       = now.minusYears(1).truncatedTo(MILLIS)
     val lastAccess      = createdOn.plusDays(5)
 
     val pageNumber           = 1

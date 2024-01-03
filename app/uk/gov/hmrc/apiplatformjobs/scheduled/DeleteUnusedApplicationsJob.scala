@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.{Clock, LocalDateTime}
+import java.time.Clock
 import javax.inject.{Inject, Named, Singleton}
 import scala.util.control.NonFatal
 
 import play.api.Configuration
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockRepository
+
+import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, Environment, Environments, UnusedApplication}
@@ -37,7 +39,7 @@ abstract class DeleteUnusedApplicationsJob(
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
-  ) extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, lockRepository) {
+  ) extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, lockRepository) with ClockNow {
 
   import scala.concurrent._
 
@@ -72,7 +74,7 @@ abstract class DeleteUnusedApplicationsJob(
       logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})] in TPA")
       val reasons                    = s"Application automatically deleted because it has not been used since ${application.lastInteractionDate}"
       (for {
-        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId, name, reasons, LocalDateTime.now(clock))
+        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId, name, reasons, now())
         _: Unit          <- if (deleteSuccessful == ApplicationUpdateSuccessResult) {
                               logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
                               unusedApplicationsRepository
@@ -115,6 +117,7 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
       clock,
       lockRepository
     )
+    with ClockNow
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject() (

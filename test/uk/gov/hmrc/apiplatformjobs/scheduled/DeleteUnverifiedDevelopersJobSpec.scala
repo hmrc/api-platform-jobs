@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import scala.concurrent.Future
 import scala.concurrent.Future._
@@ -27,10 +26,11 @@ import org.scalatest.BeforeAndAfterAll
 import play.api.http.Status.OK
 import uk.gov.hmrc.http.HeaderCarrier
 
-import uk.gov.hmrc.apiplatform.modules.applications.domain.models.{Collaborator, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ApplicationResponse
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
@@ -44,9 +44,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
 
-class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll {
-
-  val FixedTimeNow: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
+class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll with FixedClock {
 
   val joeBloggs = "joe.bloggs@example.com".toLaxEmail
   val johnDoe   = "john.doe@example.com".toLaxEmail
@@ -61,7 +59,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
   trait Setup extends BaseSetup {
 
-    implicit val hc = HeaderCarrier()
+    implicit val hc: HeaderCarrier = HeaderCarrier()
 
     val mockLockKeeper: DeleteUnverifiedDevelopersJobLockService = new DeleteUnverifiedDevelopersJobLockService(mockLockRepository)
 
@@ -83,7 +81,8 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       mockSandboxThirdPartyApplicationConnector,
       mockProductionThirdPartyApplicationConnector,
       mockSandboxApplicationCmdConnector,
-      mockProductionApplicationCmdConnector
+      mockProductionApplicationCmdConnector,
+      clock
     )
   }
 
