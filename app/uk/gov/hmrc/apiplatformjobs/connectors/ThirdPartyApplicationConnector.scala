@@ -32,6 +32,8 @@ import uk.gov.hmrc.http.{HttpClient, _}
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborator
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
@@ -64,7 +66,14 @@ object ThirdPartyApplicationConnector {
       createdOn: Instant,
       lastAccess: Option[Instant]
     )
-  private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate], page: Int, pageSize: Int, total: Int, matching: Int)
+
+  private[connectors] case class PaginatedApplicationLastUseResponse(
+      applications: List[ApplicationLastUseDate],
+      page: Int,
+      pageSize: Int,
+      total: Int,
+      matching: Int
+    )
 
   case class ThirdPartyApplicationConnectorConfig(
       sandboxBaseUrl: String,
@@ -78,16 +87,9 @@ object ThirdPartyApplicationConnector {
 
   object JsonFormatters {
 
-    // implicit val dateTimeWriter: Writes[LocalDateTime] = LocalDateTimeEpochMilliWrites
-
-    // implicit val dateTimeReader: Reads[LocalDateTime] = {
-    //   case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue).atZone(ZoneOffset.UTC).toLocalDateTime)
-    //   case _           => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
-    // }
+    implicit val dateFormat: Format[Instant] = Format(lenientInstantReads, instantWithTimeZoneWrites)
 
     implicit val writesDeleteCollaboratorRequest: Writes[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
-
-    // implicit val dateTimeFormat: Format[LocalDateTime] = Format(dateTimeReader, dateTimeWriter)
 
     implicit val formatApplicationResponse: Format[ApplicationResponse]                             = Json.format[ApplicationResponse]
     implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate]                       = Json.format[ApplicationLastUseDate]
