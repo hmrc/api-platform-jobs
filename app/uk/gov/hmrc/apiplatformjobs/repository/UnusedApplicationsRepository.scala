@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.time.{Clock, LocalDateTime, ZoneOffset}
+import java.time.{Clock, Instant, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -71,8 +71,6 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
 
   override lazy val requiresTtlIndex: Boolean = false // Entries are managed by scheduled jobs
 
-  def bsonLDT(ldt: LocalDateTime) = Codecs.toBson(ldt.toInstant(ZoneOffset.UTC))
-
   def unusedApplications(environment: Environment): Future[List[UnusedApplication]] = {
     collection
       .find(equal("environment", Codecs.toBson(environment)))
@@ -80,34 +78,34 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(_.toList)
   }
 
-  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: LocalDateTime = now()): Future[List[UnusedApplication]] = {
+  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: Instant = instant()): Future[List[UnusedApplication]] = {
     collection
       .find(
         and(
           equal("environment", Codecs.toBson(environment)),
-          lte("scheduledNotificationDates", bsonLDT(notificationDate))
+          lte("scheduledNotificationDates", Codecs.toBson(notificationDate))
         )
       )
       .toFuture()
       .map(_.toList)
   }
 
-  def updateNotificationsSent(environment: Environment, applicationId: ApplicationId, notificationDate: LocalDateTime = now()): Future[Boolean] = {
+  def updateNotificationsSent(environment: Environment, applicationId: ApplicationId, notificationDate: Instant = instant()): Future[Boolean] = {
     val query = Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId))
 
     collection
       .findOneAndUpdate(
         filter = query,
-        update = Updates.pullByFilter(lte("scheduledNotificationDates", bsonLDT(notificationDate))),
+        update = Updates.pullByFilter(lte("scheduledNotificationDates", Codecs.toBson(notificationDate))),
         options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
       )
       .toFuture()
-      .map(!_.scheduledNotificationDates.exists(y => y.atStartOfDay.isBefore(notificationDate))) // No notification dates prior to specified date
+      .map(!_.scheduledNotificationDates.exists(y => y.atStartOfDay.toInstant(ZoneOffset.UTC).isBefore(notificationDate))) // No notification dates prior to specified date
   }
 
-  def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: LocalDateTime = now()): Future[List[UnusedApplication]] = {
+  def unusedApplicationsToBeDeleted(environment: Environment, deletionDate: Instant = instant()): Future[List[UnusedApplication]] = {
     collection
-      .find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", bsonLDT(deletionDate))))
+      .find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", Codecs.toBson(deletionDate))))
       .toFuture()
       .map(_.toList)
   }

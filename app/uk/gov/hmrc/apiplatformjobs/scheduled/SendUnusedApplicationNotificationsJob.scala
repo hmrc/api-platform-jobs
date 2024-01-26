@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.{Clock, LocalDateTime}
+import java.time.{Clock, Instant}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,7 +39,7 @@ abstract class SendUnusedApplicationNotificationsJob(
   ) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    val notificationTime = LocalDateTime.now(clock)
+    val notificationTime = Instant.now(clock)
 
     for {
       _            <- unusedApplicationsService.updateUnusedApplications()

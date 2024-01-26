@@ -17,7 +17,7 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.temporal.ChronoUnit
-import java.time.{Clock, LocalDate, LocalDateTime}
+import java.time.{Clock, Instant, LocalDate, ZoneOffset}
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,8 +42,8 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
-  def notificationCutoffDate(): LocalDateTime =
-    LocalDateTime
+  def notificationCutoffDate(): Instant =
+    Instant
       .now(clock)
       .minus(deleteUnusedApplicationsAfter(environment).toMillis, ChronoUnit.MILLIS)
       .plus(firstNotificationInAdvance(environment).toMillis, ChronoUnit.MILLIS)
@@ -105,7 +105,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
   def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
-    val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).toLocalDate
+    val lastInteractionDate               = LocalDate.ofInstant(applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate), ZoneOffset.UTC)
     val scheduledDeletionDate             = calculateScheduledDeletionDate(lastInteractionDate)
     val notificationSchedule              = calculateNotificationDates(scheduledDeletionDate)
 

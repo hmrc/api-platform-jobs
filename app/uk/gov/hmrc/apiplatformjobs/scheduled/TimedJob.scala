@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.ZoneOffset.UTC
-import java.time.{Clock, LocalDate, LocalDateTime, LocalTime}
+import java.time._
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
@@ -50,10 +50,10 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
   override def interval: FiniteDuration = jobConfig.executionInterval.interval
 
   def calculateInitialDelay(timeOfFirstRun: LocalTime): FiniteDuration = {
-    val currentDateTime        = LocalDateTime.now(clock)
-    val timeToday              = LocalDateTime.of(LocalDate.now(clock), timeOfFirstRun)
-    val nextInstanceOfTime     = if (timeToday.isBefore(currentDateTime)) timeToday.plusDays(1) else timeToday
-    val millisecondsToFirstRun = nextInstanceOfTime.toInstant(UTC).toEpochMilli - currentDateTime.toInstant(UTC).toEpochMilli
+    val currentDateTime        = Instant.now(clock)
+    val timeToday              = LocalDateTime.of(LocalDate.now(clock), timeOfFirstRun).toInstant(ZoneOffset.UTC)
+    val nextInstanceOfTime     = if (timeToday.isBefore(currentDateTime)) timeToday.plus(1, ChronoUnit.DAYS) else timeToday
+    val millisecondsToFirstRun = nextInstanceOfTime.toEpochMilli - currentDateTime.toEpochMilli
     millisecondsToFirstRun.milliseconds
   }
 

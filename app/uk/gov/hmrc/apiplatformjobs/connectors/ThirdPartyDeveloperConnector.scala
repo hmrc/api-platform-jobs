@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -58,10 +58,10 @@ object ThirdPartyDeveloperConnector {
 }
 
 @Singleton
-class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) extends RepsonseUtils {
+class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) extends ResponseUtils {
   import ThirdPartyDeveloperConnector._
 
-  val dateFormatter = DateTimeFormatter.BASIC_ISO_DATE
+  val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC)
 
   def fetchUserId(email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
     http
@@ -73,7 +73,7 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
     http.POST[GetOrCreateUserIdRequest, GetOrCreateUserIdResponse](s"${config.baseUrl}/developers/user-id", getOrCreateUserIdRequest, Seq(CONTENT_TYPE -> JSON))
   }
 
-  def fetchUnverifiedDevelopers(createdBefore: LocalDateTime, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
+  def fetchUnverifiedDevelopers(createdBefore: Instant, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
     val queryParams = Seq("createdBefore" -> dateFormatter.format(createdBefore), "limit" -> limit.toString, "status" -> "UNVERIFIED")
     http
       .GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers", queryParams)

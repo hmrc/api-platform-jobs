@@ -73,25 +73,25 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(eqTo(environment), eqTo(now)))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(eqTo(environment), eqTo(instant)))
         .thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(eqTo(unusedApplication), eqTo(environmentName)))
         .thenReturn(successful(true))
-      when(mockUnusedApplicationsRepository.updateNotificationsSent(eqTo(environment), eqTo(unusedApplication.applicationId), eqTo(now)))
+      when(mockUnusedApplicationsRepository.updateNotificationsSent(eqTo(environment), eqTo(unusedApplication.applicationId), eqTo(instant)))
         .thenReturn(successful(true))
 
       await(underTest.runJob)
 
       verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
-      verify(mockUnusedApplicationsRepository, times(1)).updateNotificationsSent(environment, unusedApplication.applicationId, now)
+      verify(mockUnusedApplicationsRepository, times(1)).updateNotificationsSent(environment, unusedApplication.applicationId, instant)
     }
 
     "not remove scheduled notification date if notifications could not be sent" in new SandboxSetup {
       val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, now)).thenReturn(Future.successful(List(unusedApplication)))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, instant)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
 
       await(underTest.runJob)
@@ -107,22 +107,22 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, now)).thenReturn(Future.successful(List(unusedApplication)))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, instant)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(true))
-      when(mockUnusedApplicationsRepository.updateNotificationsSent(environment, unusedApplication.applicationId, now)).thenReturn(successful(true))
+      when(mockUnusedApplicationsRepository.updateNotificationsSent(environment, unusedApplication.applicationId, instant)).thenReturn(successful(true))
 
       await(underTest.runJob)
 
       verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
-      verify(mockUnusedApplicationsRepository, times(1)).updateNotificationsSent(environment, unusedApplication.applicationId, now)
+      verify(mockUnusedApplicationsRepository, times(1)).updateNotificationsSent(environment, unusedApplication.applicationId, instant)
     }
 
     "not remove scheduled notification date if notifications could not be sent" in new ProductionSetup {
       val unusedApplication: UnusedApplication = unusedApplicationRecord(ApplicationId.random, environment)
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, now)).thenReturn(Future.successful(List(unusedApplication)))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, instant)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
 
       await(underTest.runJob)

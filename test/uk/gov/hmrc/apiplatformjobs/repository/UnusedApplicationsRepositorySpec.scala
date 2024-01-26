@@ -255,7 +255,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(SANDBOX, now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(SANDBOX, instant))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)
@@ -278,7 +278,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, now))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(PRODUCTION, instant))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)

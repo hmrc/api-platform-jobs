@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.LocalDateTime
+import java.time.Instant
 import scala.concurrent.Future.sequence
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,7 +43,7 @@ trait DeleteDeveloper {
   val deleteFunction: (LaxEmailAddress) => Future[Int]
 
   def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[HasSucceeded] = {
-    val timestamp = LocalDateTime.now()
+    val timestamp = Instant.now()
 
     val matchesCoreDetails: (Collaborator) => Boolean = (collaborator) => collaborator.userId == developer.id && collaborator.emailAddress == developer.email
 

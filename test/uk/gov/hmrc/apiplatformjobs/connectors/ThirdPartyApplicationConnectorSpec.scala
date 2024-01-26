@@ -17,8 +17,8 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit.MILLIS
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.temporal.ChronoUnit.{DAYS, MILLIS}
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
@@ -39,7 +39,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 
-class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
+class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -122,11 +122,11 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
     def paginatedResponse(lastUseDates: List[ApplicationLastUseDate]) =
       PaginatedApplicationLastUseResponse(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
+    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneOffset.UTC)
     val allowAutoDelete                  = true
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
-      val lastUseDate        = LocalDateTime.now.minusMonths(12)
+      val lastUseDate        = LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC)
       val dateString: String = dateFormatter.format(lastUseDate)
 
       val oldApplication1Admin = "foo@bar.com".toLaxEmail
@@ -135,8 +135,8 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           ApplicationId.random,
           Random.alphanumeric.take(10).mkString,
           Set(Collaborators.Administrator(UserId.random, oldApplication1Admin), Collaborators.Developer(UserId.random, "a@b.com".toLaxEmail)),
-          LocalDateTime.now.minusMonths(12),
-          Some(LocalDateTime.now.minusMonths(13))
+          LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC),
+          Some(LocalDateTime.now.minusMonths(13).toInstant(ZoneOffset.UTC))
         )
       val oldApplication2Admin = "bar@baz.com".toLaxEmail
       val oldApplication2      =
@@ -144,8 +144,8 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           ApplicationId.random,
           Random.alphanumeric.take(10).mkString,
           Set(Collaborators.Administrator(UserId.random, oldApplication2Admin), Collaborators.Developer(UserId.random, "b@c.com".toLaxEmail)),
-          LocalDateTime.now.minusMonths(12),
-          Some(LocalDateTime.now.minusMonths(14))
+          LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC),
+          Some(LocalDateTime.now.minusMonths(14).toInstant(ZoneOffset.UTC))
         )
 
       stubFor(
@@ -169,7 +169,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
     }
 
     "return empty Sequence when no results are returned" in new Setup {
-      val lastUseDate        = LocalDateTime.now.minusMonths(12)
+      val lastUseDate        = LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC)
       val dateString: String = dateFormatter.format(lastUseDate)
 
       stubFor(
@@ -219,7 +219,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", LocalDateTime.now))
+      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", Instant.now))
 
       response should be(ApplicationUpdateSuccessResult)
     }
@@ -235,7 +235,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
           )
       )
 
-      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", LocalDateTime.now))
+      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", Instant.now))
 
       response should be(ApplicationUpdateFailureResult)
     }
@@ -290,8 +290,8 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
   trait PaginatedTPAResponse {
     val applicationId   = ApplicationId.random
     val applicationName = Random.alphanumeric.take(10).mkString
-    val createdOn       = now.minusYears(1).truncatedTo(MILLIS)
-    val lastAccess      = createdOn.plusDays(5)
+    val createdOn       = now.minusYears(1).truncatedTo(MILLIS).toInstant(ZoneOffset.UTC)
+    val lastAccess      = createdOn.plus(5, DAYS)
 
     val pageNumber           = 1
     val pageSize             = 25
@@ -320,8 +320,8 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with RepsonseUtil
                       |          "role": "DEVELOPER"
                       |        }
                       |      ],
-                      |      "createdOn": ${createdOn.toInstant(ZoneOffset.UTC).toEpochMilli},
-                      |      "lastAccess": ${lastAccess.toInstant(ZoneOffset.UTC).toEpochMilli}
+                      |      "createdOn": ${createdOn.toEpochMilli},
+                      |      "lastAccess": ${lastAccess.toEpochMilli}
                       |    }
                       |  ],
                       |  "page": $pageNumber,

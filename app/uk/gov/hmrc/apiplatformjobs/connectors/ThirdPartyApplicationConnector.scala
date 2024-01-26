@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.{Instant, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -26,7 +26,6 @@ import com.google.inject.AbstractModule
 import com.google.inject.name.Names
 import org.apache.commons.codec.binary.Base64.encodeBase64String
 
-import play.api.libs.json.Writes.LocalDateTimeEpochMilliWrites
 import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
@@ -62,8 +61,8 @@ object ThirdPartyApplicationConnector {
       id: ApplicationId,
       name: String,
       collaborators: Set[Collaborator],
-      createdOn: LocalDateTime,
-      lastAccess: Option[LocalDateTime]
+      createdOn: Instant,
+      lastAccess: Option[Instant]
     )
   private[connectors] case class PaginatedApplicationLastUseResponse(applications: List[ApplicationLastUseDate], page: Int, pageSize: Int, total: Int, matching: Int)
 
@@ -79,16 +78,16 @@ object ThirdPartyApplicationConnector {
 
   object JsonFormatters {
 
-    implicit val dateTimeWriter: Writes[LocalDateTime] = LocalDateTimeEpochMilliWrites
+    // implicit val dateTimeWriter: Writes[LocalDateTime] = LocalDateTimeEpochMilliWrites
 
-    implicit val dateTimeReader: Reads[LocalDateTime] = {
-      case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue).atZone(ZoneOffset.UTC).toLocalDateTime)
-      case _           => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
-    }
+    // implicit val dateTimeReader: Reads[LocalDateTime] = {
+    //   case JsNumber(n) => JsSuccess(Instant.ofEpochMilli(n.longValue).atZone(ZoneOffset.UTC).toLocalDateTime)
+    //   case _           => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.time"))))
+    // }
 
     implicit val writesDeleteCollaboratorRequest: Writes[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
 
-    implicit val dateTimeFormat: Format[LocalDateTime] = Format(dateTimeReader, dateTimeWriter)
+    // implicit val dateTimeFormat: Format[LocalDateTime] = Format(dateTimeReader, dateTimeWriter)
 
     implicit val formatApplicationResponse: Format[ApplicationResponse]                             = Json.format[ApplicationResponse]
     implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate]                       = Json.format[ApplicationLastUseDate]
@@ -104,7 +103,7 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
   }
 }
 
-abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends RepsonseUtils with ApplicationUpdateFormatters {
+abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationUpdateFormatters {
 
   protected val httpClient: HttpClient
   val serviceBaseUrl: String
@@ -119,16 +118,18 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/$userId/applications")
   }
 
-  def applicationSearch(lastUseDate: Option[LocalDateTime], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {
+  def applicationSearch(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {
 
-    def getQueryParams(lastUseDate: Option[LocalDateTime], allowAutoDelete: Boolean): Seq[(String, String)] = {
+    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneOffset.UTC)
+
+    def getQueryParams(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Seq[(String, String)] = {
       val allowAutoDeleteAndSort: Seq[(String, String)] = Seq(
         "allowAutoDelete" -> allowAutoDelete.toString,
         "sort"            -> "NO_SORT"
       )
       lastUseDate match {
-        case Some(date: LocalDateTime) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date))
-        case None                      => allowAutoDeleteAndSort
+        case Some(date: Instant) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> dateFormatter.format(date))
+        case None                => allowAutoDeleteAndSort
       }
     }
 
@@ -142,7 +143,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       .map(page => toDomain(page.applications))
   }
 
-  def deleteApplication(applicationId: ApplicationId, jobId: String, reasons: String, timestamp: LocalDateTime)(implicit hc: HeaderCarrier): Future[ApplicationUpdateResult] = {
+  def deleteApplication(applicationId: ApplicationId, jobId: String, reasons: String, timestamp: Instant)(implicit hc: HeaderCarrier): Future[ApplicationUpdateResult] = {
     val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
     http
       .PATCH[DeleteUnusedApplication, Either[UpstreamErrorResponse, HttpResponse]](s"$serviceBaseUrl/application/${applicationId.value}", deleteRequest)

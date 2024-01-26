@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Instant, LocalDate, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -48,7 +48,7 @@ object SendEmailRequest {
 }
 
 @Singleton
-class EmailConnector @Inject() (httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) extends RepsonseUtils with ApplicationLogger {
+class EmailConnector @Inject() (httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationLogger {
   val serviceUrl = config.baseUrl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
@@ -94,7 +94,7 @@ object EmailConnector {
   def daysSince(date: LocalDate): Long = ChronoUnit.DAYS.between(date, LocalDate.now())
 
   def daysToDeletion(scheduledDeletionDate: LocalDate): String = {
-    val daysToDeletion = ChronoUnit.DAYS.between(LocalDateTime.now().toLocalDate, scheduledDeletionDate.atStartOfDay())
+    val daysToDeletion = ChronoUnit.DAYS.between(Instant.now().truncatedTo(ChronoUnit.DAYS), scheduledDeletionDate.atStartOfDay().toInstant(ZoneOffset.UTC))
     if (daysToDeletion == 1) s"${daysToDeletion.toString} day"
     else s"${daysToDeletion.toString} days"
   }

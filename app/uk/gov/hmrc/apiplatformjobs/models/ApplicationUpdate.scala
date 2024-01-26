@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.models
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 import play.api.libs.json._
 
 trait ApplicationUpdate {
-  def timestamp: LocalDateTime
+  def timestamp: Instant
 }
 
-case class DeleteUnusedApplication(jobId: String, authorisationKey: String, reasons: String, timestamp: LocalDateTime) extends ApplicationUpdate
+case class DeleteUnusedApplication(jobId: String, authorisationKey: String, reasons: String, timestamp: Instant) extends ApplicationUpdate
 
 trait ApplicationUpdateFormatters {
 

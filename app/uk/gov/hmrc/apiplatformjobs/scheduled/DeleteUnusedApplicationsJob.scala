@@ -74,7 +74,7 @@ abstract class DeleteUnusedApplicationsJob(
       logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})] in TPA")
       val reasons                    = s"Application automatically deleted because it has not been used since ${application.lastInteractionDate}"
       (for {
-        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId, name, reasons, now())
+        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId, name, reasons, instant())
         _: Unit          <- if (deleteSuccessful == ApplicationUpdateSuccessResult) {
                               logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
                               unusedApplicationsRepository
