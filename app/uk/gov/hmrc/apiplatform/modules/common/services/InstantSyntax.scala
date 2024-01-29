@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.apiplatform.modules.common.services
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneOffset}
 
 trait InstantSyntax {
 
   implicit class InstantSyntax(instant: Instant) {
     def asLDT(): LocalDateTime = instant.atZone(ZoneOffset.UTC).toLocalDateTime()
+    def asLD(): LocalDate      = instant.atZone(ZoneOffset.UTC).toLocalDate()
   }
 }

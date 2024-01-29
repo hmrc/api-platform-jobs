@@ -17,7 +17,7 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.temporal.ChronoUnit
-import java.time.{Clock, Instant, LocalDate, ZoneOffset}
+import java.time.{Clock, Instant, LocalDate}
 import javax.inject.{Inject, Named, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -25,6 +25,7 @@ import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
+import uk.gov.hmrc.apiplatform.modules.common.services.InstantSyntax
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments, _}
@@ -38,7 +39,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
     configuration: Configuration,
     override val clock: Clock,
     lockRepository: LockRepository
-  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
+  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) with InstantSyntax {
 
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
@@ -104,7 +105,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
   def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
-    val lastInteractionDate               = LocalDate.ofInstant(applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate), ZoneOffset.UTC)
+    val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).asLD()
     val scheduledDeletionDate             = calculateScheduledDeletionDate(lastInteractionDate)
     val notificationSchedule              = calculateNotificationDates(scheduledDeletionDate)
 
