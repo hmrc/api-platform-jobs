@@ -37,7 +37,7 @@ abstract class DeleteUnusedApplicationsJob(
     unusedApplicationsService: UnusedApplicationsService,
     environment: Environment,
     configuration: Configuration,
-    clock: Clock,
+    override val clock: Clock,
     lockRepository: LockRepository
   ) extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, lockRepository) with ClockNow {
 

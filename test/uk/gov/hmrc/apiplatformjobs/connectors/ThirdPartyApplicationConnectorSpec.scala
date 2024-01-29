@@ -126,7 +126,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
     val allowAutoDelete                  = true
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
-      val lastUseLDT         = LocalDateTime.now.minusMonths(12)
+      val lastUseLDT         = now.minusMonths(12)
       val lastUseDate        = lastUseLDT.toInstant(ZoneOffset.UTC)
       val dateString: String = dateFormatter.format(lastUseLDT)
 

@@ -36,15 +36,14 @@ abstract class UpdateUnusedApplicationRecordsJob(
     unusedApplicationsRepository: UnusedApplicationsRepository,
     environment: Environment,
     configuration: Configuration,
-    clock: Clock,
+    override val clock: Clock,
     lockRepository: LockRepository
   ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
 
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
   def notificationCutoffDate(): Instant =
-    Instant
-      .now(clock)
+    instant()
       .minus(deleteUnusedApplicationsAfter(environment).toMillis, ChronoUnit.MILLIS)
       .plus(firstNotificationInAdvance(environment).toMillis, ChronoUnit.MILLIS)
 

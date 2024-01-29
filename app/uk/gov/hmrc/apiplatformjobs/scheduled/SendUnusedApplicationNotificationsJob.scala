@@ -34,7 +34,7 @@ abstract class SendUnusedApplicationNotificationsJob(
     unusedApplicationsService: UnusedApplicationsService,
     environment: Environment,
     configuration: Configuration,
-    clock: Clock,
+    override val clock: Clock,
     lockRepository: LockRepository
   ) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
 
@@ -62,7 +62,7 @@ class SendUnusedSandboxApplicationNotificationsJob @Inject() (
     emailConnector: EmailConnector,
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
-    clock: Clock,
+    override val clock: Clock,
     lockRepository: LockRepository
   ) extends SendUnusedApplicationNotificationsJob(
       unusedApplicationsRepository,
@@ -80,7 +80,7 @@ class SendUnusedProductionApplicationNotificationsJob @Inject() (
     emailConnector: EmailConnector,
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
-    clock: Clock,
+    override val clock: Clock,
     lockRepository: LockRepository
   ) extends SendUnusedApplicationNotificationsJob(
       unusedApplicationsRepository,

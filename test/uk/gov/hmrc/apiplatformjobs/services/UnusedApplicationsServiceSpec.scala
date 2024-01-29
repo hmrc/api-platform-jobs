@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.services
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.ZoneOffset
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -40,8 +40,8 @@ class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
       new UnusedApplicationsService(mockProductionThirdPartyApplicationConnector, mockSandboxThirdPartyApplicationConnector, mockUnusedApplicationsRepository)
     val sandboxAppId = ApplicationId.random
     val prodAppId    = ApplicationId.random
-    val createdOn    = LocalDateTime.now.minusMonths(18).toInstant(ZoneOffset.UTC)
-    val lastUseDate  = LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC)
+    val createdOn    = now.minusMonths(18).toInstant(ZoneOffset.UTC)
+    val lastUseDate  = now.minusMonths(12).toInstant(ZoneOffset.UTC)
     val sandboxApp   = ApplicationUsageDetails(sandboxAppId, "app name", Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
     val prodApp      = ApplicationUsageDetails(prodAppId, "app name", Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
   }
