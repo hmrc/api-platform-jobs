@@ -17,8 +17,8 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.nio.charset.StandardCharsets.UTF_8
+import java.time.Instant
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,6 +34,7 @@ import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collabora
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
+import uk.gov.hmrc.apiplatform.modules.common.services.InstantSyntax
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
@@ -105,7 +106,7 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
   }
 }
 
-abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationUpdateFormatters {
+abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationUpdateFormatters with InstantSyntax {
 
   protected val httpClient: HttpClient
   val serviceBaseUrl: String
@@ -122,15 +123,13 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
   def applicationSearch(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {
 
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneOffset.UTC)
-
     def getQueryParams(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Seq[(String, String)] = {
       val allowAutoDeleteAndSort: Seq[(String, String)] = Seq(
         "allowAutoDelete" -> allowAutoDelete.toString,
         "sort"            -> "NO_SORT"
       )
       lastUseDate match {
-        case Some(date: Instant) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> dateFormatter.format(date))
+        case Some(date: Instant) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date.asLDT()))
         case None                => allowAutoDeleteAndSort
       }
     }

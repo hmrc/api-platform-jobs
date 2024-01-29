@@ -122,12 +122,13 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
     def paginatedResponse(lastUseDates: List[ApplicationLastUseDate]) =
       PaginatedApplicationLastUseResponse(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneOffset.UTC)
+    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
     val allowAutoDelete                  = true
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
-      val lastUseDate        = LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC)
-      val dateString: String = dateFormatter.format(lastUseDate)
+      val lastUseLDT         = LocalDateTime.now.minusMonths(12)
+      val lastUseDate        = lastUseLDT.toInstant(ZoneOffset.UTC)
+      val dateString: String = dateFormatter.format(lastUseLDT)
 
       val oldApplication1Admin = "foo@bar.com".toLaxEmail
       val oldApplication1      =
@@ -169,8 +170,9 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
     }
 
     "return empty Sequence when no results are returned" in new Setup {
-      val lastUseDate        = LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC)
-      val dateString: String = dateFormatter.format(lastUseDate)
+      val lastUseLDT         = LocalDateTime.now.minusMonths(12)
+      val lastUseDate        = lastUseLDT.toInstant(ZoneOffset.UTC)
+      val dateString: String = dateFormatter.format(lastUseLDT)
 
       stubFor(
         get(urlPathEqualTo("/applications"))
