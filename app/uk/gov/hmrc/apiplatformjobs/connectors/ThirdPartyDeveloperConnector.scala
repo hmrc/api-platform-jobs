@@ -28,7 +28,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{LaxEmailAddress, UserId}
-import uk.gov.hmrc.apiplatform.modules.common.services.InstantSyntax
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
@@ -60,7 +60,7 @@ object ThirdPartyDeveloperConnector {
 
 @Singleton
 class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext)
-    extends ResponseUtils with InstantSyntax {
+    extends ResponseUtils {
 
   import ThirdPartyDeveloperConnector._
 
@@ -77,7 +77,7 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
   }
 
   def fetchUnverifiedDevelopers(createdBefore: Instant, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
-    val queryParams = Seq("createdBefore" -> dateFormatter.format(createdBefore.asLDT()), "limit" -> limit.toString, "status" -> "UNVERIFIED")
+    val queryParams = Seq("createdBefore" -> dateFormatter.format(createdBefore.asLocalDateTime), "limit" -> limit.toString, "status" -> "UNVERIFIED")
     http
       .GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers", queryParams)
       .map(_.map(d => CoreUserDetails(d.email, d.userId)))

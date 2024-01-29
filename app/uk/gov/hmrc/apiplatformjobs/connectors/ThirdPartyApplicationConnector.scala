@@ -34,7 +34,7 @@ import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collabora
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
-import uk.gov.hmrc.apiplatform.modules.common.services.InstantSyntax
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
@@ -106,7 +106,7 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
   }
 }
 
-abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationUpdateFormatters with InstantSyntax {
+abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationUpdateFormatters {
 
   protected val httpClient: HttpClient
   val serviceBaseUrl: String
@@ -129,7 +129,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
         "sort"            -> "NO_SORT"
       )
       lastUseDate match {
-        case Some(date: Instant) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date.asLDT()))
+        case Some(date: Instant) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date.asLocalDateTime))
         case None                => allowAutoDeleteAndSort
       }
     }

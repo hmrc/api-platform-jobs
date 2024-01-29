@@ -25,7 +25,7 @@ import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
-import uk.gov.hmrc.apiplatform.modules.common.services.InstantSyntax
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments, _}
@@ -39,7 +39,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
     configuration: Configuration,
     override val clock: Clock,
     lockRepository: LockRepository
-  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) with InstantSyntax {
+  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
 
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
@@ -105,7 +105,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
   def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
-    val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).asLD()
+    val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).asLocalDate
     val scheduledDeletionDate             = calculateScheduledDeletionDate(lastInteractionDate)
     val notificationSchedule              = calculateNotificationDates(scheduledDeletionDate)
 

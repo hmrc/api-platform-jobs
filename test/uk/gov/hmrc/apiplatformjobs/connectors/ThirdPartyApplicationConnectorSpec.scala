@@ -17,7 +17,7 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit.{DAYS, MILLIS}
+import java.time.temporal.ChronoUnit.DAYS
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
@@ -127,7 +127,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val lastUseLDT         = now.minusMonths(12)
-      val lastUseDate        = lastUseLDT.toInstant(ZoneOffset.UTC)
+      val lastUseDate        = lastUseLDT.asInstant
       val dateString: String = dateFormatter.format(lastUseLDT)
 
       val oldApplication1Admin = "foo@bar.com".toLaxEmail
@@ -170,8 +170,8 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
     }
 
     "return empty Sequence when no results are returned" in new Setup {
-      val lastUseLDT         = LocalDateTime.now.minusMonths(12)
-      val lastUseDate        = lastUseLDT.toInstant(ZoneOffset.UTC)
+      val lastUseLDT         = now.minusMonths(12)
+      val lastUseDate        = lastUseLDT.asInstant
       val dateString: String = dateFormatter.format(lastUseLDT)
 
       stubFor(
@@ -292,7 +292,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
   trait PaginatedTPAResponse {
     val applicationId   = ApplicationId.random
     val applicationName = Random.alphanumeric.take(10).mkString
-    val createdOn       = now.minusYears(1).truncatedTo(MILLIS).toInstant(ZoneOffset.UTC)
+    val createdOn       = now.minusYears(1).asInstant
     val lastAccess      = createdOn.plus(5, DAYS)
 
     val pageNumber           = 1
