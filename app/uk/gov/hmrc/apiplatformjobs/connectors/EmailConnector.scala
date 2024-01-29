@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.time.{Instant, LocalDate, ZoneOffset}
+import java.time.{LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -94,7 +94,7 @@ object EmailConnector {
   def daysSince(date: LocalDate): Long = ChronoUnit.DAYS.between(date, LocalDate.now())
 
   def daysToDeletion(scheduledDeletionDate: LocalDate): String = {
-    val daysToDeletion = ChronoUnit.DAYS.between(Instant.now().truncatedTo(ChronoUnit.DAYS), scheduledDeletionDate.atStartOfDay().toInstant(ZoneOffset.UTC))
+    val daysToDeletion = ChronoUnit.DAYS.between(LocalDateTime.now().toLocalDate, scheduledDeletionDate.atStartOfDay())
     if (daysToDeletion == 1) s"${daysToDeletion.toString} day"
     else s"${daysToDeletion.toString} days"
   }
