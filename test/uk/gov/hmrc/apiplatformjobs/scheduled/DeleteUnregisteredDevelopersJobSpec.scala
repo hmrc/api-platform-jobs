@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import scala.concurrent.Future
 import scala.concurrent.Future._
@@ -25,6 +26,7 @@ import org.scalatest.BeforeAndAfterAll
 
 import play.api.http.Status.OK
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.lock.Lock
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
@@ -60,7 +62,7 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     val lockKeeperSuccess: () => Boolean                           = () => true
     val mockLockKeeper: DeleteUnregisteredDevelopersJobLockService = new DeleteUnregisteredDevelopersJobLockService(mockLockRepository)
 
-    when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(true))
+    when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(Some(Lock("", "", Instant.now, Instant.now))))
     when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 
     val deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig           =
@@ -180,7 +182,7 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
 
     "not execute if the job is already running" in new Setup {
       override val lockKeeperSuccess: () => Boolean = () => false
-      when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(false))
+      when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(None))
 
       val result: underTest.Result = await(underTest.execute)
 

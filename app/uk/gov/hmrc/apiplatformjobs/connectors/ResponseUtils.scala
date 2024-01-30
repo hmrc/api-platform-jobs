@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import uk.gov.hmrc.http.{HttpResponse, UpstreamErrorResponse}
 
-trait RepsonseUtils {
+trait ResponseUtils {
 
   type ErrorOr[T] = Either[UpstreamErrorResponse, T]
 

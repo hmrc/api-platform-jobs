@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.Clock
+import java.time.{Clock, Duration}
 import javax.inject.Inject
 import scala.concurrent.Future.sequence
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
@@ -63,7 +63,7 @@ class DeleteUnverifiedDevelopersJob @Inject() (
     logger.info("Starting DeleteUnverifiedDevelopersJob")
 
     (for {
-      developerDetails <- developerConnector.fetchUnverifiedDevelopers(now().minusDays(createdBeforeInDays), jobConfig.limit)
+      developerDetails <- developerConnector.fetchUnverifiedDevelopers(instant().minus(Duration.ofDays(createdBeforeInDays)), jobConfig.limit)
       _                 = logger.info(s"Found ${developerDetails.size} unverified developers")
       _                <- sequence(developerDetails.map(deleteDeveloper("UnverifiedUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.apiplatformjobs.models
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Instant, LocalDate}
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -29,8 +29,8 @@ case class ApplicationUsageDetails(
     applicationId: ApplicationId,
     applicationName: String,
     administrators: Set[LaxEmailAddress],
-    creationDate: LocalDateTime,
-    lastAccessDate: Option[LocalDateTime]
+    creationDate: Instant,
+    lastAccessDate: Option[Instant]
   )
 
 // TODO - what is this - has this joined TPD and Collaborator ??

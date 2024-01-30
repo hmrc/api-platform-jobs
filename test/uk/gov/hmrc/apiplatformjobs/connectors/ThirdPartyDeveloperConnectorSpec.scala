@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -68,7 +68,7 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
               .withJsonBody(Seq(DeveloperResponse(devEmail, "Fred", "Bloggs", verified = false, userId)))
           )
       )
-      val result = await(connector.fetchUnverifiedDevelopers(LocalDateTime.of(2020, 2, 1, 0, 0), limit))
+      val result = await(connector.fetchUnverifiedDevelopers(LocalDateTime.of(2020, 2, 1, 0, 0).toInstant(ZoneOffset.UTC), limit))
 
       result shouldBe Seq(CoreUserDetails(devEmail, userId))
     }
@@ -82,7 +82,7 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
           )
       )
       intercept[UpstreamErrorResponse] {
-        await(connector.fetchUnverifiedDevelopers(LocalDateTime.now(), limit))
+        await(connector.fetchUnverifiedDevelopers(Instant.now(), limit))
       }
     }
   }

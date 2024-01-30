@@ -33,15 +33,16 @@ import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collabora
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
 
-class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
+class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding with FixedClock {
 
   val appId        = ApplicationId.random
   val actor        = Actors.ScheduledJob("TestMe")
-  val timestamp    = LocalDateTime.now()
+  val timestamp    = instant
   val userId       = UserId.random
   val emailAddress = "bob@example.com".toLaxEmail
   val collaborator = Collaborators.Developer(userId, emailAddress)
@@ -73,7 +74,7 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
       val jsonText              =
         s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
-      val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0)
+      val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
       val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
       val req                   = DispatchRequest(cmd, Set(anAdminEmail))
       import cats.syntax.option._
@@ -90,7 +91,7 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with RepsonseUtils w
       val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
       val jsonText              =
         s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
-      val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0)
+      val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
       val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
       val req                   = DispatchRequest(cmd, Set.empty)
       import cats.syntax.option._

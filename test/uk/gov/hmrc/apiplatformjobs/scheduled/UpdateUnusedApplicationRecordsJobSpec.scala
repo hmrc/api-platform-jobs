@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDate, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
@@ -95,12 +96,12 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
   "notificationCutoffDate" should {
     "correctly calculate date to retrieve applications not used since" in new SandboxJobSetup {
-      val daysDifference                    = deleteUnusedApplicationsAfter - notifyDeletionPendingInAdvance
-      val expectedCutoffDate: LocalDateTime = now.minusDays(daysDifference)
+      val daysDifference              = deleteUnusedApplicationsAfter - notifyDeletionPendingInAdvance
+      val expectedCutoffDate: Instant = instant.minus(daysDifference, ChronoUnit.DAYS)
 
       val calculatedCutoffDate = underTest.notificationCutoffDate()
 
-      calculatedCutoffDate.toInstant(utc).toEpochMilli shouldBe (expectedCutoffDate.toInstant(utc).toEpochMilli)
+      calculatedCutoffDate.toEpochMilli shouldBe (expectedCutoffDate.toEpochMilli)
     }
   }
 
@@ -188,7 +189,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     "add newly discovered unused applications with last used dates to database" in new SandboxJobSetup {
       val adminUserEmail                                                           = "foo@bar.com".toLaxEmail
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environments.SANDBOX, now.minusMonths(13), Some(now.minusMonths(13)), Set(adminUserEmail))
+        applicationDetails(Environments.SANDBOX, now.minusMonths(13).toInstant(ZoneOffset.UTC), Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)), Set(adminUserEmail))
 
       when(mockSandboxThirdPartyApplicationConnector.applicationSearch(*, *))
         .thenReturn(successful(List(applicationWithLastUseDate._1)))
@@ -215,7 +216,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     "add newly discovered unused applications with no last used dates to database" in new SandboxJobSetup {
       val adminUserEmail                                                              = "foo@bar.com".toLaxEmail
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(SANDBOX, now.minusMonths(13), None, Set(adminUserEmail)) // scalastyle:off magic.number
+        applicationDetails(SANDBOX, now.minusMonths(13).toInstant(ZoneOffset.UTC), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
       when(mockSandboxThirdPartyApplicationConnector.applicationSearch(*, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
@@ -241,8 +242,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
           Environments.SANDBOX,
-          now.minusMonths(13),
-          Some(now.minusMonths(13)),
+          now.minusMonths(13).toInstant(ZoneOffset.UTC),
+          Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
@@ -260,8 +261,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
           Environments.SANDBOX,
-          now.minusMonths(13),
-          Some(now.minusMonths(13)),
+          now.minusMonths(13).toInstant(ZoneOffset.UTC),
+          Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
@@ -285,8 +286,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
           Environments.PRODUCTION,
-          now.minusMonths(13),
-          Some(now.minusMonths(13)),
+          now.minusMonths(13).toInstant(ZoneOffset.UTC),
+          Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set(adminUserEmail)
         ) // scalastyle:off magic.number
 
@@ -313,7 +314,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     "add newly discovered unused applications with no last used dates to database" in new ProductionJobSetup {
       val adminUserEmail                                                              = "foo@bar.com".toLaxEmail
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environments.PRODUCTION, now.minusMonths(13), None, Set(adminUserEmail)) // scalastyle:off magic.number
+        applicationDetails(Environments.PRODUCTION, now.minusMonths(13).toInstant(ZoneOffset.UTC), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
       when(mockProductionThirdPartyApplicationConnector.applicationSearch(*, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
@@ -338,8 +339,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
           Environments.PRODUCTION,
-          now.minusMonths(13),
-          Some(now.minusMonths(13)),
+          now.minusMonths(13).toInstant(ZoneOffset.UTC),
+          Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
@@ -360,8 +361,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
           Environments.PRODUCTION,
-          now.minusMonths(13),
-          Some(now.minusMonths(13)),
+          now.minusMonths(13).toInstant(ZoneOffset.UTC),
+          Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
@@ -382,14 +383,14 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
   private def applicationDetails(
       environment: Environment,
-      creationDate: LocalDateTime,
-      lastAccessDate: Option[LocalDateTime],
+      creationDate: Instant,
+      lastAccessDate: Option[Instant],
       administrators: Set[LaxEmailAddress]
     ): (ApplicationUsageDetails, UnusedApplication) = {
     val applicationId        = ApplicationId.random
     val applicationName      = Random.alphanumeric.take(10).mkString
     val administratorDetails = administrators.map(admin => new Administrator(admin, "Foo", "Bar"))
-    val lastInteractionDate  = lastAccessDate.getOrElse(creationDate).toLocalDate
+    val lastInteractionDate  = LocalDate.ofInstant(lastAccessDate.getOrElse(creationDate), ZoneOffset.UTC)
 
     (
       ApplicationUsageDetails(applicationId, applicationName, administrators, creationDate, lastAccessDate),

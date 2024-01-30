@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.ZoneOffset.UTC
-import java.time.{Clock, LocalDate, LocalDateTime, LocalTime}
+import java.time._
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
@@ -28,12 +27,13 @@ import net.ceedubs.ficus.Ficus._
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
-import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
 
-abstract class TimedJob @Inject() (override val name: String, configuration: Configuration, clock: Clock, lockRepository: LockRepository)
+abstract class TimedJob @Inject() (override val name: String, configuration: Configuration, val clock: Clock, lockRepository: LockRepository)
     extends ScheduledMongoJob
     with TimedJobConfigReaders
-    with PrefixLogger {
+    with PrefixLogger
+    with ClockNow {
 
   override val logPrefix: String        = s"[$name]"
   override val lockService: LockService = new MongoLockService(s"$name-Lock", lockRepository)
@@ -50,10 +50,10 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
   override def interval: FiniteDuration = jobConfig.executionInterval.interval
 
   def calculateInitialDelay(timeOfFirstRun: LocalTime): FiniteDuration = {
-    val currentDateTime        = LocalDateTime.now(clock)
-    val timeToday              = LocalDateTime.of(LocalDate.now(clock), timeOfFirstRun)
-    val nextInstanceOfTime     = if (timeToday.isBefore(currentDateTime)) timeToday.plusDays(1) else timeToday
-    val millisecondsToFirstRun = nextInstanceOfTime.toInstant(UTC).toEpochMilli - currentDateTime.toInstant(UTC).toEpochMilli
+    val currentDateTime        = instant()
+    val timeToday              = LocalDateTime.of(now().toLocalDate, timeOfFirstRun).toInstant(ZoneOffset.UTC)
+    val nextInstanceOfTime     = if (timeToday.isBefore(currentDateTime)) timeToday.plus(Duration.ofDays(1)) else timeToday
+    val millisecondsToFirstRun = nextInstanceOfTime.toEpochMilli - currentDateTime.toEpochMilli
     millisecondsToFirstRun.milliseconds
   }
 

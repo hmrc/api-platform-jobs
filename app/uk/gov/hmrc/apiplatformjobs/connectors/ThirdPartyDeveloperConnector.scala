@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.time.LocalDateTime
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,6 +28,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
@@ -58,7 +59,9 @@ object ThirdPartyDeveloperConnector {
 }
 
 @Singleton
-class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext) extends RepsonseUtils {
+class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClient)(implicit ec: ExecutionContext)
+    extends ResponseUtils {
+
   import ThirdPartyDeveloperConnector._
 
   val dateFormatter = DateTimeFormatter.BASIC_ISO_DATE
@@ -73,8 +76,8 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
     http.POST[GetOrCreateUserIdRequest, GetOrCreateUserIdResponse](s"${config.baseUrl}/developers/user-id", getOrCreateUserIdRequest, Seq(CONTENT_TYPE -> JSON))
   }
 
-  def fetchUnverifiedDevelopers(createdBefore: LocalDateTime, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
-    val queryParams = Seq("createdBefore" -> dateFormatter.format(createdBefore), "limit" -> limit.toString, "status" -> "UNVERIFIED")
+  def fetchUnverifiedDevelopers(createdBefore: Instant, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
+    val queryParams = Seq("createdBefore" -> dateFormatter.format(createdBefore.asLocalDateTime), "limit" -> limit.toString, "status" -> "UNVERIFIED")
     http
       .GET[Seq[DeveloperResponse]](s"${config.baseUrl}/developers", queryParams)
       .map(_.map(d => CoreUserDetails(d.email, d.userId)))

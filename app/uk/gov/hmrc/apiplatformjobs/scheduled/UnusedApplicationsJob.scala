@@ -28,7 +28,7 @@ import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
 import uk.gov.hmrc.apiplatformjobs.models.Environment
 
-abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, val clock: Clock, lockRepository: LockRepository)
+abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, override val clock: Clock, lockRepository: LockRepository)
     extends TimedJob(s"$jobName.$environment", configuration, clock, lockRepository)
     with UnusedApplicationsTimings with ClockNow {
 
