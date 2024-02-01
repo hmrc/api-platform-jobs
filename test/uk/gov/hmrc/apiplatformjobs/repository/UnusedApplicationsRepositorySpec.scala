@@ -20,8 +20,8 @@ import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
-import akka.stream.Materializer
-import akka.stream.testkit.NoMaterializer
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.testkit.NoMaterializer
 import org.mongodb.scala.Document
 import org.mongodb.scala.model.Filters
 import org.mongodb.scala.result.InsertOneResult
