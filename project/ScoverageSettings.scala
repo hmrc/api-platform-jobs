@@ -1,4 +1,4 @@
-import scoverage.ScoverageKeys._
+import scoverage.ScoverageKeys.*
 
 object ScoverageSettings {
   def apply() = Seq(
@@ -13,7 +13,6 @@ object ScoverageSettings {
       "app.*",
       ".*Reverse.*",
       ".*Routes.*",
-      "com.kenshoo.play.metrics.*",
       ".*definition.*",
       "uk.gov.hmrc.BuildInfo.*",
       "uk\\.gov\\.hmrc\\.apiplatform\\.modules\\.applications\\..*",
