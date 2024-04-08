@@ -73,7 +73,7 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
       val anAdminEmail          = "admin@example.com".toLaxEmail
       val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
       val jsonText              =
-        s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
+        s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00.000Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
       val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
       val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
       val req                   = DispatchRequest(cmd, Set(anAdminEmail))
@@ -90,7 +90,7 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
     "dispatch request with no emails" should {
       val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
       val jsonText              =
-        s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
+        s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00.000Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
       val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
       val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
       val req                   = DispatchRequest(cmd, Set.empty)
