@@ -3,7 +3,7 @@ import sbt._
 object AppDependencies {
   def apply(): Seq[ModuleID] = compileDeps ++ testDeps
 
-  private lazy val bootstrapVersion = "8.4.0"
+  private lazy val bootstrapVersion = "9.0.0"
   private lazy val hmrcMongoVersion = "1.7.0"
   private lazy val commonDomainVersion = "0.13.0"
   private lazy val appDomainVersion = "0.45.0"
@@ -13,6 +13,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"           %% "hmrc-mongo-play-30"                 % hmrcMongoVersion,
     "org.typelevel"               %% "cats-core"                          % "2.10.0",
     "commons-codec"               %  "commons-codec"                      % "1.16.0",
+    "com.iheart"                  %% "ficus"                              % "1.5.2",
     "uk.gov.hmrc"                 %% "api-platform-application-domain"    % appDomainVersion
   )
 
