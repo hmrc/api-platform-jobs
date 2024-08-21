@@ -30,6 +30,7 @@ import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
@@ -37,7 +38,7 @@ import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, User
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
-import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
 class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -58,7 +59,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
 
     val connector = new ProductionThirdPartyApplicationConnector(
       mockConfig,
-      app.injector.instanceOf[HttpClient]
+      app.injector.instanceOf[HttpClientV2]
     )
   }
 

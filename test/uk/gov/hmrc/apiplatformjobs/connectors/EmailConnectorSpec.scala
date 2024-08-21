@@ -27,13 +27,14 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 
 import uk.gov.hmrc.apiplatformjobs.models.{Administrator, Environments, UnusedApplication}
-import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
 class EmailConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
 
@@ -45,7 +46,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneA
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   trait Setup {
-    val http      = app.injector.instanceOf[HttpClient]
+    val http      = app.injector.instanceOf[HttpClientV2]
     val config    = EmailConfig(wireMockUrl)
     val connector = new EmailConnector(http, config)
   }

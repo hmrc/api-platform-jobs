@@ -28,7 +28,7 @@ import uk.gov.hmrc.apiplatformjobs.models.Environments.{PRODUCTION, SANDBOX}
 import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
 class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with FixedClock {
 

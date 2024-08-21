@@ -26,13 +26,14 @@ import play.api.Application
 import play.api.http.Status.{OK, _}
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.UserId
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
 class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPerSuite with WiremockSugar {
 
@@ -43,12 +44,11 @@ class ThirdPartyDeveloperConnectorSpec extends AsyncHmrcSpec with GuiceOneAppPer
 
   trait Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val httpClient                 = app.injector.instanceOf[HttpClient]
-
-    val config                 = ThirdPartyDeveloperConnectorConfig(wireMockUrl)
-    val devEmail               = "joe.bloggs@example.com".toLaxEmail
-    val userId                 = UserId.random
-    def endpoint(path: String) = s"$wireMockUrl/$path"
+    val httpClient                 = app.injector.instanceOf[HttpClientV2]
+    val config                     = ThirdPartyDeveloperConnectorConfig(wireMockUrl)
+    val devEmail                   = "joe.bloggs@example.com".toLaxEmail
+    val userId                     = UserId.random
+    def endpoint(path: String)     = s"$wireMockUrl/$path"
 
     val connector = new ThirdPartyDeveloperConnector(config, httpClient)
   }

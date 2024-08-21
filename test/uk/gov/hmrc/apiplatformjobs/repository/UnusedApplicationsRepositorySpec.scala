@@ -36,7 +36,7 @@ import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.models.Environments._
 import uk.gov.hmrc.apiplatformjobs.models.{Environments, UnusedApplication}
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
 class UnusedApplicationsRepositorySpec
     extends AsyncHmrcSpec

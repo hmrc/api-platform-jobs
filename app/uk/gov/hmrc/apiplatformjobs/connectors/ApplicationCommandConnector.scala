@@ -21,7 +21,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import cats.data.NonEmptyList
 import com.google.inject.{Inject, Singleton}
 
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpClient, HttpResponse, InternalServerException}
+import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse, InternalServerException, StringContextOps}
 
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
@@ -29,11 +30,14 @@ import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
+import uk.gov.hmrc.apiplatformjobs.utils.EbridgeConfigurator
 
 abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) extends ApplicationLogger {
 
   val serviceBaseUrl: String
-  val http: HttpClient
+  val http: HttpClientV2
+
+  def configureEbridgeIfRequired: RequestBuilder => RequestBuilder
 
   def dispatch(
       applicationId: ApplicationId,
@@ -60,12 +64,12 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
       }
     }
 
-    val url          = s"${baseApplicationUrl(applicationId)}/dispatch"
-    val request      = DispatchRequest(command, adminsToEmail)
-    val extraHeaders = Seq.empty[(String, String)]
-
-    http
-      .PATCH[DispatchRequest, HttpResponse](url, request, extraHeaders)
+    configureEbridgeIfRequired(
+      http
+        .patch(url"${baseApplicationUrl(applicationId)}/dispatch")
+        .withBody(Json.toJson(DispatchRequest(command, adminsToEmail)))
+    )
+      .execute[HttpResponse]
       .map(response =>
         response.status match {
           case OK          => HasSucceeded
@@ -80,8 +84,7 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
 
 @Singleton
 class SandboxApplicationCommandConnector @Inject() (
-    val httpClient: HttpClient,
-    val proxiedHttpClient: ProxiedHttpClient,
+    val http: HttpClientV2,
     val config: ThirdPartyApplicationConnectorConfig
   )(implicit override val ec: ExecutionContext
   ) extends ApplicationCommandConnector {
@@ -91,16 +94,17 @@ class SandboxApplicationCommandConnector @Inject() (
   val bearerToken    = config.sandboxBearerToken
   val apiKey         = config.sandboxApiKey
 
-  val http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
+  val configureEbridgeIfRequired: RequestBuilder => RequestBuilder = EbridgeConfigurator.configure(useProxy, bearerToken, apiKey)
 }
 
 @Singleton
 class ProductionApplicationCommandConnector @Inject() (
-    val httpClient: HttpClient,
+    val http: HttpClientV2,
     val config: ThirdPartyApplicationConnectorConfig
   )(implicit override val ec: ExecutionContext
   ) extends ApplicationCommandConnector {
 
+  val configureEbridgeIfRequired: RequestBuilder => RequestBuilder = identity
+
   val serviceBaseUrl = config.productionBaseUrl
-  val http           = httpClient
 }

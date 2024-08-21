@@ -25,7 +25,7 @@ import play.api.Configuration
 
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
 class TimedJobSpec extends AsyncHmrcSpec with FixedClock {
 

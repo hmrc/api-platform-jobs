@@ -44,7 +44,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{
   ThirdPartyDeveloperConnector
 }
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
 class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll with FixedClock {
 
