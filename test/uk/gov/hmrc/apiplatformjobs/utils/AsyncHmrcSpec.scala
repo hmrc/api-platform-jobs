@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.util
+package uk.gov.hmrc.apiplatformjobs.utils
 
-import java.net.URLEncoder
+import java.time.ZoneOffset
 
-trait UrlEncoding {
-  def encode(str: String) = URLEncoder.encode(str, "UTF-8")
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
+
+import uk.gov.hmrc.apiplatform.modules.common.utils.{FixedClock, HmrcSpec}
+
+abstract class AsyncHmrcSpec extends HmrcSpec with DefaultAwaitTimeout with FutureAwaits with FixedClock {
+
+  trait BaseSetup {
+    val mockLockRepository = mock[MongoLockRepository]
+    val utc                = ZoneOffset.UTC
+  }
 }

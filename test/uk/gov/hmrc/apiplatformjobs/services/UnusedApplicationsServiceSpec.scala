@@ -27,7 +27,7 @@ import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector}
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUsageDetails, Environments}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
 class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
 

@@ -18,13 +18,15 @@ lazy val microservice = Project(appName, file("."))
     retrieveManaged := true,
     // https://www.scala-lang.org/2021/01/12/configuring-and-suppressing-warnings.html
     // suppress warnings in generated routes files
-    scalacOptions += "-Wconf:src=routes/.*:s"
+    scalacOptions ++= Seq(
+      "-Wconf:src=routes/.*:s"
+    )
   )
   .settings(ScoverageSettings())
   .settings(
-    Compile / unmanagedResourceDirectories += baseDirectory.value / "resources"
-  )
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
 
+  )
 
 commands ++= Seq(
   Command.command("cleanAll") { state => "clean" :: state },

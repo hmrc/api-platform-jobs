@@ -27,7 +27,8 @@ import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpClient, InternalServerException}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, InternalServerException}
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborators
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
@@ -36,7 +37,7 @@ import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, Application
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
-import uk.gov.hmrc.apiplatformjobs.util.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
 class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding with FixedClock {
 
@@ -63,7 +64,7 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
     when(mockConfig.productionAuthorisationKey).thenReturn(authorisationKeyTest)
 
     val connector = new ProductionApplicationCommandConnector(
-      app.injector.instanceOf[HttpClient],
+      app.injector.instanceOf[HttpClientV2],
       mockConfig
     )
   }

@@ -26,7 +26,8 @@ import scala.util.{Failure, Success, Try}
 import play.api.libs.json.{Json, OFormat}
 import play.mvc.Http.Status._
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpErrorFunctions, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse, StringContextOps}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
@@ -48,7 +49,7 @@ object SendEmailRequest {
 }
 
 @Singleton
-class EmailConnector @Inject() (httpClient: HttpClient, config: EmailConfig)(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationLogger {
+class EmailConnector @Inject() (http: HttpClientV2, config: EmailConfig)(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationLogger {
   val serviceUrl = config.baseUrl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
@@ -63,23 +64,26 @@ class EmailConnector @Inject() (httpClient: HttpClient, config: EmailConfig)(imp
   }
 
   private def post(payload: SendEmailRequest)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    val url = s"$serviceUrl/hmrc/email"
+
+    val theUrl = url"$serviceUrl/hmrc/email"
 
     def extractError(response: HttpResponse): String = {
       Try(response.json \ "message") match {
         case Success(jsValue) => jsValue.as[String]
-        case Failure(_)       => s"Unable send email. Unexpected error for url=$url status=${response.status} response=${response.body}"
+        case Failure(_)       => s"Unable send email. Unexpected error for url=$theUrl status=${response.status} response=${response.body}"
       }
     }
 
-    httpClient
-      .POST[SendEmailRequest, HttpResponse](url, payload)
+    http
+      .post(theUrl)
+      .withBody(Json.toJson(payload))
+      .execute[HttpResponse]
       .map { response =>
         logger.info(s"Sent '${payload.templateId}' with response: ${response.status}")
         response.status match {
           case status if HttpErrorFunctions.is2xx(status) => true
           case NOT_FOUND                                  =>
-            logger.error(s"Unable to send email. Downstream endpoint not found: $url")
+            logger.error(s"Unable to send email. Downstream endpoint not found: $theUrl")
             false
           case _                                          =>
             logger.error(extractError(response))

@@ -34,7 +34,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationCo
 import uk.gov.hmrc.apiplatformjobs.models.Environments._
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.apiplatformjobs.util.AsyncHmrcSpec
+import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
 class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with FixedClock {
 

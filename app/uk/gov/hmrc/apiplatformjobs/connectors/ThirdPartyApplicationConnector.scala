@@ -28,7 +28,8 @@ import org.apache.commons.codec.binary.Base64.encodeBase64String
 
 import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborator
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
@@ -39,6 +40,7 @@ import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantCon
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
+import uk.gov.hmrc.apiplatformjobs.utils.EbridgeConfigurator
 
 object ThirdPartyApplicationConnector {
 
@@ -108,22 +110,28 @@ class ThirdPartyApplicationConnectorModule extends AbstractModule {
 
 abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationUpdateFormatters {
 
-  protected val httpClient: HttpClient
   val serviceBaseUrl: String
   val authorisationKey: String
-  val http: HttpClient
+  val http: HttpClientV2
+
+  def configureEbridgeIfRequired: RequestBuilder => RequestBuilder
 
   def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] =
-    http.GET[Seq[Application]](s"$serviceBaseUrl/developer/applications")
+    configureEbridgeIfRequired(
+      http.get(url"$serviceBaseUrl/developer/applications")
+    )
+      .execute[Seq[Application]]
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationResponse]] = {
-    http
-      .GET[Seq[ApplicationResponse]](s"$serviceBaseUrl/developer/$userId/applications")
+    configureEbridgeIfRequired(
+      http.get(url"$serviceBaseUrl/developer/$userId/applications")
+    )
+      .execute[Seq[ApplicationResponse]]
   }
 
   def applicationSearch(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {
 
-    def getQueryParams(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Seq[(String, String)] = {
+    def asQueryParams(): Seq[(String, String)] = {
       val allowAutoDeleteAndSort: Seq[(String, String)] = Seq(
         "allowAutoDelete" -> allowAutoDelete.toString,
         "sort"            -> "NO_SORT"
@@ -136,18 +144,21 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    http
-      .GET[PaginatedApplicationLastUseResponse](
-        url = s"$serviceBaseUrl/applications",
-        queryParams = getQueryParams(lastUseDate, allowAutoDelete)
-      )
+    configureEbridgeIfRequired(
+      http.get(url"$serviceBaseUrl/applications?${asQueryParams()}")
+    )
+      .execute[PaginatedApplicationLastUseResponse]
       .map(page => toDomain(page.applications))
   }
 
   def deleteApplication(applicationId: ApplicationId, jobId: String, reasons: String, timestamp: Instant)(implicit hc: HeaderCarrier): Future[ApplicationUpdateResult] = {
     val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
-    http
-      .PATCH[DeleteUnusedApplication, Either[UpstreamErrorResponse, HttpResponse]](s"$serviceBaseUrl/application/${applicationId.value}", deleteRequest)
+    configureEbridgeIfRequired(
+      http
+        .patch(url"$serviceBaseUrl/application/${applicationId.value}")
+        .withBody(Json.toJson(deleteRequest))
+    )
+      .execute[Either[UpstreamErrorResponse, HttpResponse]]
       .map(_ match {
         case Right(result) => ApplicationUpdateSuccessResult
         case Left(_)       => ApplicationUpdateFailureResult
@@ -157,9 +168,8 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
 @Singleton
 class SandboxThirdPartyApplicationConnector @Inject() (
-    config: ThirdPartyApplicationConnectorConfig,
-    override val httpClient: HttpClient,
-    proxiedHttpClient: ProxiedHttpClient
+    val config: ThirdPartyApplicationConnectorConfig,
+    val http: HttpClientV2
   )(implicit override val ec: ExecutionContext
   ) extends ThirdPartyApplicationConnector {
 
@@ -169,19 +179,18 @@ class SandboxThirdPartyApplicationConnector @Inject() (
   val apiKey                   = config.sandboxApiKey
   val authorisationKey: String = encodeBase64String(config.sandboxAuthorisationKey.getBytes(UTF_8))
 
-  override lazy val http: HttpClient = if (useProxy) proxiedHttpClient.withHeaders(bearerToken, apiKey) else httpClient
-
+  val configureEbridgeIfRequired: RequestBuilder => RequestBuilder = EbridgeConfigurator.configure(useProxy, bearerToken, apiKey)
 }
 
 @Singleton
 class ProductionThirdPartyApplicationConnector @Inject() (
     val config: ThirdPartyApplicationConnectorConfig,
-    override val httpClient: HttpClient
+    val http: HttpClientV2
   )(implicit override val ec: ExecutionContext
   ) extends ThirdPartyApplicationConnector {
 
+  val configureEbridgeIfRequired: RequestBuilder => RequestBuilder = identity
+
   val serviceBaseUrl           = config.productionBaseUrl
   val authorisationKey: String = encodeBase64String(config.productionAuthorisationKey.getBytes(UTF_8))
-
-  val http = httpClient
 }
