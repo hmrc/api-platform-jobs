@@ -18,9 +18,6 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.Clock
 
-import net.ceedubs.ficus.Ficus._
-import net.ceedubs.ficus.readers.ValueReader
-
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
@@ -32,8 +29,14 @@ abstract class UnusedApplicationsJob(jobName: String, environment: Environment, 
     extends TimedJob(s"$jobName.$environment", configuration, clock, lockRepository)
     with UnusedApplicationsTimings with ClockNow {
 
-  override val unusedApplicationsConfiguration: UnusedApplicationsConfiguration =
-    configuration.underlying.as[UnusedApplicationsConfiguration]("UnusedApplications")
+  import pureconfig._
+  import pureconfig.generic.auto._
+  import pureconfig.generic.ProductHint
 
-  def jobSpecificConfiguration[C]()(implicit reader: ValueReader[C]): C = configuration.underlying.as[C](name)
+  implicit val productHintUnusedApplicationsConfiguration: ProductHint[UnusedApplicationsConfiguration] =
+    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(_.toUpperCase))
+
+  override val unusedApplicationsConfiguration: UnusedApplicationsConfiguration = {
+    ConfigSource.fromConfig(configuration.underlying).at("UnusedApplications").load[UnusedApplicationsConfiguration].toOption.get
+  }
 }
