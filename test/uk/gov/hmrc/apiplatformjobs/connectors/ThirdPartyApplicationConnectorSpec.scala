@@ -32,7 +32,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Collaborator, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaboratorsFixtures, Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, UserId}
 
@@ -40,7 +40,13 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
-class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding {
+class ThirdPartyApplicationConnectorSpec
+    extends AsyncHmrcSpec
+    with ResponseUtils
+    with GuiceOneAppPerSuite
+    with WiremockSugar
+    with UrlEncoding
+    with ApplicationWithCollaboratorsFixtures {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -66,29 +72,17 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
   "fetchApplicationsByUserId" should {
     import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatApplicationResponse
 
-    val appId1 = ApplicationId.random
-    val appId2 = ApplicationId.random
+    val appAADUsers = Set[Collaborator](adminOne, adminTwo, developerOne)
+    val appADUsers  = Set[Collaborator](adminOne, developerOne)
 
-    val userId     = UserId.random
-    val user1Id    = UserId.random
-    val user1Email = "bob@example.com".toLaxEmail
-    val user2Id    = UserId.random
-    val user2Email = "alice@example.com".toLaxEmail
-    val user3Id    = UserId.random
-    val user3Email = "charlie@example.com".toLaxEmail
-
-    val appAADUsers =
-      Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Administrator(user2Id, user2Email), Collaborators.Developer(user3Id, user3Email))
-    val appADUsers  = Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Developer(user2Id, user2Email))
-
-    val app1 = ApplicationResponse(appId1, appAADUsers)
-    val app2 = ApplicationResponse(appId2, appADUsers)
+    val app1 = ApplicationResponse(standardApp.id, appAADUsers)
+    val app2 = ApplicationResponse(standardApp2.id, appADUsers)
 
     val applicationResponses = List(app1, app2)
 
     "return application Ids" in new Setup {
       stubFor(
-        get(urlPathEqualTo(s"/developer/$user1Id/applications"))
+        get(urlPathEqualTo(s"/developer/${adminOne.userId}/applications"))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -96,15 +90,15 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
           )
       )
 
-      val result = await(connector.fetchApplicationsByUserId(user1Id))
+      val result = await(connector.fetchApplicationsByUserId(adminOne.userId))
 
       result.size shouldBe 2
-      result.map(_.id) should contain.allOf(appId1, appId2)
+      result.map(_.id) should contain.allOf(standardApp.id, standardApp2.id)
     }
 
     "propagate error when endpoint returns error" in new Setup {
       stubFor(
-        get(urlPathEqualTo(s"/developer/$userId/applications"))
+        get(urlPathEqualTo(s"/developer/${adminOne.userId}/applications"))
           .willReturn(
             aResponse()
               .withStatus(NOT_FOUND)
@@ -112,7 +106,7 @@ class ThirdPartyApplicationConnectorSpec extends AsyncHmrcSpec with ResponseUtil
       )
 
       intercept[UpstreamErrorResponse] {
-        await(connector.fetchApplicationsByUserId(userId))
+        await(connector.fetchApplicationsByUserId(adminOne.userId))
       }.statusCode shouldBe NOT_FOUND
     }
   }
