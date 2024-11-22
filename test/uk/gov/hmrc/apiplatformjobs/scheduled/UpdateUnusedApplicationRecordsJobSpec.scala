@@ -21,10 +21,10 @@ import java.time.{Instant, LocalDate, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
-import scala.util.Random
 
 import org.mockito.ArgumentCaptor
 
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
@@ -388,7 +388,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       administrators: Set[LaxEmailAddress]
     ): (ApplicationUsageDetails, UnusedApplication) = {
     val applicationId        = ApplicationId.random
-    val applicationName      = Random.alphanumeric.take(10).mkString
+    val applicationName      = ApplicationNameData.one
     val administratorDetails = administrators.map(admin => new Administrator(admin, "Foo", "Bar"))
     val lastInteractionDate  = LocalDate.ofInstant(lastAccessDate.getOrElse(creationDate), ZoneOffset.UTC)
 

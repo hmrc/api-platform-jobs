@@ -51,7 +51,7 @@ object ThirdPartyApplicationConnector {
           .filter(_.isAdministrator)
           .map(_.emailAddress)
 
-      ApplicationUsageDetails(app.id, app.details.name.value, admins, app.details.createdOn, app.details.lastAccess)
+      ApplicationUsageDetails(app.id, app.details.name, admins, app.details.createdOn, app.details.lastAccess)
     })
 
   case class DeleteCollaboratorRequest(

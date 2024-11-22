@@ -162,9 +162,9 @@ class ThirdPartyApplicationConnectorSpec
       val results = await(connector.applicationSearch(Some(lastUseDate), allowAutoDelete))
 
       results should contain
-      ApplicationUsageDetails(oldApplication1.id, oldApplication1.name.value, Set(oldApplication1Admin), oldApplication1.details.createdOn, oldApplication1.details.lastAccess)
+      ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.details.createdOn, oldApplication1.details.lastAccess)
       results should contain
-      ApplicationUsageDetails(oldApplication2.id, oldApplication2.name.value, Set(oldApplication2Admin), oldApplication2.details.createdOn, oldApplication2.details.lastAccess)
+      ApplicationUsageDetails(oldApplication2.id, oldApplication2.name, Set(oldApplication2Admin), oldApplication2.details.createdOn, oldApplication2.details.lastAccess)
     }
 
     "return empty Sequence when no results are returned" in new Setup {
@@ -278,7 +278,7 @@ class ThirdPartyApplicationConnectorSpec
       val convertedApplication = convertedApplicationDetails.head
 
       convertedApplication.applicationId should be(applicationId)
-      convertedApplication.applicationName should be(applicationName.value)
+      convertedApplication.applicationName should be(applicationName)
       convertedApplication.creationDate should be(createdOn)
       convertedApplication.lastAccessDate should be(Some(lastAccess))
       convertedApplication.administrators.size should be(2)

@@ -111,7 +111,7 @@ object EmailConnector {
         administrator.emailAddress,
         administrator.firstName,
         administrator.lastName,
-        unusedApplication.applicationName,
+        unusedApplication.applicationName.value,
         environmentName,
         s"${daysSince(unusedApplication.lastInteractionDate)} days",
         daysToDeletion(unusedApplication.scheduledDeletionDate)

@@ -30,6 +30,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.HttpClientV2
 
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationName
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 
@@ -57,7 +58,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneA
     val expectedTemplateId = "apiApplicationToBeDeletedNotification"
 
     val adminEmail       = "admin1@example.com".toLaxEmail
-    val applicationName  = "Test Application"
+    val applicationName  = ApplicationName("Test Application")
     val userFirstName    = "Fred"
     val userLastName     = "Bloggs"
     val environmentName  = "Sandbox"
@@ -98,7 +99,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneA
       val expectedParameters: Map[String, String] = Map(
         "userFirstName"    -> userFirstName,
         "userLastName"     -> userLastName,
-        "applicationName"  -> applicationName,
+        "applicationName"  -> applicationName.value,
         "environmentName"  -> environmentName,
         "timeSinceLastUse" -> timeSinceLastUse,
         "daysToDeletion"   -> daysToDeletion
