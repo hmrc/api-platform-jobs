@@ -22,7 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import uk.gov.hmrc.http.HeaderCarrier
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborator
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, Collaborator}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
@@ -47,10 +47,8 @@ trait DeleteDeveloper {
 
     val matchesCoreDetails: (Collaborator) => Boolean = (collaborator) => collaborator.userId == developer.id && collaborator.emailAddress == developer.email
 
-    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ApplicationResponse
-
     def process(tpaConnector: ThirdPartyApplicationConnector, cmdConnector: ApplicationCommandConnector): Future[HasSucceeded] = {
-      def processApp(appResponse: ApplicationResponse): Future[HasSucceeded] = {
+      def processApp(appResponse: ApplicationWithCollaborators): Future[HasSucceeded] = {
         val collaborator = appResponse.collaborators.find(matchesCoreDetails).get // Safe to do here
         val command      = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob(s"Delete-$jobLabel"), collaborator, timestamp)
         logger.info(s"Removing user:${collaborator.userId.value} from app:${appResponse.id.value}")

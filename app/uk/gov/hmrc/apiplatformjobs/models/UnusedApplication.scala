@@ -23,11 +23,12 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationName
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
 
 case class ApplicationUsageDetails(
     applicationId: ApplicationId,
-    applicationName: String,
+    applicationName: ApplicationName,
     administrators: Set[LaxEmailAddress],
     creationDate: Instant,
     lastAccessDate: Option[Instant]
@@ -42,7 +43,7 @@ case object Administrator {
 
 case class UnusedApplication(
     applicationId: ApplicationId,
-    applicationName: String,
+    applicationName: ApplicationName,
     administrators: Seq[Administrator],
     environment: Environment,
     lastInteractionDate: LocalDate,
@@ -86,7 +87,7 @@ object MongoFormat {
 
   val unusedApplicationReads: Reads[UnusedApplication] = (
     (JsPath \ "applicationId").read[ApplicationId] and
-      (JsPath \ "applicationName").read[String] and
+      (JsPath \ "applicationName").read[ApplicationName] and
       (JsPath \ "administrators").read[Seq[Administrator]] and
       (JsPath \ "environment").read[Environment] and
       ((JsPath \ "lastInteractionDate").read[LocalDate] or (JsPath \ "lastInteractionDate").read[String].map(raw => LocalDate.parse(raw, DateTimeFormatter.ISO_DATE_TIME))) and

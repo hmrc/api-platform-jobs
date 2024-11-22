@@ -31,7 +31,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborator
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationWithCollaborators
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
@@ -44,14 +44,14 @@ import uk.gov.hmrc.apiplatformjobs.utils.EbridgeConfigurator
 
 object ThirdPartyApplicationConnector {
 
-  def toDomain(applications: List[ApplicationLastUseDate]): List[ApplicationUsageDetails] =
+  def toDomain(applications: List[ApplicationWithCollaborators]): List[ApplicationUsageDetails] =
     applications.map(app => {
       val admins =
         app.collaborators
           .filter(_.isAdministrator)
           .map(_.emailAddress)
 
-      ApplicationUsageDetails(app.id, app.name, admins, app.createdOn, app.lastAccess)
+      ApplicationUsageDetails(app.id, app.details.name, admins, app.details.createdOn, app.details.lastAccess)
     })
 
   case class DeleteCollaboratorRequest(
@@ -60,18 +60,8 @@ object ThirdPartyApplicationConnector {
       notifyCollaborator: Boolean
     )
 
-  case class ApplicationResponse(id: ApplicationId, collaborators: Set[Collaborator])
-
-  private[connectors] case class ApplicationLastUseDate(
-      id: ApplicationId,
-      name: String,
-      collaborators: Set[Collaborator],
-      createdOn: Instant,
-      lastAccess: Option[Instant]
-    )
-
   private[connectors] case class PaginatedApplicationLastUseResponse(
-      applications: List[ApplicationLastUseDate],
+      applications: List[ApplicationWithCollaborators],
       page: Int,
       pageSize: Int,
       total: Int,
@@ -94,8 +84,6 @@ object ThirdPartyApplicationConnector {
 
     implicit val writesDeleteCollaboratorRequest: Writes[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
 
-    implicit val formatApplicationResponse: Format[ApplicationResponse]                             = Json.format[ApplicationResponse]
-    implicit val formatApplicationLastUseDate: Format[ApplicationLastUseDate]                       = Json.format[ApplicationLastUseDate]
     implicit val formatPaginatedApplicationLastUseDate: Format[PaginatedApplicationLastUseResponse] = Json.format[PaginatedApplicationLastUseResponse]
   }
 }
@@ -122,11 +110,11 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     )
       .execute[Seq[Application]]
 
-  def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationResponse]] = {
+  def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationWithCollaborators]] = {
     configureEbridgeIfRequired(
       http.get(url"$serviceBaseUrl/developer/$userId/applications")
     )
-      .execute[Seq[ApplicationResponse]]
+      .execute[Seq[ApplicationWithCollaborators]]
   }
 
   def applicationSearch(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {

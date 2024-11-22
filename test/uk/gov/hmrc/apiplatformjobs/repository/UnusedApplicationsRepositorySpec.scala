@@ -18,7 +18,6 @@ package uk.gov.hmrc.apiplatformjobs.repository
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Random
 
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.testkit.NoMaterializer
@@ -31,6 +30,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
@@ -62,7 +62,7 @@ class UnusedApplicationsRepositorySpec
         scheduledNotificationDates: Seq[LocalDate] = Seq(todaysDate.plusDays(1)),
         scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate()
       ) =
-      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), SANDBOX, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
+      UnusedApplication(applicationId, ApplicationNameData.one, Seq(), SANDBOX, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
 
     def productionApplication(
         applicationId: ApplicationId,
@@ -70,7 +70,7 @@ class UnusedApplicationsRepositorySpec
         scheduledNotificationDates: Seq[LocalDate] = Seq(now.plusDays(1).toLocalDate()),
         scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate()
       ) =
-      UnusedApplication(applicationId, Random.alphanumeric.take(10).mkString, Seq(), PRODUCTION, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
+      UnusedApplication(applicationId, ApplicationNameData.two, Seq(), PRODUCTION, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
   }
 
   "applicationsByEnvironment" should {

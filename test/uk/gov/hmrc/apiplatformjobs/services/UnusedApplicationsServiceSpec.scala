@@ -20,6 +20,7 @@ import java.time.ZoneOffset
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
@@ -42,8 +43,8 @@ class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
     val prodAppId    = ApplicationId.random
     val createdOn    = now.minusMonths(18).toInstant(ZoneOffset.UTC)
     val lastUseDate  = now.minusMonths(12).toInstant(ZoneOffset.UTC)
-    val sandboxApp   = ApplicationUsageDetails(sandboxAppId, "app name", Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
-    val prodApp      = ApplicationUsageDetails(prodAppId, "app name", Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
+    val sandboxApp   = ApplicationUsageDetails(sandboxAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
+    val prodApp      = ApplicationUsageDetails(prodAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
   }
 
   "updateUnusedApplications" should {

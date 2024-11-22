@@ -17,12 +17,12 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.{LocalDate, ZoneOffset}
-import scala.util.Random
 
 import com.typesafe.config.ConfigFactory
 
 import play.api.Configuration
 
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
@@ -106,7 +106,7 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
   def unusedApplicationRecord(applicationId: ApplicationId, environment: Environment): UnusedApplication =
     UnusedApplication(
       applicationId,
-      Random.alphanumeric.take(10).mkString, // scalastyle:off magic.number
+      ApplicationNameData.one, // scalastyle:off magic.number
       Seq.empty,
       environment,
       LocalDate.now.minusYears(1),

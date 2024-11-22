@@ -20,7 +20,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit.DAYS
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Random
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -32,7 +31,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaboratorsFixtures, Collaborator, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, ApplicationWithCollaboratorsFixtures, Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, UserId}
 
@@ -70,13 +69,12 @@ class ThirdPartyApplicationConnectorSpec
   }
 
   "fetchApplicationsByUserId" should {
-    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatApplicationResponse
 
     val appAADUsers = Set[Collaborator](adminOne, adminTwo, developerOne)
     val appADUsers  = Set[Collaborator](adminOne, developerOne)
 
-    val app1 = ApplicationResponse(standardApp.id, appAADUsers)
-    val app2 = ApplicationResponse(standardApp2.id, appADUsers)
+    val app1 = standardApp.withCollaborators(appAADUsers)
+    val app2 = standardApp2.withCollaborators(appADUsers)
 
     val applicationResponses = List(app1, app2)
 
@@ -114,7 +112,7 @@ class ThirdPartyApplicationConnectorSpec
   "applicationsLastUsedBefore" should {
     import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatPaginatedApplicationLastUseDate
 
-    def paginatedResponse(lastUseDates: List[ApplicationLastUseDate]) =
+    def paginatedResponse(lastUseDates: List[ApplicationWithCollaborators]) =
       PaginatedApplicationLastUseResponse(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
@@ -126,22 +124,27 @@ class ThirdPartyApplicationConnectorSpec
       val dateString: String = dateFormatter.format(lastUseLDT)
 
       val oldApplication1Admin = "foo@bar.com".toLaxEmail
-      val oldApplication1      =
-        ApplicationLastUseDate(
-          ApplicationId.random,
-          Random.alphanumeric.take(10).mkString,
-          Set(Collaborators.Administrator(UserId.random, oldApplication1Admin), Collaborators.Developer(UserId.random, "a@b.com".toLaxEmail)),
-          LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC),
-          Some(LocalDateTime.now.minusMonths(13).toInstant(ZoneOffset.UTC))
+      val oldApplication1      = standardApp.withCollaborators(
+        Collaborators.Administrator(UserId.random, oldApplication1Admin),
+        Collaborators.Developer(UserId.random, "a@b.com".toLaxEmail)
+      )
+        .modify(
+          _.copy(
+            createdOn = LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC),
+            lastAccess = Some(LocalDateTime.now.minusMonths(13).toInstant(ZoneOffset.UTC))
+          )
         )
       val oldApplication2Admin = "bar@baz.com".toLaxEmail
-      val oldApplication2      =
-        ApplicationLastUseDate(
-          ApplicationId.random,
-          Random.alphanumeric.take(10).mkString,
-          Set(Collaborators.Administrator(UserId.random, oldApplication2Admin), Collaborators.Developer(UserId.random, "b@c.com".toLaxEmail)),
-          LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC),
-          Some(LocalDateTime.now.minusMonths(14).toInstant(ZoneOffset.UTC))
+
+      val oldApplication2 = standardApp.withCollaborators(
+        Collaborators.Administrator(UserId.random, oldApplication2Admin),
+        Collaborators.Developer(UserId.random, "b@c.com".toLaxEmail)
+      )
+        .modify(
+          _.copy(
+            createdOn = LocalDateTime.now.minusMonths(12).toInstant(ZoneOffset.UTC),
+            lastAccess = Some(LocalDateTime.now.minusMonths(14).toInstant(ZoneOffset.UTC))
+          )
         )
 
       stubFor(
@@ -159,9 +162,9 @@ class ThirdPartyApplicationConnectorSpec
       val results = await(connector.applicationSearch(Some(lastUseDate), allowAutoDelete))
 
       results should contain
-      ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.createdOn, oldApplication1.lastAccess)
+      ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.details.createdOn, oldApplication1.details.lastAccess)
       results should contain
-      ApplicationUsageDetails(oldApplication2.id, oldApplication2.name, Set(oldApplication2Admin), oldApplication2.createdOn, oldApplication2.lastAccess)
+      ApplicationUsageDetails(oldApplication2.id, oldApplication2.name, Set(oldApplication2Admin), oldApplication2.details.createdOn, oldApplication2.details.lastAccess)
     }
 
     "return empty Sequence when no results are returned" in new Setup {
@@ -253,10 +256,10 @@ class ThirdPartyApplicationConnectorSpec
       val application = parsedResponse.applications.head
       application.id should be(applicationId)
       application.name should be(applicationName)
-      application.createdOn should be(createdOn)
-      application.lastAccess should be(Some(lastAccess))
+      application.details.createdOn should be(createdOn)
+      application.details.lastAccess should be(Some(lastAccess))
 
-      application.collaborators.size should be(2)
+      application.collaborators.size should be(3)
       application.collaborators should contain(Collaborators.Administrator(adminUserId, adminEmailAddress))
       application.collaborators should contain(Collaborators.Developer(developerUserId, developerEmailAddress))
     }
@@ -278,15 +281,15 @@ class ThirdPartyApplicationConnectorSpec
       convertedApplication.applicationName should be(applicationName)
       convertedApplication.creationDate should be(createdOn)
       convertedApplication.lastAccessDate should be(Some(lastAccess))
-      convertedApplication.administrators.size should be(1)
+      convertedApplication.administrators.size should be(2)
       convertedApplication.administrators should contain(adminEmailAddress)
       convertedApplication.administrators should not contain (developerEmailAddress)
     }
   }
 
   trait PaginatedTPAResponse {
-    val applicationId   = ApplicationId.random
-    val applicationName = Random.alphanumeric.take(10).mkString
+    val applicationId   = standardApp.id
+    val applicationName = standardApp.name
     val createdOn       = now.minusYears(1).asInstant
     val lastAccess      = createdOn.plus(5, DAYS)
 
@@ -295,31 +298,16 @@ class ThirdPartyApplicationConnectorSpec
     val totalApplications    = 500
     val matchingApplications = 1
 
-    val adminEmailAddress     = "admin@foo.com".toLaxEmail
-    val adminUserId           = UserId.random
-    val developerEmailAddress = "developer@foo.com".toLaxEmail
-    val developerUserId       = UserId.random
+    val adminEmailAddress     = standardApp.admins.head.emailAddress
+    val adminUserId           = standardApp.admins.head.userId
+    val developerEmailAddress = standardApp.collaborators.filter(_.isDeveloper).head.emailAddress
+    val developerUserId       = standardApp.collaborators.filter(_.isDeveloper).head.userId
+
+    val appJson = Json.toJson(standardApp.modify(_.copy(createdOn = createdOn, lastAccess = Some(lastAccess)))).toString()
 
     val response = s"""{
                       |  "applications": [
-                      |    {
-                      |      "id": "${applicationId.value.toString()}",
-                      |      "name": "$applicationName",
-                      |      "collaborators": [
-                      |        {
-                      |          "userId": "${adminUserId.value}",
-                      |          "emailAddress": "${adminEmailAddress.text}",
-                      |          "role": "ADMINISTRATOR"
-                      |        },
-                      |        {
-                      |          "userId": "${developerUserId.value}",
-                      |          "emailAddress": "${developerEmailAddress.text}",
-                      |          "role": "DEVELOPER"
-                      |        }
-                      |      ],
-                      |      "createdOn": ${createdOn.toEpochMilli},
-                      |      "lastAccess": ${lastAccess.toEpochMilli}
-                      |    }
+                      |    $appJson
                       |  ],
                       |  "page": $pageNumber,
                       |  "pageSize": $pageSize,
