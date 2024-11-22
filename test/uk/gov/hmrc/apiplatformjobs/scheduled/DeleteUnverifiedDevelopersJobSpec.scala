@@ -28,13 +28,12 @@ import play.api.http.Status.OK
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.Lock
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Collaborator, Collaborators}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaboratorsFixtures, Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, ApplicationIdData, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ApplicationResponse
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors.{
   ProductionApplicationCommandConnector,
@@ -46,7 +45,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.{
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
-class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll with FixedClock {
+class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll with FixedClock with ApplicationWithCollaboratorsFixtures {
 
   val joeBloggs = "joe.bloggs@example.com".toLaxEmail
   val johnDoe   = "john.doe@example.com".toLaxEmail
@@ -89,8 +88,8 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
   }
 
   trait SuccessfulSetup extends Setup {
-    val productionAppId = ApplicationId.random
-    val sandboxAppId    = ApplicationId.random
+    val productionAppId = ApplicationIdData.one
+    val sandboxAppId    = ApplicationIdData.two
 
     val userId      = UserId.random
     val user1Id     = UserId.random
@@ -102,8 +101,8 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Administrator(johnDoeId, johnDoe), Collaborators.Developer(joeBloggsId, joeBloggs))
     val appADUsers  = Set[Collaborator](Collaborators.Administrator(joeBloggsId, joeBloggs), Collaborators.Developer(johnDoeId, johnDoe))
 
-    val prodApp    = ApplicationResponse(productionAppId, appAADUsers)
-    val sandBoxApp = ApplicationResponse(sandboxAppId, appADUsers)
+    val prodApp    = standardApp.withId(productionAppId).withCollaborators(appAADUsers)
+    val sandBoxApp = standardApp.withId(sandboxAppId).withCollaborators(appADUsers)
 
     val developers = Seq(CoreUserDetails(joeBloggs, joeBloggsId), CoreUserDetails(johnDoe, johnDoeId))
     when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
