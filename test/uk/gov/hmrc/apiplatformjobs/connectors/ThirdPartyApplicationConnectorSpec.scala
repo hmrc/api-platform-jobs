@@ -31,7 +31,13 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, ApplicationWithCollaboratorsFixtures, Collaborator, Collaborators, DeleteRestrictionType}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{
+  ApplicationWithCollaborators,
+  ApplicationWithCollaboratorsFixtures,
+  Collaborator,
+  Collaborators,
+  DeleteRestrictionType
+}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, UserId}
 
