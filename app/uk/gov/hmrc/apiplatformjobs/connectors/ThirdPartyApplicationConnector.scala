@@ -104,12 +104,6 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
   def configureEbridgeIfRequired: RequestBuilder => RequestBuilder
 
-  def fetchAllApplications(implicit hc: HeaderCarrier): Future[Seq[Application]] =
-    configureEbridgeIfRequired(
-      http.get(url"$serviceBaseUrl/developer/applications")
-    )
-      .execute[Seq[Application]]
-
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationWithCollaborators]] = {
     configureEbridgeIfRequired(
       http.get(url"$serviceBaseUrl/developer/$userId/applications")
