@@ -31,7 +31,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationWithCollaborators
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
@@ -111,16 +111,16 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
       .execute[Seq[ApplicationWithCollaborators]]
   }
 
-  def applicationSearch(lastUseDate: Option[Instant], allowAutoDelete: Boolean): Future[List[ApplicationUsageDetails]] = {
+  def applicationSearch(lastUseDate: Option[Instant], deleteRestriction: DeleteRestrictionType): Future[List[ApplicationUsageDetails]] = {
 
     def asQueryParams(): Seq[(String, String)] = {
-      val allowAutoDeleteAndSort: Seq[(String, String)] = Seq(
-        "allowAutoDelete" -> allowAutoDelete.toString,
-        "sort"            -> "NO_SORT"
+      val deleteRestrictionAndSort: Seq[(String, String)] = Seq(
+        "deleteRestriction" -> deleteRestriction.toString,
+        "sort"              -> "NO_SORT"
       )
       lastUseDate match {
-        case Some(date: Instant) => allowAutoDeleteAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date.asLocalDateTime))
-        case None                => allowAutoDeleteAndSort
+        case Some(date: Instant) => deleteRestrictionAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date.asLocalDateTime))
+        case None                => deleteRestrictionAndSort
       }
     }
 

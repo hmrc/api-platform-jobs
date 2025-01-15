@@ -24,6 +24,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.DeleteRestrictionType
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
@@ -88,7 +89,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
     for {
       knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationSearch(Some(notificationCutoffDate()), true)
+      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationSearch(Some(notificationCutoffDate()), DeleteRestrictionType.NO_RESTRICTION)
       updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
       _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
