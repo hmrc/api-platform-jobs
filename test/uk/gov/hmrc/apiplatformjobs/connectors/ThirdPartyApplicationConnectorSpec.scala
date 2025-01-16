@@ -36,6 +36,7 @@ import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{
   ApplicationWithCollaboratorsFixtures,
   Collaborator,
   Collaborators,
+  DeleteRestrictionType,
   PaginatedApplications
 }
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
@@ -120,7 +121,7 @@ class ThirdPartyApplicationConnectorSpec
       PaginatedApplications(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
-    val allowAutoDelete                  = true
+    val deleteRestriction                = DeleteRestrictionType.NO_RESTRICTION
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val lastUseLDT         = now.minusMonths(12)
@@ -154,7 +155,7 @@ class ThirdPartyApplicationConnectorSpec
       stubFor(
         get(urlPathEqualTo("/applications"))
           .withQueryParam("lastUseBefore", equalTo(dateString))
-          .withQueryParam("allowAutoDelete", equalTo(allowAutoDelete.toString))
+          .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
@@ -163,7 +164,7 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(Some(lastUseDate), allowAutoDelete))
+      val results = await(connector.applicationSearch(Some(lastUseDate), deleteRestriction))
 
       results should contain
       ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.details.createdOn, oldApplication1.details.lastAccess)
@@ -179,7 +180,7 @@ class ThirdPartyApplicationConnectorSpec
       stubFor(
         get(urlPathEqualTo("/applications"))
           .withQueryParam("lastUseBefore", equalTo(dateString))
-          .withQueryParam("allowAutoDelete", equalTo(allowAutoDelete.toString))
+          .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
@@ -188,7 +189,7 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(Some(lastUseDate), allowAutoDelete))
+      val results = await(connector.applicationSearch(Some(lastUseDate), deleteRestriction))
 
       results.size should be(0)
     }
@@ -196,7 +197,7 @@ class ThirdPartyApplicationConnectorSpec
     "ensure lastUseBefore is not in query param when lastUseDate is None" in new Setup {
       stubFor(
         get(urlPathEqualTo("/applications"))
-          .withQueryParam("allowAutoDelete", equalTo(allowAutoDelete.toString))
+          .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
             aResponse()
@@ -205,7 +206,7 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(None, allowAutoDelete))
+      val results = await(connector.applicationSearch(None, deleteRestriction))
 
       results.size should be(0)
     }

@@ -20,7 +20,7 @@ import java.time.ZoneOffset
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationNameData, DeleteRestrictionType}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
@@ -37,37 +37,38 @@ class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
     val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository                         = mock[UnusedApplicationsRepository]
 
-    val underTest    =
+    val underTest         =
       new UnusedApplicationsService(mockProductionThirdPartyApplicationConnector, mockSandboxThirdPartyApplicationConnector, mockUnusedApplicationsRepository)
-    val sandboxAppId = ApplicationId.random
-    val prodAppId    = ApplicationId.random
-    val createdOn    = now.minusMonths(18).toInstant(ZoneOffset.UTC)
-    val lastUseDate  = now.minusMonths(12).toInstant(ZoneOffset.UTC)
-    val sandboxApp   = ApplicationUsageDetails(sandboxAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
-    val prodApp      = ApplicationUsageDetails(prodAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
+    val sandboxAppId      = ApplicationId.random
+    val prodAppId         = ApplicationId.random
+    val createdOn         = now.minusMonths(18).toInstant(ZoneOffset.UTC)
+    val lastUseDate       = now.minusMonths(12).toInstant(ZoneOffset.UTC)
+    val deleteRestriction = DeleteRestrictionType.DO_NOT_DELETE
+    val sandboxApp        = ApplicationUsageDetails(sandboxAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
+    val prodApp           = ApplicationUsageDetails(prodAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
   }
 
   "updateUnusedApplications" should {
     "should remove SANDBOX app from unusedApplication collection" in new Setup {
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List(sandboxApp)))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environments.SANDBOX, sandboxAppId)).thenReturn(Future.successful(true))
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List.empty))
 
       val result = await(underTest.updateUnusedApplications())
       result.size shouldBe 1
       result shouldBe List(true)
 
-      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
+      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environments.SANDBOX), eqTo(sandboxAppId))
-      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
+      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
     }
 
     "should remove PRODUCTION app from unusedApplication collection" in new Setup {
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List.empty))
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List(prodApp)))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environments.PRODUCTION, prodAppId)).thenReturn(Future.successful(true))
 
@@ -75,31 +76,31 @@ class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
       result.size shouldBe 1
       result shouldBe List(true)
 
-      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
-      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
+      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
+      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environments.PRODUCTION), eqTo(prodAppId))
     }
 
     "should remove no apps from unusedApplication collection" in new Setup {
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List.empty))
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List.empty))
 
       val result = await(underTest.updateUnusedApplications())
       result.size shouldBe 0
       result shouldBe List.empty
 
-      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
-      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
+      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
+      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
       verifyZeroInteractions(mockUnusedApplicationsRepository)
     }
 
     "should remove SANDBOX AND PRODUCTION apps not to be deleted from unusedApplication collection" in new Setup {
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List(sandboxApp)))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environments.SANDBOX, sandboxAppId)).thenReturn(Future.successful(true))
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(false)))
+      when(mockProductionThirdPartyApplicationConnector.applicationSearch(eqTo(None), eqTo(deleteRestriction)))
         .thenReturn(Future.successful(List(prodApp)))
       when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environments.PRODUCTION, prodAppId)).thenReturn(Future.successful(true))
 
@@ -107,9 +108,9 @@ class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
       result.size shouldBe 2
       result shouldBe List(true, true)
 
-      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
+      verify(mockSandboxThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environments.SANDBOX), eqTo(sandboxAppId))
-      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(false))
+      verify(mockProductionThirdPartyApplicationConnector).applicationSearch(eqTo(None), eqTo(deleteRestriction))
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environments.PRODUCTION), eqTo(prodAppId))
     }
   }
