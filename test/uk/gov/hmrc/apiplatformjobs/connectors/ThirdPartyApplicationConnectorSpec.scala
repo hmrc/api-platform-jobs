@@ -36,7 +36,8 @@ import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{
   ApplicationWithCollaboratorsFixtures,
   Collaborator,
   Collaborators,
-  DeleteRestrictionType
+  DeleteRestrictionType,
+  PaginatedApplications
 }
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, UserId}
@@ -116,10 +117,8 @@ class ThirdPartyApplicationConnectorSpec
   }
 
   "applicationsLastUsedBefore" should {
-    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters.formatPaginatedApplicationLastUseDate
-
     def paginatedResponse(lastUseDates: List[ApplicationWithCollaborators]) =
-      PaginatedApplicationLastUseResponse(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
+      PaginatedApplications(lastUseDates, 1, 100, lastUseDates.size, lastUseDates.size)
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
     val deleteRestriction                = DeleteRestrictionType.NO_RESTRICTION
@@ -248,10 +247,8 @@ class ThirdPartyApplicationConnectorSpec
   }
 
   "JsonFormatters" should {
-    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
-
     "correctly parse PaginatedApplicationLastUseResponse from TPA" in new PaginatedTPAResponse {
-      val parsedResponse: PaginatedApplicationLastUseResponse = Json.fromJson[PaginatedApplicationLastUseResponse](Json.parse(response)).get
+      val parsedResponse: PaginatedApplications = Json.fromJson[PaginatedApplications](Json.parse(response)).get
 
       parsedResponse.page should be(pageNumber)
       parsedResponse.pageSize should be(pageSize)
@@ -272,11 +269,10 @@ class ThirdPartyApplicationConnectorSpec
   }
 
   "toDomain" should {
-    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
     import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.toDomain
 
     "correctly convert ApplicationLastUseDates to ApplicationUsageDetails" in new PaginatedTPAResponse {
-      val parsedResponse: PaginatedApplicationLastUseResponse = Json.fromJson[PaginatedApplicationLastUseResponse](Json.parse(response)).get
+      val parsedResponse: PaginatedApplications = Json.fromJson[PaginatedApplications](Json.parse(response)).get
 
       val convertedApplicationDetails = toDomain(parsedResponse.applications)
 

@@ -31,13 +31,12 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType, PaginatedApplications}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
 import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.JsonFormatters._
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.utils.EbridgeConfigurator
@@ -60,14 +59,6 @@ object ThirdPartyApplicationConnector {
       notifyCollaborator: Boolean
     )
 
-  private[connectors] case class PaginatedApplicationLastUseResponse(
-      applications: List[ApplicationWithCollaborators],
-      page: Int,
-      pageSize: Int,
-      total: Int,
-      matching: Int
-    )
-
   case class ThirdPartyApplicationConnectorConfig(
       sandboxBaseUrl: String,
       sandboxUseProxy: Boolean,
@@ -83,8 +74,6 @@ object ThirdPartyApplicationConnector {
     implicit val dateFormat: Format[Instant] = Format(lenientInstantReads, instantWithTimeZoneWrites)
 
     implicit val writesDeleteCollaboratorRequest: Writes[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
-
-    implicit val formatPaginatedApplicationLastUseDate: Format[PaginatedApplicationLastUseResponse] = Json.format[PaginatedApplicationLastUseResponse]
   }
 }
 
@@ -129,7 +118,7 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
     configureEbridgeIfRequired(
       http.get(url"$serviceBaseUrl/applications?${asQueryParams()}")
     )
-      .execute[PaginatedApplicationLastUseResponse]
+      .execute[PaginatedApplications]
       .map(page => toDomain(page.applications))
   }
 
