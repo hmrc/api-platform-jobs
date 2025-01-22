@@ -21,7 +21,6 @@ import java.time.temporal.ChronoUnit.DAYS
 import java.time.{LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import cats.data.NonEmptyList
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
@@ -33,9 +32,8 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models._
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationIdData, Environment, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Environment, UserId}
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
 import uk.gov.hmrc.apiplatformjobs.models._
@@ -199,113 +197,6 @@ class ThirdPartyOrchestratorConnectorSpec
       val results = await(connector.applicationSearch(Environment.PRODUCTION, None, deleteRestriction))
 
       results.size should be(0)
-    }
-  }
-
-  "dispatch commands" should {
-    val anAdminEmail          = "admin@example.com".toLaxEmail
-    val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
-    val jsonText              =
-      s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00.000Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
-    val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
-    val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
-    val req                   = DispatchRequest(cmd, Set(anAdminEmail))
-    import cats.syntax.option._
-
-    "write to json" in {
-      Json.toJson(req).toString() shouldBe jsonText
-    }
-
-    "read from json" in {
-      Json.parse(jsonText).asOpt[DispatchRequest] shouldBe req.some
-    }
-  }
-
-  "dispatch request with no emails" should {
-    val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
-    val jsonText              =
-      s"""{"command":{"actor":{"jobId":"BOB","actorType":"SCHEDULED_JOB"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00.000Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":[]}"""
-    val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
-    val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
-    val req                   = DispatchRequest(cmd, Set.empty)
-    import cats.syntax.option._
-
-    "write to json" in {
-      Json.toJson(req).toString() shouldBe jsonText
-    }
-
-    "read from json" in {
-      Json.parse(jsonText).asOpt[DispatchRequest] shouldBe req.some
-    }
-  }
-
-  "dispatch" should {
-    val appId        = ApplicationIdData.one
-    val actor        = Actors.ScheduledJob("TestMe")
-    val timestamp    = instant
-    val userId       = UserId.random
-    val emailAddress = "bob@example.com".toLaxEmail
-    val collaborator = Collaborators.Developer(userId, emailAddress)
-    val command      = ApplicationCommands.RemoveCollaborator(actor, collaborator, timestamp)
-    val request      = DispatchRequest(command, Set.empty)
-
-    "removeCollaborator" in new Setup {
-      stubFor(
-        patch(urlPathEqualTo(s"/environment/PRODUCTION/applications/$appId"))
-          .withJsonRequestBody(request)
-          .willReturn(
-            aResponse()
-              .withStatus(OK)
-          )
-      )
-      await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty)) shouldBe (HasSucceeded)
-    }
-
-    "throw when a command fails" in new Setup {
-      val errors = NonEmptyList.one[CommandFailure](CommandFailures.CannotRemoveLastAdmin)
-      import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
-
-      stubFor(
-        patch(urlPathEqualTo(s"/environment/PRODUCTION/applications/$appId"))
-          .willReturn(
-            aResponse()
-              .withStatus(BAD_REQUEST)
-              .withJsonBody(errors)
-          )
-      )
-
-      intercept[BadRequestException] {
-        await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
-      }
-    }
-
-    "throw when a command fails and failures are unparseable" in new Setup {
-      stubFor(
-        patch(urlPathEqualTo(s"/environment/PRODUCTION/applications/$appId"))
-          .willReturn(
-            aResponse()
-              .withStatus(BAD_REQUEST)
-              .withJsonBody("{}")
-          )
-      )
-
-      intercept[InternalServerException] {
-        await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
-      }
-    }
-
-    "throw exception when endpoint returns internal server error" in new Setup {
-      stubFor(
-        patch(urlPathEqualTo(s"/environment/PRODUCTION/applications/$appId"))
-          .willReturn(
-            aResponse()
-              .withStatus(INTERNAL_SERVER_ERROR)
-          )
-      )
-
-      intercept[InternalServerException] {
-        await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
-      }
     }
   }
 

@@ -28,13 +28,13 @@ import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.Appli
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
+import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateResult, ApplicationUpdateSuccessResult, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 
 abstract class DeleteUnusedApplicationsJob(
-    tpoConnector: ThirdPartyOrchestratorConnector,
+    tpoCmdConnector: TpoApplicationCommandConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     unusedApplicationsService: UnusedApplicationsService,
     environment: Environment,
@@ -69,7 +69,7 @@ abstract class DeleteUnusedApplicationsJob(
 
     val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
 
-    tpoConnector.dispatchToEnvironment(environment, applicationId, deleteRequest, Set.empty)
+    tpoCmdConnector.dispatchToEnvironment(environment, applicationId, deleteRequest, Set.empty)
       .map(_ => ApplicationUpdateSuccessResult)
       .recover {
         case NonFatal(_) => ApplicationUpdateFailureResult
@@ -111,14 +111,14 @@ abstract class DeleteUnusedApplicationsJob(
 
 @Singleton
 class DeleteUnusedSandboxApplicationsJob @Inject() (
-    tpoConnector: ThirdPartyOrchestratorConnector,
+    tpoCmdConnector: TpoApplicationCommandConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
   ) extends DeleteUnusedApplicationsJob(
-      tpoConnector,
+      tpoCmdConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
       Environment.SANDBOX,
@@ -130,14 +130,14 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject() (
-    tpoConnector: ThirdPartyOrchestratorConnector,
+    tpoCmdConnector: TpoApplicationCommandConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
   ) extends DeleteUnusedApplicationsJob(
-      tpoConnector,
+      tpoCmdConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
       Environment.PRODUCTION,

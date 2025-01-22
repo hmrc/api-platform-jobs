@@ -35,6 +35,7 @@ trait DeleteDeveloper {
   self: ApplicationLogger =>
 
   def tpoConnector: ThirdPartyOrchestratorConnector
+  def tpoCmdConnector: TpoApplicationCommandConnector
   def developerConnector: ThirdPartyDeveloperConnector
 
   val deleteFunction: (LaxEmailAddress) => Future[Int]
@@ -49,7 +50,7 @@ trait DeleteDeveloper {
         val collaborator = appResponse.collaborators.find(matchesCoreDetails).get // Safe to do here
         val command      = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob(s"Delete-$jobLabel"), collaborator, timestamp)
         logger.info(s"Removing user:${collaborator.userId.value} from app:${appResponse.id.value}")
-        tpoConnector.dispatchToEnvironment(appResponse.deployedTo, appResponse.id, command, Set.empty)
+        tpoCmdConnector.dispatchToEnvironment(appResponse.deployedTo, appResponse.id, command, Set.empty)
       }
 
       for {

@@ -35,7 +35,7 @@ import uk.gov.hmrc.apiplatform.modules.common.domain.models._
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
+import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
@@ -65,12 +65,14 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       DeleteUnverifiedDevelopersJobConfig(FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
     val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector           = mock[ThirdPartyDeveloperConnector]
     val mockTpoConnector: ThirdPartyOrchestratorConnector                        = mock[ThirdPartyOrchestratorConnector]
+    val mockTpoCmdConnector: TpoApplicationCommandConnector                      = mock[TpoApplicationCommandConnector]
 
     val underTest = new DeleteUnverifiedDevelopersJob(
       mockLockKeeper,
       deleteUnverifiedDevelopersJobConfig,
       mockThirdPartyDeveloperConnector,
       mockTpoConnector,
+      mockTpoCmdConnector,
       clock
     )
   }
@@ -95,8 +97,8 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     val developers = Seq(CoreUserDetails(joeBloggs, joeBloggsId), CoreUserDetails(johnDoe, johnDoeId))
     when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
     when(mockTpoConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(sandBoxApp, prodApp)))
-    when(mockTpoConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
-    when(mockTpoConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
+    when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
+    when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockThirdPartyDeveloperConnector.deleteDeveloper(*[LaxEmailAddress])(*)).thenReturn(successful(OK))
   }
 
@@ -114,25 +116,25 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     "remove unverified developers as collaborators" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
@@ -146,29 +148,29 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     }
 
     "not remove developer from TPD if one of the calls to TPA remove collaborator fails " in new SuccessfulSetup {
-      when(mockTpoConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
+      when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
 
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockTpoConnector, atLeastOnce).dispatchToEnvironment(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),

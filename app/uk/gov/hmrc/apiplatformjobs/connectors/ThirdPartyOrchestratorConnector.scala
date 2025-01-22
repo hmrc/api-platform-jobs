@@ -21,20 +21,16 @@ import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-import cats.data.NonEmptyList
-
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, _}
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType, PaginatedApplications}
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models._
-import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUsageDetails, HasSucceeded}
+import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 
 @Singleton
 class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(implicit ec: ExecutionContext) extends ApplicationLogger {
@@ -72,44 +68,6 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
     http
       .get(url"$serviceBaseUrl/applications/$applicationId")
       .execute[Option[ApplicationWithCollaborators]]
-  }
-
-  def dispatchToEnvironment(
-      environment: Environment,
-      applicationId: ApplicationId,
-      command: ApplicationCommand,
-      adminsToEmail: Set[LaxEmailAddress]
-    )(implicit hc: HeaderCarrier
-    ): Future[HasSucceeded] = {
-
-    import play.api.libs.json._
-    import uk.gov.hmrc.http.HttpReads.Implicits._
-    import play.api.http.Status._
-
-    def parseWithLogAndThrow[T](input: String)(implicit reads: Reads[T]): T = {
-      Json.parse(input).validate[T] match {
-        case JsSuccess(t, _) =>
-          logger.debug(s"Found dispatch command failure(s) - $t")
-          t
-        case JsError(err)    =>
-          logger.error(s"Failed to parse >>$input<< due to errors $err")
-          throw new InternalServerException("Failed parsing response to dispatch")
-      }
-    }
-
-    http
-      .patch(url"$serviceBaseUrl/environment/$environment/applications/$applicationId")
-      .withBody(Json.toJson(DispatchRequest(command, adminsToEmail)))
-      .execute[HttpResponse]
-      .map(response =>
-        response.status match {
-          case OK          => HasSucceeded
-          case BAD_REQUEST =>
-            parseWithLogAndThrow[NonEmptyList[CommandFailure]](response.body)
-            throw new BadRequestException("Dispatch failed - bad request")
-          case status      => throw new InternalServerException(s"Failed calling dispatch http Status: $status")
-        }
-      )
   }
 }
 
