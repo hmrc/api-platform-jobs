@@ -23,7 +23,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import cats.data.NonEmptyList
 
-import play.api.libs.json.{Format, Json, Writes}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, _}
@@ -31,6 +30,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, _}
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType, PaginatedApplications}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models._
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
@@ -82,7 +82,6 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
     )(implicit hc: HeaderCarrier
     ): Future[HasSucceeded] = {
 
-    import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
     import play.api.libs.json._
     import uk.gov.hmrc.http.HttpReads.Implicits._
     import play.api.http.Status._
@@ -125,21 +124,6 @@ object ThirdPartyOrchestratorConnector {
 
       ApplicationUsageDetails(app.id, app.details.name, admins, app.details.createdOn, app.details.lastAccess)
     })
-
-  case class DeleteCollaboratorRequest(
-      email: LaxEmailAddress,
-      adminsToEmail: Set[LaxEmailAddress],
-      notifyCollaborator: Boolean
-    )
-
-  object JsonFormatters {
-    import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
-    import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
-
-    implicit val dateFormat: Format[Instant] = Format(lenientInstantReads, instantWithTimeZoneWrites)
-
-    implicit val writesDeleteCollaboratorRequest: Writes[DeleteCollaboratorRequest] = Json.writes[DeleteCollaboratorRequest]
-  }
 
   case class Config(serviceBaseUrl: String)
 }
