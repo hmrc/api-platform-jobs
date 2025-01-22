@@ -29,22 +29,13 @@ import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
 
-import uk.gov.hmrc.apiplatformjobs.connectors.{
-  ProductionApplicationCommandConnector,
-  ProductionThirdPartyApplicationConnector,
-  SandboxApplicationCommandConnector,
-  SandboxThirdPartyApplicationConnector,
-  ThirdPartyDeveloperConnector
-}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
 
 class DeleteUnverifiedDevelopersJob @Inject() (
     override val lockService: DeleteUnverifiedDevelopersJobLockService,
     jobConfig: DeleteUnverifiedDevelopersJobConfig,
     val developerConnector: ThirdPartyDeveloperConnector,
-    val sandboxApplicationConnector: SandboxThirdPartyApplicationConnector,
-    val productionApplicationConnector: ProductionThirdPartyApplicationConnector,
-    val sandboxCmdConnector: SandboxApplicationCommandConnector,
-    val productionCmdConnector: ProductionApplicationCommandConnector,
+    val tpoConnector: ThirdPartyOrchestratorConnector,
     val clock: Clock
   ) extends ScheduledMongoJob
     with DeleteDeveloper

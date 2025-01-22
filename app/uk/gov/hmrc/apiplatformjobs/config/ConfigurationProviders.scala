@@ -26,7 +26,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
-import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig, ThirdPartyOrchestratorConnector}
 import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
 
 class ConfigurationModule extends Module {
@@ -38,6 +38,7 @@ class ConfigurationModule extends Module {
       bind[ThirdPartyApplicationConnectorConfig].toProvider[ThirdPartyApplicationConnectorConfigProvider],
       bind[DeleteUnverifiedDevelopersJobConfig].toProvider[DeleteUnverifiedDevelopersJobConfigProvider],
       bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider],
+      bind[ThirdPartyOrchestratorConnector.Config].toProvider[ThirdPartyOrchestratorConnectorConfigProvider],
       bind[EmailConfig].toProvider[EmailConfigProvider]
     )
   }
@@ -129,6 +130,15 @@ class DeleteUnregisteredDevelopersJobConfigProvider @Inject() (configuration: Co
 @Singleton
 class EmailConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[EmailConfig] {
   override def get() = EmailConfig(sc.baseUrl("email"))
+}
+
+@Singleton
+class ThirdPartyOrchestratorConnectorConfigProvider @Inject() (config: ServicesConfig) extends Provider[ThirdPartyOrchestratorConnector.Config] {
+
+  override def get(): ThirdPartyOrchestratorConnector.Config =
+    ThirdPartyOrchestratorConnector.Config(
+      serviceBaseUrl = config.baseUrl("third-party-orchestrator")
+    )
 }
 
 object ConfigHelper {

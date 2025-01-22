@@ -24,10 +24,11 @@ import play.api.Configuration
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockRepository
 
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, Environment, Environments, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 
@@ -112,7 +113,7 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
       thirdPartyApplicationConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
-      Environments.SANDBOX,
+      Environment.SANDBOX,
       configuration,
       clock,
       lockRepository
@@ -131,7 +132,7 @@ class DeleteUnusedProductionApplicationsJob @Inject() (
       thirdPartyApplicationConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
-      Environments.PRODUCTION,
+      Environment.PRODUCTION,
       configuration,
       clock,
       lockRepository

@@ -21,9 +21,8 @@ import java.time.Clock
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
-
-import uk.gov.hmrc.apiplatformjobs.models.Environment
 
 abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, override val clock: Clock, lockRepository: LockRepository)
     extends TimedJob(s"$jobName.$environment", configuration, clock, lockRepository)

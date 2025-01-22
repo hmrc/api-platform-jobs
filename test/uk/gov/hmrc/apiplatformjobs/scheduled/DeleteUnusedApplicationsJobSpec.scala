@@ -19,11 +19,11 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult, Environment, Environments}
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateSuccessResult}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
@@ -38,7 +38,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
   }
 
   trait SandboxSetup extends Setup {
-    val environment: Environment = Environments.SANDBOX
+    val environment: Environment = Environment.SANDBOX
 
     val underTest =
       new DeleteUnusedSandboxApplicationsJob(
@@ -52,7 +52,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
   }
 
   trait ProductionSetup extends Setup {
-    val environment: Environment = Environments.PRODUCTION
+    val environment: Environment = Environment.PRODUCTION
 
     val underTest =
       new DeleteUnusedProductionApplicationsJob(

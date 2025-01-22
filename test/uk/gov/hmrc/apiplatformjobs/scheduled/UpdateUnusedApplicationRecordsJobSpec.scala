@@ -26,12 +26,11 @@ import org.mockito.ArgumentCaptor
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment, LaxEmailAddress, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.DeveloperResponse
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.Environments._
+import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
@@ -39,12 +38,11 @@ import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with FixedClock {
 
   trait Setup extends BaseSetup {
-    val environmentName                                                                        = "Test Environment"
-    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
-    val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
-    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector                         = mock[ThirdPartyDeveloperConnector]
-    val mockUnusedApplicationsRepository: UnusedApplicationsRepository                         = mock[UnusedApplicationsRepository]
-    val nowAsDay                                                                               = now.toLocalDate()
+    val environmentName                                                = "Test Environment"
+    val mockTpoConnector: ThirdPartyOrchestratorConnector              = mock[ThirdPartyOrchestratorConnector]
+    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector = mock[ThirdPartyDeveloperConnector]
+    val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
+    val nowAsDay                                                       = now.toLocalDate()
   }
 
   trait SandboxJobSetup extends Setup {
@@ -53,7 +51,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     val configuration                  = jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForSandbox = Seq(notifyDeletionPendingInAdvance))
 
     val underTest = new UpdateUnusedSandboxApplicationRecordsJob(
-      mockSandboxThirdPartyApplicationConnector,
+      mockTpoConnector,
       mockThirdPartyDeveloperConnector,
       mockUnusedApplicationsRepository,
       configuration,
@@ -70,7 +68,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = Seq(notifyDeletionPendingInAdvance))
 
     val underTest = new UpdateUnusedProductionApplicationRecordsJob(
-      mockProductionThirdPartyApplicationConnector,
+      mockTpoConnector,
       mockThirdPartyDeveloperConnector,
       mockUnusedApplicationsRepository,
       configuration,
@@ -85,7 +83,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     val configuration                  = jobConfiguration(deleteUnusedApplicationsAfter, notifyDeletionPendingInAdvanceForProduction = notifyDeletionPendingInAdvance)
 
     val underTest = new UpdateUnusedProductionApplicationRecordsJob(
-      mockProductionThirdPartyApplicationConnector,
+      mockTpoConnector,
       mockThirdPartyDeveloperConnector,
       mockUnusedApplicationsRepository,
       configuration,
@@ -189,13 +187,13 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     "add newly discovered unused applications with last used dates to database" in new SandboxJobSetup {
       val adminUserEmail                                                           = "foo@bar.com".toLaxEmail
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environments.SANDBOX, now.minusMonths(13).toInstant(ZoneOffset.UTC), Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)), Set(adminUserEmail))
+        applicationDetails(Environment.SANDBOX, now.minusMonths(13).toInstant(ZoneOffset.UTC), Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)), Set(adminUserEmail))
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(*, *))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.SANDBOX), *, *))
         .thenReturn(successful(List(applicationWithLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
-      when(mockUnusedApplicationsRepository.unusedApplications(Environments.SANDBOX)).thenReturn(Future(List.empty))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
 
@@ -208,20 +206,18 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val unusedApplicationRecord = capturedInsertValue.head
       unusedApplicationRecord.applicationId shouldBe (applicationWithLastUseDate._1.applicationId)
       unusedApplicationRecord.applicationName shouldBe (applicationWithLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (Environments.SANDBOX)
-
-      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
+      unusedApplicationRecord.environment shouldBe (Environment.SANDBOX)
     }
 
     "add newly discovered unused applications with no last used dates to database" in new SandboxJobSetup {
       val adminUserEmail                                                              = "foo@bar.com".toLaxEmail
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(SANDBOX, now.minusMonths(13).toInstant(ZoneOffset.UTC), None, Set(adminUserEmail)) // scalastyle:off magic.number
+        applicationDetails(Environment.SANDBOX, now.minusMonths(13).toInstant(ZoneOffset.UTC), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(*, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.SANDBOX), *, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
-      when(mockUnusedApplicationsRepository.unusedApplications(SANDBOX)).thenReturn(Future(List.empty))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
       when(mockUnusedApplicationsRepository.bulkInsert(*)).thenReturn(Future.successful(true))
@@ -233,49 +229,45 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val unusedApplicationRecord = capturedInsertValue.head
       unusedApplicationRecord.applicationId shouldBe (applicationWithoutLastUseDate._1.applicationId)
       unusedApplicationRecord.applicationName shouldBe (applicationWithoutLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (SANDBOX)
-
-      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
+      unusedApplicationRecord.environment shouldBe (Environment.SANDBOX)
     }
 
     "not persist application details already stored in database" in new SandboxJobSetup {
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
-          Environments.SANDBOX,
+          Environment.SANDBOX,
           now.minusMonths(13).toInstant(ZoneOffset.UTC),
           Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(*, *))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.SANDBOX), *, *))
         .thenReturn(successful(List(application._1)))
-      when(mockUnusedApplicationsRepository.unusedApplications(SANDBOX)).thenReturn(Future(List(application._2)))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List(application._2)))
 
       await(underTest.runJob)
 
       verifyZeroInteractions(mockThirdPartyDeveloperConnector)
-      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
     }
 
     "remove applications that have been updated since last run" in new SandboxJobSetup {
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
-          Environments.SANDBOX,
+          Environment.SANDBOX,
           now.minusMonths(13).toInstant(ZoneOffset.UTC),
           Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockSandboxThirdPartyApplicationConnector.applicationSearch(*, *)).thenReturn(successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplications(SANDBOX)).thenReturn(Future(List(application._2)))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(eqTo(SANDBOX), *[ApplicationId])).thenReturn(successful(true))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.SANDBOX), *, *)).thenReturn(successful(List.empty))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List(application._2)))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(eqTo(Environment.SANDBOX), *[ApplicationId])).thenReturn(successful(true))
 
       await(underTest.runJob)
 
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(SANDBOX, application._2.applicationId)
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(Environment.SANDBOX, application._2.applicationId)
 
       verifyZeroInteractions(mockThirdPartyDeveloperConnector)
-      verifyZeroInteractions(mockProductionThirdPartyApplicationConnector)
     }
 
   }
@@ -285,17 +277,17 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val adminUserEmail                                                           = "foo@bar.com".toLaxEmail
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
-          Environments.PRODUCTION,
+          Environment.PRODUCTION,
           now.minusMonths(13).toInstant(ZoneOffset.UTC),
           Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set(adminUserEmail)
         ) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(*, *))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.PRODUCTION), *, *))
         .thenReturn(successful(List(applicationWithLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
-      when(mockUnusedApplicationsRepository.unusedApplications(PRODUCTION)).thenReturn(Future(List.empty))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.PRODUCTION)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
 
@@ -306,20 +298,18 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val unusedApplicationRecord = capturedInsertValue.head
       unusedApplicationRecord.applicationId shouldBe (applicationWithLastUseDate._1.applicationId)
       unusedApplicationRecord.applicationName shouldBe (applicationWithLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (PRODUCTION)
-
-      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
+      unusedApplicationRecord.environment shouldBe (Environment.PRODUCTION)
     }
 
     "add newly discovered unused applications with no last used dates to database" in new ProductionJobSetup {
       val adminUserEmail                                                              = "foo@bar.com".toLaxEmail
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environments.PRODUCTION, now.minusMonths(13).toInstant(ZoneOffset.UTC), None, Set(adminUserEmail)) // scalastyle:off magic.number
+        applicationDetails(Environment.PRODUCTION, now.minusMonths(13).toInstant(ZoneOffset.UTC), None, Set(adminUserEmail)) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(*, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.PRODUCTION), *, *)).thenReturn(successful(List(applicationWithoutLastUseDate._1)))
       when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
         .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
-      when(mockUnusedApplicationsRepository.unusedApplications(PRODUCTION)).thenReturn(Future(List.empty))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.PRODUCTION)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
 
@@ -330,54 +320,50 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val unusedApplicationRecord = capturedInsertValue.head
       unusedApplicationRecord.applicationId shouldBe (applicationWithoutLastUseDate._1.applicationId)
       unusedApplicationRecord.applicationName shouldBe (applicationWithoutLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (Environments.PRODUCTION)
-
-      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
+      unusedApplicationRecord.environment shouldBe (Environment.PRODUCTION)
     }
 
     "not persist application details already stored in database" in new ProductionJobSetup {
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
-          Environments.PRODUCTION,
+          Environment.PRODUCTION,
           now.minusMonths(13).toInstant(ZoneOffset.UTC),
           Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(*, *))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.PRODUCTION), *, *))
         .thenReturn(successful(List(application._1)))
-      when(mockUnusedApplicationsRepository.unusedApplications(PRODUCTION)).thenReturn(Future(List(application._2)))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.PRODUCTION)).thenReturn(Future(List(application._2)))
 
       await(underTest.runJob)
 
       // verify(mockUnusedApplicationsRepository, times(0)).collection.bulkWrite(*)
 
       verifyZeroInteractions(mockThirdPartyDeveloperConnector)
-      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
     }
 
     "remove applications that have been updated since last run" in new ProductionJobSetup {
 
       val application: (ApplicationUsageDetails, UnusedApplication) =
         applicationDetails(
-          Environments.PRODUCTION,
+          Environment.PRODUCTION,
           now.minusMonths(13).toInstant(ZoneOffset.UTC),
           Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
         ) // scalastyle:off magic.number
 
-      when(mockProductionThirdPartyApplicationConnector.applicationSearch(*, *)).thenReturn(successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplications(eqTo(PRODUCTION))).thenReturn(Future(List(application._2)))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(eqTo(PRODUCTION), *[ApplicationId])).thenReturn(successful(true))
+      when(mockTpoConnector.applicationSearch(eqTo(Environment.PRODUCTION), *, *)).thenReturn(successful(List.empty))
+      when(mockUnusedApplicationsRepository.unusedApplications(eqTo(Environment.PRODUCTION))).thenReturn(Future(List(application._2)))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(eqTo(Environment.PRODUCTION), *[ApplicationId])).thenReturn(successful(true))
 
       await(underTest.runJob)
 
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(PRODUCTION), eqTo(application._2.applicationId))
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.PRODUCTION), eqTo(application._2.applicationId))
 
       // verify(mockUnusedApplicationsRepository, times(0)).collection.bulkWrite(*)
 
       verifyZeroInteractions(mockThirdPartyDeveloperConnector)
-      verifyZeroInteractions(mockSandboxThirdPartyApplicationConnector)
     }
   }
 

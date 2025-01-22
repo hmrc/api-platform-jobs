@@ -32,7 +32,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType, PaginatedApplications}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.WithTimeZone.instantWithTimeZoneWrites
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.InstantJsonFormatter.lenientInstantReads
 import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
@@ -93,12 +93,12 @@ abstract class ThirdPartyApplicationConnector(implicit val ec: ExecutionContext)
 
   def configureEbridgeIfRequired: RequestBuilder => RequestBuilder
 
-  def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationWithCollaborators]] = {
-    configureEbridgeIfRequired(
-      http.get(url"$serviceBaseUrl/developer/$userId/applications")
-    )
-      .execute[Seq[ApplicationWithCollaborators]]
-  }
+  // def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationWithCollaborators]] = {
+  //   configureEbridgeIfRequired(
+  //     http.get(url"$serviceBaseUrl/developer/$userId/applications")
+  //   )
+  //     .execute[Seq[ApplicationWithCollaborators]]
+  // }
 
   def applicationSearch(lastUseDate: Option[Instant], deleteRestriction: DeleteRestrictionType): Future[List[ApplicationUsageDetails]] = {
 

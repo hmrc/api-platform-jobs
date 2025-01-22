@@ -23,8 +23,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
+
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 
@@ -68,7 +69,7 @@ class SendUnusedSandboxApplicationNotificationsJob @Inject() (
       unusedApplicationsRepository,
       emailConnector,
       unusedApplicationsService,
-      Environments.SANDBOX,
+      Environment.SANDBOX,
       configuration,
       clock,
       lockRepository
@@ -86,7 +87,7 @@ class SendUnusedProductionApplicationNotificationsJob @Inject() (
       unusedApplicationsRepository,
       emailConnector,
       unusedApplicationsService,
-      Environments.PRODUCTION,
+      Environment.PRODUCTION,
       configuration,
       clock,
       lockRepository
