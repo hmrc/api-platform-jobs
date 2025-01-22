@@ -24,7 +24,6 @@ import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig, ThirdPartyOrchestratorConnector}
 import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
@@ -35,7 +34,6 @@ class ConfigurationModule extends Module {
     Seq(
       bind[ApiPlatformMicroserviceConnectorConfig].toProvider[ApiPlatformMicroserviceConnectorConfigProvider],
       bind[ThirdPartyDeveloperConnectorConfig].toProvider[ThirdPartyDeveloperConnectorConfigProvider],
-      bind[ThirdPartyApplicationConnectorConfig].toProvider[ThirdPartyApplicationConnectorConfigProvider],
       bind[DeleteUnverifiedDevelopersJobConfig].toProvider[DeleteUnverifiedDevelopersJobConfigProvider],
       bind[DeleteUnregisteredDevelopersJobConfig].toProvider[DeleteUnregisteredDevelopersJobConfigProvider],
       bind[ThirdPartyOrchestratorConnector.Config].toProvider[ThirdPartyOrchestratorConnectorConfigProvider],
@@ -57,35 +55,6 @@ class ThirdPartyDeveloperConnectorConfigProvider @Inject() (val sc: ServicesConf
 
   override def get(): ThirdPartyDeveloperConnectorConfig = {
     ThirdPartyDeveloperConnectorConfig(sc.baseUrl("third-party-developer"))
-  }
-}
-
-@Singleton
-class ThirdPartyApplicationConnectorConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[ThirdPartyApplicationConnectorConfig] {
-
-  private def serviceUrl(key: String)(serviceName: String): String = {
-    if (useProxy(serviceName)) s"${sc.baseUrl(serviceName)}/${sc.getConfString(s"$serviceName.context", key)}"
-    else sc.baseUrl(serviceName)
-  }
-
-  private def useProxy(serviceName: String) = sc.getConfBool(s"$serviceName.use-proxy", false)
-
-  private def bearerToken(serviceName: String) = sc.getConfString(s"$serviceName.bearer-token", "")
-
-  private def apiKey(serviceName: String) = sc.getConfString(s"$serviceName.api-key", "")
-
-  private def authorisationKey(serviceName: String) = sc.getConfString(s"$serviceName.authorisationKey", "")
-
-  override def get(): ThirdPartyApplicationConnectorConfig = {
-    ThirdPartyApplicationConnectorConfig(
-      serviceUrl("third-party-application")("third-party-application-sandbox"),
-      useProxy("third-party-application-sandbox"),
-      bearerToken("third-party-application-sandbox"),
-      apiKey("third-party-application-sandbox"),
-      authorisationKey("third-party-application-sandbox"),
-      serviceUrl("third-party-application")("third-party-application-production"),
-      authorisationKey("third-party-application-production")
-    )
   }
 }
 

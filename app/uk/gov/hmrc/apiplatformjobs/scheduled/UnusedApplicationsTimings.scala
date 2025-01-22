@@ -57,5 +57,6 @@ case class UnusedApplicationsConfiguration(sandbox: UnusedApplicationsEnvironmen
 case class UnusedApplicationsEnvironmentConfiguration(
     deleteUnusedApplicationsAfter: FiniteDuration,
     sendNotificationsInAdvance: Set[FiniteDuration],
+    authorisationKey: String,
     environmentName: String
   )

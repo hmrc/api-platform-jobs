@@ -16,24 +16,25 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.Clock
-import javax.inject.{Inject, Named, Singleton}
+import java.time.{Clock, Instant}
+import javax.inject.{Inject, Singleton}
 import scala.util.control.NonFatal
 
 import play.api.Configuration
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.LockRepository
 
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands.DeleteUnusedApplication
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateSuccessResult, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateResult, ApplicationUpdateSuccessResult, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 
 abstract class DeleteUnusedApplicationsJob(
-    thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+    tpoConnector: ThirdPartyOrchestratorConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     unusedApplicationsService: UnusedApplicationsService,
     environment: Environment,
@@ -54,28 +55,35 @@ abstract class DeleteUnusedApplicationsJob(
         .flatMap(_ => sequentialFutures(fn)(tail))
   }
 
-  // Not required currently. Retain for future reference
-  //
-  // final def batchFutures[I](batchSize: Int, batchPause: Long, fn: I => Future[Unit])(input: Seq[I])(implicit ec: ExecutionContext): Future[Unit] = {
-  //   input.splitAt(batchSize) match {
-  //     case (Nil, Nil) => Future.successful(())
-  //     case (doNow: Seq[I], doLater: Seq[I]) =>
-  //       Future.sequence(doNow.map(fn)).flatMap( _ =>
-  //         Future(
-  //           blocking({logDebug("Done batch of items"); Thread.sleep(batchPause)})
-  //         )
-  //         .flatMap(_ => batchFutures(batchSize, batchPause, fn)(doLater))
-  //       )
-  //   }
-  // }
+  private def deleteApplicationViaCmd(
+      environment: Environment,
+      applicationId: ApplicationId,
+      jobId: String,
+      reasons: String,
+      timestamp: Instant
+    )(implicit hc: HeaderCarrier,
+      executionContext: ExecutionContext
+    ): Future[ApplicationUpdateResult] = {
+
+    val authorisationKey = if (environment.isProduction) unusedApplicationsConfiguration.production.authorisationKey else unusedApplicationsConfiguration.sandbox.authorisationKey
+
+    val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
+
+    tpoConnector.dispatchToEnvironment(environment, applicationId, deleteRequest, Set.empty)
+      .map(_ => ApplicationUpdateSuccessResult)
+      .recover {
+        case NonFatal(_) => ApplicationUpdateFailureResult
+      }
+  }
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def deleteApplication(application: UnusedApplication): Future[Unit] = {
       implicit val hc: HeaderCarrier = HeaderCarrier()
       logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})] in TPA")
       val reasons                    = s"Application automatically deleted because it has not been used since ${application.lastInteractionDate}"
+
       (for {
-        deleteSuccessful <- thirdPartyApplicationConnector.deleteApplication(application.applicationId, name, reasons, instant())
+        deleteSuccessful <- deleteApplicationViaCmd(application.environment, application.applicationId, name, reasons, instant())
         _: Unit          <- if (deleteSuccessful == ApplicationUpdateSuccessResult) {
                               logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
                               unusedApplicationsRepository
@@ -103,14 +111,14 @@ abstract class DeleteUnusedApplicationsJob(
 
 @Singleton
 class DeleteUnusedSandboxApplicationsJob @Inject() (
-    @Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+    tpoConnector: ThirdPartyOrchestratorConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
   ) extends DeleteUnusedApplicationsJob(
-      thirdPartyApplicationConnector,
+      tpoConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
       Environment.SANDBOX,
@@ -122,14 +130,14 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject() (
-    @Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+    tpoConnector: ThirdPartyOrchestratorConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
   ) extends DeleteUnusedApplicationsJob(
-      thirdPartyApplicationConnector,
+      tpoConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
       Environment.PRODUCTION,

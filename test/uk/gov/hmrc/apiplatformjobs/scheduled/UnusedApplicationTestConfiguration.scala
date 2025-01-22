@@ -50,12 +50,14 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedSandboxApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$sandboxNotificationsString]
                                                    |    environmentName = "$sandboxEnvironmentName"
+                                                   |    authorisationKey = "sandbox123"
                                                    |  }
                                                    |
                                                    |  PRODUCTION {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$productionNotificationsString]
                                                    |    environmentName = "$productionEnvironmentName"
+                                                   |    authorisationKey = "production456"
                                                    |  }
                                                    |}
                                                    |

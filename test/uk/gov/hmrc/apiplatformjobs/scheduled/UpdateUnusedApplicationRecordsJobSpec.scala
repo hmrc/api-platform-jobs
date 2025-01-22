@@ -271,7 +271,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     }
 
   }
-//
+
   "PRODUCTION job" should {
     "add newly discovered unused applications with last used dates to database" in new ProductionJobSetup {
       val adminUserEmail                                                           = "foo@bar.com".toLaxEmail
