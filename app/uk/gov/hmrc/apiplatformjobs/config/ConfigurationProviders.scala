@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.apiplatformjobs.config
 
-import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import javax.inject.{Inject, Provider, Singleton}
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
@@ -60,41 +59,30 @@ class ThirdPartyDeveloperConnectorConfigProvider @Inject() (val sc: ServicesConf
 
 @Singleton
 class DeleteUnverifiedDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnverifiedDevelopersJobConfig] {
+  import scala.jdk.DurationConverters._
 
   // scalastyle:off magic.number
   override def get(): DeleteUnverifiedDevelopersJobConfig = {
-    val initialDelay = configuration
-      .getOptional[String]("deleteUnverifiedDevelopersJob.initialDelay")
-      .map(Duration.create(_).asInstanceOf[FiniteDuration])
-      .getOrElse(FiniteDuration(60, SECONDS))
-    val interval     = configuration
-      .getOptional[String]("deleteUnverifiedDevelopersJob.interval")
-      .map(Duration.create(_).asInstanceOf[FiniteDuration])
-      .getOrElse(FiniteDuration(1, HOURS))
-    val enabled      = configuration.getOptional[Boolean]("deleteUnverifiedDevelopersJob.enabled").getOrElse(false)
-    val limit        = configuration.getOptional[Int]("deleteUnverifiedDevelopersJob.limit").getOrElse(10)
+    val enabled: Boolean             = configuration.underlying.getBoolean("deleteUnverifiedDevelopersJob.enabled")
+    val initialDelay: FiniteDuration = configuration.underlying.getDuration("deleteUnverifiedDevelopersJob.initialDelay").toScala
+    val interval: FiniteDuration     = configuration.underlying.getDuration("deleteUnverifiedDevelopersJob.interval").toScala
+    val limit: Int                   = configuration.underlying.getInt("deleteUnverifiedDevelopersJob.limit")
     DeleteUnverifiedDevelopersJobConfig(initialDelay, interval, enabled, limit)
   }
 }
 
 @Singleton
 class DeleteUnregisteredDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnregisteredDevelopersJobConfig] {
+  import scala.jdk.DurationConverters._
 
   override def get(): DeleteUnregisteredDevelopersJobConfig = {
-    val initialDelay = configuration
-      .getOptional[String]("deleteUnregisteredDevelopersJob.initialDelay")
-      .map(Duration.create(_).asInstanceOf[FiniteDuration])
-      .getOrElse(FiniteDuration(120, SECONDS))
-    val interval     = configuration
-      .getOptional[String]("deleteUnregisteredDevelopersJob.interval")
-      .map(Duration.create(_).asInstanceOf[FiniteDuration])
-      .getOrElse(FiniteDuration(1, HOURS))
-    val enabled      = configuration.getOptional[Boolean]("deleteUnregisteredDevelopersJob.enabled").getOrElse(false)
-    val limit        = configuration.getOptional[Int]("deleteUnregisteredDevelopersJob.limit").getOrElse(10)
+    val enabled: Boolean             = configuration.underlying.getBoolean("deleteUnregisteredDevelopersJob.enabled")
+    val initialDelay: FiniteDuration = configuration.underlying.getDuration("deleteUnregisteredDevelopersJob.initialDelay").toScala
+    val interval: FiniteDuration     = configuration.underlying.getDuration("deleteUnregisteredDevelopersJob.interval").toScala
+    val limit: Int                   = configuration.underlying.getInt("deleteUnregisteredDevelopersJob.limit")
     DeleteUnregisteredDevelopersJobConfig(initialDelay, interval, enabled, limit)
   }
 }
-// scalastyle:on magic.number
 
 @Singleton
 class EmailConfigProvider @Inject() (val sc: ServicesConfig) extends Provider[EmailConfig] {
