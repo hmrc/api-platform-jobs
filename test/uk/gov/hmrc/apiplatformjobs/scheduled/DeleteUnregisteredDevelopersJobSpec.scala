@@ -31,16 +31,10 @@ import uk.gov.hmrc.mongo.lock.Lock
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaboratorsFixtures, Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, ApplicationIdData, LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models._
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors.{
-  ProductionApplicationCommandConnector,
-  ProductionThirdPartyApplicationConnector,
-  SandboxApplicationCommandConnector,
-  SandboxThirdPartyApplicationConnector,
-  ThirdPartyDeveloperConnector
-}
+import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 
@@ -64,22 +58,18 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(Some(Lock("", "", Instant.now, Instant.now))))
     when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 
-    val deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig           =
+    val deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig =
       DeleteUnregisteredDevelopersJobConfig(FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
-    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector                         = mock[ThirdPartyDeveloperConnector]
-    val mockSandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector       = mock[SandboxThirdPartyApplicationConnector]
-    val mockProductionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector = mock[ProductionThirdPartyApplicationConnector]
-    val mockSandboxApplicationCmdConnector: SandboxApplicationCommandConnector                 = mock[SandboxApplicationCommandConnector]
-    val mockProductionApplicationCmdConnector: ProductionApplicationCommandConnector           = mock[ProductionApplicationCommandConnector]
+    val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector               = mock[ThirdPartyDeveloperConnector]
+    val mockTpoConnector: ThirdPartyOrchestratorConnector                            = mock[ThirdPartyOrchestratorConnector]
+    val mockTpoCmdConnector: TpoApplicationCommandConnector                          = mock[TpoApplicationCommandConnector]
 
     val underTest = new DeleteUnregisteredDevelopersJob(
       mockLockKeeper,
       deleteUnregisteredDevelopersJobConfig,
       mockThirdPartyDeveloperConnector,
-      mockSandboxThirdPartyApplicationConnector,
-      mockProductionThirdPartyApplicationConnector,
-      mockSandboxApplicationCmdConnector,
-      mockProductionApplicationCmdConnector
+      mockTpoConnector,
+      mockTpoCmdConnector
     )
   }
 
@@ -97,15 +87,14 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
       Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Administrator(johnDoeId, johnDoe), Collaborators.Developer(joeBloggsId, joeBloggs))
     val appADUsers  = Set[Collaborator](Collaborators.Administrator(joeBloggsId, joeBloggs), Collaborators.Developer(johnDoeId, johnDoe))
 
-    val prodApp    = standardApp.withId(productionAppId).withCollaborators(appAADUsers)
-    val sandBoxApp = standardApp.withId(sandboxAppId).withCollaborators(appADUsers)
+    val prodApp    = standardApp.withId(productionAppId).withCollaborators(appAADUsers).withEnvironment(Environment.PRODUCTION)
+    val sandBoxApp = standardApp.withId(sandboxAppId).withCollaborators(appADUsers).withEnvironment(Environment.SANDBOX)
 
     val developers = Seq(CoreUserDetails(joeBloggs, joeBloggsId), CoreUserDetails(johnDoe, johnDoeId))
     when(mockThirdPartyDeveloperConnector.fetchExpiredUnregisteredDevelopers(*)(*)).thenReturn(successful(developers))
-    when(mockSandboxThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(sandBoxApp)))
-    when(mockProductionThirdPartyApplicationConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(prodApp)))
-    when(mockSandboxApplicationCmdConnector.dispatch(*[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
-    when(mockProductionApplicationCmdConnector.dispatch(*[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
+    when(mockTpoConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(sandBoxApp, prodApp)))
+    when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
+    when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockThirdPartyDeveloperConnector.deleteUnregisteredDeveloper(*[LaxEmailAddress])(*)).thenReturn(successful(OK))
   }
 
@@ -123,22 +112,26 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     "remove unregistered developers as collaborators" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Administrator(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
-      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Administrator(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
@@ -150,27 +143,31 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     }
 
     "not remove developer from TPD if one of the calls to TPA remove collaborator fails " in new SuccessfulSetup {
-      when(mockSandboxApplicationCmdConnector.dispatch(*[ApplicationId], *, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
-      when(mockProductionApplicationCmdConnector.dispatch(*[ApplicationId], *, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
+      when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), *[ApplicationId], *, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
+      when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
 
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockSandboxApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *
       )(*)
-      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, joeBloggs), _) => }),
         *
       )(*)
-      verify(mockProductionApplicationCmdConnector, atLeastOnce).dispatch(
+      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+        eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
         *

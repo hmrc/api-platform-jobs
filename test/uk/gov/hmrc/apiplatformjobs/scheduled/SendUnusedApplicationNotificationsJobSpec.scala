@@ -20,12 +20,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
-import uk.gov.hmrc.apiplatformjobs.models.Environments.{PRODUCTION, SANDBOX}
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
@@ -39,7 +38,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
   }
 
   trait SandboxSetup extends Setup {
-    val environment: Environment = SANDBOX
+    val environment: Environment = Environment.SANDBOX
     val environmentName: String  = "Sandbox"
 
     val underTest =
@@ -54,7 +53,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
   }
 
   trait ProductionSetup extends Setup {
-    val environment: Environment = PRODUCTION
+    val environment: Environment = Environment.PRODUCTION
     val environmentName: String  = "Production"
 
     val underTest =

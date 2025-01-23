@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,13 +33,14 @@ import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, InternalServerExcep
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborators
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, Environment, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
-class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding with FixedClock {
+class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding with FixedClock {
 
   val appId        = ApplicationId.random
   val actor        = Actors.ScheduledJob("TestMe")
@@ -55,15 +56,11 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
 
   class Setup(proxyEnabled: Boolean = false) {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val apiKeyTest                 = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
-    val bearer                     = "TestBearerToken"
-    val authorisationKeyTest       = "TestAuthorisationKey"
 
-    val mockConfig = mock[ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig]
-    when(mockConfig.productionBaseUrl).thenReturn(wireMockUrl)
-    when(mockConfig.productionAuthorisationKey).thenReturn(authorisationKeyTest)
+    val mockConfig = mock[ThirdPartyOrchestratorConnector.Config]
+    when(mockConfig.serviceBaseUrl).thenReturn(wireMockUrl)
 
-    val connector = new ProductionApplicationCommandConnector(
+    val connector = new TpoApplicationCommandConnector(
       app.injector.instanceOf[HttpClientV2],
       mockConfig
     )
@@ -111,22 +108,21 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
 
       "removeCollaborator" in new Setup {
         stubFor(
-          patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
+          patch(urlPathEqualTo(s"/environment/PRODUCTION/application/$appId"))
             .withJsonRequestBody(request)
             .willReturn(
               aResponse()
                 .withStatus(OK)
             )
         )
-        await(connector.dispatch(appId, command, Set.empty)) shouldBe (HasSucceeded)
+        await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty)) shouldBe (HasSucceeded)
       }
 
       "throw when a command fails" in new Setup {
         val errors = NonEmptyList.one[CommandFailure](CommandFailures.CannotRemoveLastAdmin)
-        import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
 
         stubFor(
-          patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
+          patch(urlPathEqualTo(s"/environment/PRODUCTION/application/$appId"))
             .willReturn(
               aResponse()
                 .withStatus(BAD_REQUEST)
@@ -135,13 +131,13 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
         )
 
         intercept[BadRequestException] {
-          await(connector.dispatch(appId, command, Set.empty))
+          await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
         }
       }
 
       "throw when a command fails and failures are unparseable" in new Setup {
         stubFor(
-          patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
+          patch(urlPathEqualTo(s"/environment/PRODUCTION/application/$appId"))
             .willReturn(
               aResponse()
                 .withStatus(BAD_REQUEST)
@@ -150,13 +146,13 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
         )
 
         intercept[InternalServerException] {
-          await(connector.dispatch(appId, command, Set.empty))
+          await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
         }
       }
 
       "throw exception when endpoint returns internal server error" in new Setup {
         stubFor(
-          patch(urlPathEqualTo(s"/application/${appId.value}/dispatch"))
+          patch(urlPathEqualTo(s"/environment/PRODUCTION/application/$appId"))
             .willReturn(
               aResponse()
                 .withStatus(INTERNAL_SERVER_ERROR)
@@ -164,7 +160,7 @@ class ApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils w
         )
 
         intercept[InternalServerException] {
-          await(connector.dispatch(appId, command, Set.empty))
+          await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
         }
       }
     }

@@ -21,37 +21,32 @@ import scala.concurrent.{ExecutionContext, Future}
 import cats.data.NonEmptyList
 import com.google.inject.{Inject, Singleton}
 
-import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse, InternalServerException, StringContextOps}
 
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models._
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.ThirdPartyApplicationConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
-import uk.gov.hmrc.apiplatformjobs.utils.EbridgeConfigurator
 
-abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) extends ApplicationLogger {
+@Singleton
+class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(implicit ec: ExecutionContext) extends ApplicationLogger {
 
-  val serviceBaseUrl: String
-  val http: HttpClientV2
+  import config.serviceBaseUrl
 
-  def configureEbridgeIfRequired: RequestBuilder => RequestBuilder
-
-  def dispatch(
+  def dispatchToEnvironment(
+      environment: Environment,
       applicationId: ApplicationId,
       command: ApplicationCommand,
       adminsToEmail: Set[LaxEmailAddress]
     )(implicit hc: HeaderCarrier
     ): Future[HasSucceeded] = {
 
-    import uk.gov.hmrc.apiplatform.modules.common.services.NonEmptyListFormatters._
+    import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
     import play.api.libs.json._
     import uk.gov.hmrc.http.HttpReads.Implicits._
     import play.api.http.Status._
-
-    def baseApplicationUrl(applicationId: ApplicationId) = s"$serviceBaseUrl/application/${applicationId.value.toString()}"
 
     def parseWithLogAndThrow[T](input: String)(implicit reads: Reads[T]): T = {
       Json.parse(input).validate[T] match {
@@ -64,11 +59,9 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
       }
     }
 
-    configureEbridgeIfRequired(
-      http
-        .patch(url"${baseApplicationUrl(applicationId)}/dispatch")
-        .withBody(Json.toJson(DispatchRequest(command, adminsToEmail)))
-    )
+    http
+      .patch(url"$serviceBaseUrl/environment/$environment/application/$applicationId")
+      .withBody(Json.toJson(DispatchRequest(command, adminsToEmail)))
       .execute[HttpResponse]
       .map(response =>
         response.status match {
@@ -80,31 +73,4 @@ abstract class ApplicationCommandConnector(implicit val ec: ExecutionContext) ex
         }
       )
   }
-}
-
-@Singleton
-class SandboxApplicationCommandConnector @Inject() (
-    val http: HttpClientV2,
-    val config: ThirdPartyApplicationConnectorConfig
-  )(implicit override val ec: ExecutionContext
-  ) extends ApplicationCommandConnector {
-
-  val serviceBaseUrl = config.sandboxBaseUrl
-  val useProxy       = config.sandboxUseProxy
-  val bearerToken    = config.sandboxBearerToken
-  val apiKey         = config.sandboxApiKey
-
-  val configureEbridgeIfRequired: RequestBuilder => RequestBuilder = EbridgeConfigurator.configure(useProxy, bearerToken, apiKey)
-}
-
-@Singleton
-class ProductionApplicationCommandConnector @Inject() (
-    val http: HttpClientV2,
-    val config: ThirdPartyApplicationConnectorConfig
-  )(implicit override val ec: ExecutionContext
-  ) extends ApplicationCommandConnector {
-
-  val configureEbridgeIfRequired: RequestBuilder => RequestBuilder = identity
-
-  val serviceBaseUrl = config.productionBaseUrl
 }

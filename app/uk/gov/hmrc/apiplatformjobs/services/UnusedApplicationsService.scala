@@ -20,15 +20,13 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.DeleteRestrictionType
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 
-import uk.gov.hmrc.apiplatformjobs.connectors.{ProductionThirdPartyApplicationConnector, SandboxThirdPartyApplicationConnector}
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments}
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 class UnusedApplicationsService @Inject() (
-    productionThirdPartyApplicationConnector: ProductionThirdPartyApplicationConnector,
-    sandboxThirdPartyApplicationConnector: SandboxThirdPartyApplicationConnector,
+    tpoConnector: ThirdPartyOrchestratorConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository
   )(implicit val ec: ExecutionContext
   ) {
@@ -36,10 +34,10 @@ class UnusedApplicationsService @Inject() (
   def updateUnusedApplications() = {
 
     for {
-      sandboxAppsNotToBeDeleted <- sandboxThirdPartyApplicationConnector.applicationSearch(None, DeleteRestrictionType.DO_NOT_DELETE)
-      sandboxResult             <- removeFromUnusedApplications(sandboxAppsNotToBeDeleted.map(_.applicationId).toSet, Environments.SANDBOX)
-      prodAppsNotToBeDeleted    <- productionThirdPartyApplicationConnector.applicationSearch(None, DeleteRestrictionType.DO_NOT_DELETE)
-      prodResult                <- removeFromUnusedApplications(prodAppsNotToBeDeleted.map(_.applicationId).toSet, Environments.PRODUCTION)
+      sandboxAppsNotToBeDeleted <- tpoConnector.applicationSearch(Environment.SANDBOX, None, DeleteRestrictionType.DO_NOT_DELETE)
+      sandboxResult             <- removeFromUnusedApplications(sandboxAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.SANDBOX)
+      prodAppsNotToBeDeleted    <- tpoConnector.applicationSearch(Environment.PRODUCTION, None, DeleteRestrictionType.DO_NOT_DELETE)
+      prodResult                <- removeFromUnusedApplications(prodAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.PRODUCTION)
     } yield sandboxResult.toList ++ prodResult.toList
   }
 

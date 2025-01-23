@@ -23,10 +23,10 @@ import com.typesafe.config.ConfigFactory
 import play.api.Configuration
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.ApplicationId
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 
 trait UnusedApplicationTestConfiguration extends FixedClock {
 
@@ -50,12 +50,14 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedSandboxApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$sandboxNotificationsString]
                                                    |    environmentName = "$sandboxEnvironmentName"
+                                                   |    authorisationKey = "sandbox123"
                                                    |  }
                                                    |
                                                    |  PRODUCTION {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$productionNotificationsString]
                                                    |    environmentName = "$productionEnvironmentName"
+                                                   |    authorisationKey = "production456"
                                                    |  }
                                                    |}
                                                    |

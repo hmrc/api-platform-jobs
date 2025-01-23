@@ -18,22 +18,22 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant, LocalDate}
-import javax.inject.{Inject, Named, Singleton}
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.LockRepository
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.DeleteRestrictionType
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, LaxEmailAddress}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
-import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyApplicationConnector, ThirdPartyDeveloperConnector}
-import uk.gov.hmrc.apiplatformjobs.models.{Environment, Environments, _}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
+import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class UpdateUnusedApplicationRecordsJob(
-    thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+    tpoConnector: ThirdPartyOrchestratorConnector,
     thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     environment: Environment,
@@ -89,7 +89,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
     for {
       knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications                                <- thirdPartyApplicationConnector.applicationSearch(Some(notificationCutoffDate()), DeleteRestrictionType.NO_RESTRICTION)
+      currentUnusedApplications                                <- tpoConnector.applicationSearch(environment, Some(notificationCutoffDate()), DeleteRestrictionType.NO_RESTRICTION)
       updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
 
       _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
@@ -125,17 +125,17 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
 @Singleton
 class UpdateUnusedSandboxApplicationRecordsJob @Inject() (
-    @Named("tpa-sandbox") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+    tpoConnector: ThirdPartyOrchestratorConnector,
     thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
   ) extends UpdateUnusedApplicationRecordsJob(
-      thirdPartyApplicationConnector,
+      tpoConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
-      Environments.SANDBOX,
+      Environment.SANDBOX,
       configuration,
       clock,
       lockRepository
@@ -143,17 +143,17 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject() (
 
 @Singleton
 class UpdateUnusedProductionApplicationRecordsJob @Inject() (
-    @Named("tpa-production") thirdPartyApplicationConnector: ThirdPartyApplicationConnector,
+    tpoConnector: ThirdPartyOrchestratorConnector,
     thirdPartyDeveloperConnector: ThirdPartyDeveloperConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository,
     configuration: Configuration,
     clock: Clock,
     lockRepository: LockRepository
   ) extends UpdateUnusedApplicationRecordsJob(
-      thirdPartyApplicationConnector,
+      tpoConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
-      Environments.PRODUCTION,
+      Environment.PRODUCTION,
       configuration,
       clock,
       lockRepository

@@ -34,10 +34,8 @@ import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 trait DeleteDeveloper {
   self: ApplicationLogger =>
 
-  def sandboxApplicationConnector: SandboxThirdPartyApplicationConnector
-  def productionApplicationConnector: ProductionThirdPartyApplicationConnector
-  def sandboxCmdConnector: SandboxApplicationCommandConnector
-  def productionCmdConnector: ProductionApplicationCommandConnector
+  def tpoConnector: ThirdPartyOrchestratorConnector
+  def tpoCmdConnector: TpoApplicationCommandConnector
   def developerConnector: ThirdPartyDeveloperConnector
 
   val deleteFunction: (LaxEmailAddress) => Future[Int]
@@ -47,16 +45,16 @@ trait DeleteDeveloper {
 
     val matchesCoreDetails: (Collaborator) => Boolean = (collaborator) => collaborator.userId == developer.id && collaborator.emailAddress == developer.email
 
-    def process(tpaConnector: ThirdPartyApplicationConnector, cmdConnector: ApplicationCommandConnector): Future[HasSucceeded] = {
+    def process(): Future[HasSucceeded] = {
       def processApp(appResponse: ApplicationWithCollaborators): Future[HasSucceeded] = {
         val collaborator = appResponse.collaborators.find(matchesCoreDetails).get // Safe to do here
         val command      = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob(s"Delete-$jobLabel"), collaborator, timestamp)
         logger.info(s"Removing user:${collaborator.userId.value} from app:${appResponse.id.value}")
-        cmdConnector.dispatch(appResponse.id, command, Set.empty)
+        tpoCmdConnector.dispatchToEnvironment(appResponse.deployedTo, appResponse.id, command, Set.empty)
       }
 
       for {
-        apps <- tpaConnector.fetchApplicationsByUserId(developer.id)
+        apps <- tpoConnector.fetchApplicationsByUserId(developer.id)
         _    <- sequence(apps.map(processApp))
       } yield HasSucceeded
     }
@@ -64,12 +62,10 @@ trait DeleteDeveloper {
     // Run the sandbox and production in parallel
     // Effectively the code will any and all collaborator records it can in both environments
     // If anything fails sequence(...) will capture that as the result and the final future will be a fail
-    val sandboxResult: Future[HasSucceeded] = process(sandboxApplicationConnector, sandboxCmdConnector)
-    val prodResult: Future[HasSucceeded]    = process(productionApplicationConnector, productionCmdConnector)
+    val results: Future[HasSucceeded] = process()
 
     for {
-      _ <- sandboxResult
-      _ <- prodResult
+      _ <- results
       _ <- deleteFunction(developer.email)
     } yield HasSucceeded
   }

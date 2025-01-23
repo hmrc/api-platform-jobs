@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit.DAYS
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.{LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.github.tomakehurst.wiremock.client.WireMock._
@@ -31,22 +31,15 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{
-  ApplicationWithCollaborators,
-  ApplicationWithCollaboratorsFixtures,
-  Collaborator,
-  Collaborators,
-  DeleteRestrictionType,
-  PaginatedApplications
-}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models._
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Environment, UserId}
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector._
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
 import uk.gov.hmrc.apiplatformjobs.models._
 import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
-class ThirdPartyApplicationConnectorSpec
+class ThirdPartyOrchestratorConnectorSpec
     extends AsyncHmrcSpec
     with ResponseUtils
     with GuiceOneAppPerSuite
@@ -61,17 +54,12 @@ class ThirdPartyApplicationConnectorSpec
 
   class Setup(proxyEnabled: Boolean = false) {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-    val apiKeyTest                 = "5bb51bca-8f97-4f2b-aee4-81a4a70a42d3"
-    val bearer                     = "TestBearerToken"
-    val authorisationKeyTest       = "TestAuthorisationKey"
+    val mockConfig                 = mock[ThirdPartyOrchestratorConnector.Config]
+    when(mockConfig.serviceBaseUrl).thenReturn(wireMockUrl)
 
-    val mockConfig = mock[ThirdPartyApplicationConnectorConfig]
-    when(mockConfig.productionBaseUrl).thenReturn(wireMockUrl)
-    when(mockConfig.productionAuthorisationKey).thenReturn(authorisationKeyTest)
-
-    val connector = new ProductionThirdPartyApplicationConnector(
-      mockConfig,
-      app.injector.instanceOf[HttpClientV2]
+    val connector = new ThirdPartyOrchestratorConnector(
+      app.injector.instanceOf[HttpClientV2],
+      mockConfig
     )
   }
 
@@ -153,7 +141,7 @@ class ThirdPartyApplicationConnectorSpec
         )
 
       stubFor(
-        get(urlPathEqualTo("/applications"))
+        get(urlPathEqualTo("/environment/PRODUCTION/applications"))
           .withQueryParam("lastUseBefore", equalTo(dateString))
           .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
@@ -164,7 +152,7 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(Some(lastUseDate), deleteRestriction))
+      val results = await(connector.applicationSearch(Environment.PRODUCTION, Some(lastUseDate), deleteRestriction))
 
       results should contain
       ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.details.createdOn, oldApplication1.details.lastAccess)
@@ -178,7 +166,7 @@ class ThirdPartyApplicationConnectorSpec
       val dateString: String = dateFormatter.format(lastUseLDT)
 
       stubFor(
-        get(urlPathEqualTo("/applications"))
+        get(urlPathEqualTo("/environment/PRODUCTION/applications"))
           .withQueryParam("lastUseBefore", equalTo(dateString))
           .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
@@ -189,14 +177,14 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(Some(lastUseDate), deleteRestriction))
+      val results = await(connector.applicationSearch(Environment.PRODUCTION, Some(lastUseDate), deleteRestriction))
 
       results.size should be(0)
     }
 
     "ensure lastUseBefore is not in query param when lastUseDate is None" in new Setup {
       stubFor(
-        get(urlPathEqualTo("/applications"))
+        get(urlPathEqualTo("/environment/PRODUCTION/applications"))
           .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .withQueryParam("sort", equalTo("NO_SORT"))
           .willReturn(
@@ -206,70 +194,14 @@ class ThirdPartyApplicationConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(None, deleteRestriction))
+      val results = await(connector.applicationSearch(Environment.PRODUCTION, None, deleteRestriction))
 
       results.size should be(0)
     }
   }
 
-  "deleteApplication" should {
-    "return true if call to TPA is successful" in new Setup {
-      val applicationId = ApplicationId.random
-
-      stubFor(
-        patch(urlPathEqualTo(s"/application/${applicationId.value}"))
-          .willReturn(
-            aResponse()
-              .withStatus(NO_CONTENT)
-          )
-      )
-
-      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", Instant.now))
-
-      response should be(ApplicationUpdateSuccessResult)
-    }
-
-    "return false if call to TPA fails" in new Setup {
-      val applicationId = ApplicationId.random
-
-      stubFor(
-        patch(urlPathEqualTo(s"/application/${applicationId.value}"))
-          .willReturn(
-            aResponse()
-              .withStatus(BAD_REQUEST)
-          )
-      )
-
-      val response = await(connector.deleteApplication(applicationId, "jobId", "reasons", Instant.now))
-
-      response should be(ApplicationUpdateFailureResult)
-    }
-  }
-
-  "JsonFormatters" should {
-    "correctly parse PaginatedApplicationLastUseResponse from TPA" in new PaginatedTPAResponse {
-      val parsedResponse: PaginatedApplications = Json.fromJson[PaginatedApplications](Json.parse(response)).get
-
-      parsedResponse.page should be(pageNumber)
-      parsedResponse.pageSize should be(pageSize)
-      parsedResponse.total should be(totalApplications)
-      parsedResponse.matching should be(matchingApplications)
-
-      parsedResponse.applications.size should be(1)
-      val application = parsedResponse.applications.head
-      application.id should be(applicationId)
-      application.name should be(applicationName)
-      application.details.createdOn should be(createdOn)
-      application.details.lastAccess should be(Some(lastAccess))
-
-      application.collaborators.size should be(3)
-      application.collaborators should contain(Collaborators.Administrator(adminUserId, adminEmailAddress))
-      application.collaborators should contain(Collaborators.Developer(developerUserId, developerEmailAddress))
-    }
-  }
-
   "toDomain" should {
-    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyApplicationConnector.toDomain
+    import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector.toDomain
 
     "correctly convert ApplicationLastUseDates to ApplicationUsageDetails" in new PaginatedTPAResponse {
       val parsedResponse: PaginatedApplications = Json.fromJson[PaginatedApplications](Json.parse(response)).get
