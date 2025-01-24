@@ -86,7 +86,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", "sandbox123", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", "sandbox123", `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
@@ -109,7 +109,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", "sandbox123", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", "sandbox123", `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
@@ -135,7 +135,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", "production456", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", "production456", `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
@@ -158,7 +158,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", "production456", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", "production456", `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
