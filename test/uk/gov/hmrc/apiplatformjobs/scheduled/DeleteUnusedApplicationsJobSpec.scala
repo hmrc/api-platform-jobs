@@ -42,6 +42,9 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
   trait SandboxSetup extends Setup {
     val environment: Environment = Environment.SANDBOX
 
+    val authKey        = "sandbox123"
+    val encodedAuthKey = "c2FuZGJveDEyMw==" // Base64 encoded auth key
+
     val underTest =
       new DeleteUnusedSandboxApplicationsJob(
         mockTpoCmdConnector,
@@ -55,6 +58,9 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
 
   trait ProductionSetup extends Setup {
     val environment: Environment = Environment.PRODUCTION
+
+    val authKey        = "production456"
+    val encodedAuthKey = "cHJvZHVjdGlvbjQ1Ng==" // Base64 encoded auth key
 
     val underTest =
       new DeleteUnusedProductionApplicationsJob(
@@ -86,7 +92,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", "sandbox123", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", `encodedAuthKey`, `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
@@ -109,7 +115,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", "sandbox123", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.SANDBOX", `encodedAuthKey`, `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)
@@ -135,7 +141,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", "production456", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", `encodedAuthKey`, `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(environment, applicationId)
@@ -158,7 +164,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       verify(mockTpoCmdConnector).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(applicationId),
-        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", "production456", reasons, _) => }),
+        argMatching({ case ApplicationCommands.DeleteUnusedApplication("DeleteUnusedApplicationsJob.PRODUCTION", `encodedAuthKey`, `reasons`, _) => }),
         *
       )(*)
       verify(mockUnusedApplicationsRepository, times(0)).deleteUnusedApplicationRecord(environment, applicationId)

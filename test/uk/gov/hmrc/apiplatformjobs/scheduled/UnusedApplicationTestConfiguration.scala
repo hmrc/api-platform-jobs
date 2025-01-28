@@ -39,7 +39,9 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
       notifyDeletionPendingInAdvanceForSandbox: Seq[Int] = Seq(30),
       notifyDeletionPendingInAdvanceForProduction: Seq[Int] = Seq(30),
       sandboxEnvironmentName: String = "Sandbox",
-      productionEnvironmentName: String = "Production"
+      productionEnvironmentName: String = "Production",
+      sandboxAuthKey: String = "sandbox123",
+      productionAuthKey: String = "production456"
     ): Configuration = {
     val sandboxNotificationsString    = notifyDeletionPendingInAdvanceForSandbox.mkString("", "d,", "d")
     val productionNotificationsString = notifyDeletionPendingInAdvanceForProduction.mkString("", "d,", "d")
@@ -50,14 +52,14 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedSandboxApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$sandboxNotificationsString]
                                                    |    environmentName = "$sandboxEnvironmentName"
-                                                   |    authorisationKey = "sandbox123"
+                                                   |    authorisationKey = "$sandboxAuthKey"
                                                    |  }
                                                    |
                                                    |  PRODUCTION {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$productionNotificationsString]
                                                    |    environmentName = "$productionEnvironmentName"
-                                                   |    authorisationKey = "production456"
+                                                   |    authorisationKey = "$productionAuthKey"
                                                    |  }
                                                    |}
                                                    |
