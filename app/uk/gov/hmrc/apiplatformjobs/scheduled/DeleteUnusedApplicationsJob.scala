@@ -16,9 +16,12 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import java.nio.charset.StandardCharsets.UTF_8
 import java.time.{Clock, Instant}
 import javax.inject.{Inject, Singleton}
 import scala.util.control.NonFatal
+
+import org.apache.commons.codec.binary.Base64.encodeBase64String
 
 import play.api.Configuration
 import uk.gov.hmrc.http.HeaderCarrier
@@ -66,8 +69,9 @@ abstract class DeleteUnusedApplicationsJob(
     ): Future[ApplicationUpdateResult] = {
 
     val authorisationKey = if (environment.isProduction) unusedApplicationsConfiguration.production.authorisationKey else unusedApplicationsConfiguration.sandbox.authorisationKey
+    val encodedAuthKey   = encodeBase64String(authorisationKey.getBytes(UTF_8))
 
-    val deleteRequest = DeleteUnusedApplication(jobId, authorisationKey, reasons, timestamp)
+    val deleteRequest = DeleteUnusedApplication(jobId, encodedAuthKey, reasons, timestamp)
 
     tpoCmdConnector.dispatchToEnvironment(environment, applicationId, deleteRequest, Set.empty)
       .map(_ => ApplicationUpdateSuccessResult)
