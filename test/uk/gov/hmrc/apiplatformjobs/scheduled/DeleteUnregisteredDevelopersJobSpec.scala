@@ -37,6 +37,8 @@ import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreU
 import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
+import org.mockito.captor.ArgCaptor
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommand
 
 class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfterAll with ApplicationWithCollaboratorsFixtures {
   val joeBloggs = "joe.bloggs@example.com".toLaxEmail
@@ -83,9 +85,19 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     val johnDoeId   = UserId.random
     val joeBloggsId = UserId.random
 
+    val firstUndeletable = deleteUnregisteredDevelopersJobConfig.undeletableDevelopers.head
+    val lastUndeletable  = deleteUnregisteredDevelopersJobConfig.undeletableDevelopers.last
+
     val appAADUsers =
-      Set[Collaborator](Collaborators.Administrator(user1Id, user1Email), Collaborators.Administrator(johnDoeId, johnDoe), Collaborators.Developer(joeBloggsId, joeBloggs))
-    val appADUsers  = Set[Collaborator](Collaborators.Administrator(joeBloggsId, joeBloggs), Collaborators.Developer(johnDoeId, johnDoe))
+      Set[Collaborator](
+        Collaborators.Administrator(user1Id, user1Email),
+        Collaborators.Administrator(johnDoeId, johnDoe),
+        Collaborators.Developer(joeBloggsId, joeBloggs),
+        Collaborators.Administrator(UserId.random, firstUndeletable),
+        Collaborators.Administrator(UserId.random, lastUndeletable)
+      )
+
+    val appADUsers = Set[Collaborator](Collaborators.Administrator(joeBloggsId, joeBloggs), Collaborators.Developer(johnDoeId, johnDoe))
 
     val prodApp    = standardApp.withId(productionAppId).withCollaborators(appAADUsers).withEnvironment(Environment.PRODUCTION)
     val sandBoxApp = standardApp.withId(sandboxAppId).withCollaborators(appADUsers).withEnvironment(Environment.SANDBOX)
@@ -112,30 +124,46 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     "remove unregistered developers as collaborators" in new SuccessfulSetup {
       val result: underTest.Result = await(underTest.execute)
 
-      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+      val sandboxCmdCaptures = ArgCaptor[ApplicationCommand]
+  
+      verify(mockTpoCmdConnector, times(2)).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Administrator(_, joeBloggs), _) => }),
+        sandboxCmdCaptures,
         *
       )(*)
-      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
-        eqTo(Environment.SANDBOX),
-        eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
-        *
-      )(*)
-      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
+
+      sandboxCmdCaptures.values.foreach {
+        case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), collaborator, _) => succeed
+        case c @ _ => fail(s"Not the expected command $c")
+      }
+
+      val sandboxCollaborators: List[Collaborator] = sandboxCmdCaptures.values.collect {
+        case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), collaborator, _) => collaborator
+      }
+
+      sandboxCollaborators.map(_.emailAddress) should contain only(johnDoe, joeBloggs)
+
+      val productionCmdCaptures = ArgCaptor[ApplicationCommand]
+  
+      verify(mockTpoCmdConnector, times(2)).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Administrator(_, joeBloggs), _) => }),
+        productionCmdCaptures,
         *
       )(*)
-      verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
-        eqTo(Environment.PRODUCTION),
-        eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
-        *
-      )(*)
+
+      productionCmdCaptures.values.foreach {
+        case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), collaborator, _) => succeed
+        case c @ _ => fail(s"Not the expected command $c")
+      }
+
+      val productionCollaborators: List[Collaborator] = productionCmdCaptures.values.collect {
+        case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), collaborator, _) => collaborator
+      }
+
+      productionCollaborators.map(_.emailAddress) should contain only(johnDoe, joeBloggs)
+
       // called twice as fetchExpiredUnregisteredDevelopers returns two records
       verify(mockThirdPartyDeveloperConnector, times(2)).deleteUnregisteredDeveloper(*[LaxEmailAddress])(*)
 
@@ -151,25 +179,37 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, `joeBloggs`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, `johnDoe`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, `joeBloggs`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, `johnDoe`), _) => }),
+        *
+      )(*)
+      verify(mockTpoCmdConnector, never).dispatchToEnvironment(
+        eqTo(Environment.PRODUCTION),
+        eqTo(productionAppId),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, `firstUndeletable`), _) => }),
+        *
+      )(*)
+      verify(mockTpoCmdConnector, never).dispatchToEnvironment(
+        eqTo(Environment.PRODUCTION),
+        eqTo(productionAppId),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnregisteredUser"), Collaborators.Developer(_, `lastUndeletable`), _) => }),
         *
       )(*)
       verify(mockThirdPartyDeveloperConnector, never).deleteUnregisteredDeveloper(*[LaxEmailAddress])(*)

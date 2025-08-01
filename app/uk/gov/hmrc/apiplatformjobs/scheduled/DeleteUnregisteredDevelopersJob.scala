@@ -22,6 +22,8 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
 
+import cats.data.NonEmptyList
+
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
@@ -56,9 +58,10 @@ class DeleteUnregisteredDevelopersJob @Inject() (
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     (for {
-      developerDetails <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
-      _                 = logger.info(s"Found ${developerDetails.size} unregistered developers")
-      _                <- sequence(developerDetails.map(deleteDeveloper("UnregisteredUser")))
+      developerDetails  <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
+      _                  = logger.info(s"Found ${developerDetails.size} unregistered developers")
+      filteredDevelopers = developerDetails.filterNot(developer => jobConfig.undeletableDevelopers.toList.contains(developer.email))
+      _                 <- sequence(filteredDevelopers.map(deleteDeveloper("UnregisteredUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>
       logger.error("Could not delete unregistered developers", e)
       Future.failed(RunningOfJobFailed(name, e))
@@ -73,4 +76,6 @@ class DeleteUnregisteredDevelopersJobLockService @Inject() (repository: LockRepo
   override val ttl: duration.Duration         = 1.hours
 }
 
-case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int)
+case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int) {
+  val undeletableDevelopers = NonEmptyList.of(LaxEmailAddress("isregistered@example.com"), LaxEmailAddress("notregistered@example.com"))
+}

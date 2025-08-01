@@ -3,7 +3,7 @@ lazy val appName = "api-platform-jobs"
 Global / bloopAggregateSourceDependencies := true
 Global / bloopExportJarClassifiers := Some(Set("sources"))
 
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.16"
 ThisBuild / majorVersion := 0
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 ThisBuild / semanticdbEnabled := true
@@ -24,8 +24,7 @@ lazy val microservice = Project(appName, file("."))
   )
   .settings(ScoverageSettings())
   .settings(
-    Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
-
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "resources"
   )
 
 commands ++= Seq(

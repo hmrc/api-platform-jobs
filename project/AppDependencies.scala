@@ -3,14 +3,14 @@ import sbt._
 object AppDependencies {
   def apply(): Seq[ModuleID] = compileDeps ++ testDeps
 
-  private lazy val bootstrapVersion = "9.7.0"
-  private lazy val hmrcMongoVersion = "2.4.0"
-  private lazy val appDomainVersion = "0.72.0"
+  private lazy val bootstrapVersion = "9.19.0"
+  private lazy val hmrcMongoVersion = "2.7.0"
+  private lazy val appDomainVersion = "0.81.0"
 
   private lazy val compileDeps = Seq(
     "uk.gov.hmrc"                 %% "bootstrap-backend-play-30"                  % bootstrapVersion,
     "uk.gov.hmrc.mongo"           %% "hmrc-mongo-play-30"                         % hmrcMongoVersion,
-    "org.typelevel"               %% "cats-core"                                  % "2.10.0",
+    "org.typelevel"               %% "cats-core"                                  % "2.13.0",
     "commons-codec"               %  "commons-codec"                              % "1.16.0",
     "uk.gov.hmrc"                 %% "api-platform-application-domain"            % appDomainVersion,
     "com.github.pureconfig"       %% "pureconfig"                                 % "0.17.7"
