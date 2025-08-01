@@ -49,7 +49,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
   override val isEnabled: Boolean = jobConfig.enabled
   implicit val hc: HeaderCarrier  = HeaderCarrier()
 
-  override val deleteFunction: (LaxEmailAddress) => Future[Int] = (email) => {
+  override val deleteFunction: LaxEmailAddress => Future[Int] = email => {
     developerConnector.deleteUnregisteredDeveloper(email)
   }
 
@@ -60,7 +60,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
     (for {
       developerDetails  <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
       _                  = logger.info(s"Found ${developerDetails.size} unregistered developers")
-      filteredDevelopers = developerDetails.filterNot(developer => jobConfig.undeletableDevelopers.toList.contains(developer.email))
+      filteredDevelopers = developerDetails.filterNot(developer => jobConfig.excludedEmails.toList.contains(developer.email))
       _                 <- sequence(filteredDevelopers.map(deleteDeveloper("UnregisteredUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>
       logger.error("Could not delete unregistered developers", e)
@@ -77,5 +77,10 @@ class DeleteUnregisteredDevelopersJobLockService @Inject() (repository: LockRepo
 }
 
 case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int) {
-  val undeletableDevelopers = NonEmptyList.of(LaxEmailAddress("isregistered@example.com"), LaxEmailAddress("notregistered@example.com"))
+
+  // These emails are used for unregistered users in QA acceptance testing, so are excluded from deletion
+  val excludedEmails: NonEmptyList[LaxEmailAddress] = NonEmptyList.of(
+    LaxEmailAddress("isregistered@example.com"),
+    LaxEmailAddress("notregistered@example.com")
+  )
 }
