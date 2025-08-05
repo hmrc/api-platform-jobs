@@ -61,7 +61,16 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 
     val deleteUnregisteredDevelopersJobConfig: DeleteUnregisteredDevelopersJobConfig =
-      DeleteUnregisteredDevelopersJobConfig(FiniteDuration(60, SECONDS), FiniteDuration(24, HOURS), enabled = true, 5)
+      DeleteUnregisteredDevelopersJobConfig(
+        FiniteDuration(60, SECONDS),
+        FiniteDuration(24, HOURS),
+        enabled = true,
+        5,
+        List(
+          LaxEmailAddress("isregistered@example.com"),
+          LaxEmailAddress("notregistered@example.com")
+        )
+      )
     val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector               = mock[ThirdPartyDeveloperConnector]
     val mockTpoConnector: ThirdPartyOrchestratorConnector                            = mock[ThirdPartyOrchestratorConnector]
     val mockTpoCmdConnector: TpoApplicationCommandConnector                          = mock[TpoApplicationCommandConnector]

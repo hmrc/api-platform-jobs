@@ -22,8 +22,6 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
 
-import cats.data.NonEmptyList
-
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
 
@@ -76,11 +74,4 @@ class DeleteUnregisteredDevelopersJobLockService @Inject() (repository: LockRepo
   override val ttl: duration.Duration         = 1.hours
 }
 
-case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int) {
-
-  // These emails are used for unregistered users in QA acceptance testing, so are excluded from deletion
-  val excludedEmails: NonEmptyList[LaxEmailAddress] = NonEmptyList.of(
-    LaxEmailAddress("isregistered@example.com"),
-    LaxEmailAddress("notregistered@example.com")
-  )
-}
+case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int, excludedEmails: List[LaxEmailAddress])
