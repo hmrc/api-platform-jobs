@@ -23,6 +23,8 @@ import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
+
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.ThirdPartyDeveloperConnectorConfig
 import uk.gov.hmrc.apiplatformjobs.connectors.{ApiPlatformMicroserviceConnectorConfig, EmailConfig, ThirdPartyOrchestratorConnector}
 import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobConfig, DeleteUnverifiedDevelopersJobConfig}
@@ -76,11 +78,12 @@ class DeleteUnregisteredDevelopersJobConfigProvider @Inject() (configuration: Co
   import scala.jdk.DurationConverters._
 
   override def get(): DeleteUnregisteredDevelopersJobConfig = {
-    val enabled: Boolean             = configuration.underlying.getBoolean("deleteUnregisteredDevelopersJob.enabled")
-    val initialDelay: FiniteDuration = configuration.underlying.getDuration("deleteUnregisteredDevelopersJob.initialDelay").toScala
-    val interval: FiniteDuration     = configuration.underlying.getDuration("deleteUnregisteredDevelopersJob.interval").toScala
-    val limit: Int                   = configuration.underlying.getInt("deleteUnregisteredDevelopersJob.limit")
-    DeleteUnregisteredDevelopersJobConfig(initialDelay, interval, enabled, limit)
+    val enabled: Boolean                      = configuration.underlying.getBoolean("deleteUnregisteredDevelopersJob.enabled")
+    val initialDelay: FiniteDuration          = configuration.underlying.getDuration("deleteUnregisteredDevelopersJob.initialDelay").toScala
+    val interval: FiniteDuration              = configuration.underlying.getDuration("deleteUnregisteredDevelopersJob.interval").toScala
+    val limit: Int                            = configuration.underlying.getInt("deleteUnregisteredDevelopersJob.limit")
+    val excludedEmails: List[LaxEmailAddress] = configuration.get[Seq[String]]("deleteUnregisteredDevelopersJob.excludedEmails").map(LaxEmailAddress(_)).toList
+    DeleteUnregisteredDevelopersJobConfig(initialDelay, interval, enabled, limit, excludedEmails)
   }
 }
 

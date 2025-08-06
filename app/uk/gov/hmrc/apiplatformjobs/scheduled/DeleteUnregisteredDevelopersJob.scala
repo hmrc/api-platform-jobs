@@ -47,7 +47,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
   override val isEnabled: Boolean = jobConfig.enabled
   implicit val hc: HeaderCarrier  = HeaderCarrier()
 
-  override val deleteFunction: (LaxEmailAddress) => Future[Int] = (email) => {
+  override val deleteFunction: LaxEmailAddress => Future[Int] = email => {
     developerConnector.deleteUnregisteredDeveloper(email)
   }
 
@@ -56,9 +56,10 @@ class DeleteUnregisteredDevelopersJob @Inject() (
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     (for {
-      developerDetails <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
-      _                 = logger.info(s"Found ${developerDetails.size} unregistered developers")
-      _                <- sequence(developerDetails.map(deleteDeveloper("UnregisteredUser")))
+      developerDetails  <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
+      _                  = logger.info(s"Found ${developerDetails.size} unregistered developers")
+      filteredDevelopers = developerDetails.filterNot(developer => jobConfig.excludedEmails.toList.contains(developer.email))
+      _                 <- sequence(filteredDevelopers.map(deleteDeveloper("UnregisteredUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>
       logger.error("Could not delete unregistered developers", e)
       Future.failed(RunningOfJobFailed(name, e))
@@ -73,4 +74,4 @@ class DeleteUnregisteredDevelopersJobLockService @Inject() (repository: LockRepo
   override val ttl: duration.Duration         = 1.hours
 }
 
-case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int)
+case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int, excludedEmails: List[LaxEmailAddress])
