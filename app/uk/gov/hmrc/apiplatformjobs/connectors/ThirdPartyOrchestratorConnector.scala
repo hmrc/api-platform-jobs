@@ -17,7 +17,6 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.Instant
-import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -25,10 +24,12 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, _}
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType, PaginatedApplications}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType}
+import uk.gov.hmrc.apiplatform.modules.applications.query.domain.models.Param._
+import uk.gov.hmrc.apiplatform.modules.applications.query.domain.models.{ApplicationQueries, ApplicationQuery}
+import uk.gov.hmrc.apiplatform.modules.applications.query.domain.services.QueryParamsToQueryStringMap
 import uk.gov.hmrc.apiplatform.modules.common.domain.models._
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
-import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 
@@ -39,35 +40,28 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
   import ThirdPartyOrchestratorConnector._
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationWithCollaborators]] = {
-    http
-      .get(url"$serviceBaseUrl/developer/$userId/applications")
-      .execute[Seq[ApplicationWithCollaborators]]
+    query[List[ApplicationWithCollaborators]](ApplicationQueries.applicationsByUserId(userId, false))
   }
 
   def applicationSearch(environment: Environment, lastUseDate: Option[Instant], deleteRestriction: DeleteRestrictionType): Future[List[ApplicationUsageDetails]] = {
-
-    def asQueryParams(): Seq[(String, String)] = {
-      val deleteRestrictionAndSort: Seq[(String, String)] = Seq(
-        "deleteRestriction" -> deleteRestriction.toString,
-        "sort"              -> "NO_SORT"
-      )
-      lastUseDate match {
-        case Some(date: Instant) => deleteRestrictionAndSort ++ Seq("lastUseBefore" -> DateTimeFormatter.ISO_DATE_TIME.format(date.asLocalDateTime))
-        case None                => deleteRestrictionAndSort
-      }
-    }
+    val deleteRestrictionQP: DeleteRestrictionQP = if (deleteRestriction == DeleteRestrictionType.DO_NOT_DELETE) DoNotDeleteQP else NoRestrictionQP
+    val maybeDateQP                              = lastUseDate.map(date => LastUsedBeforeQP(date))
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
-
-    http.get(url"$serviceBaseUrl/environment/$environment/applications?${asQueryParams()}")
-      .execute[PaginatedApplications]
-      .map(page => toDomain(page.applications))
+    query[List[ApplicationWithCollaborators]](ApplicationQuery.GeneralOpenEndedApplicationQuery(
+      EnvironmentQP(environment) :: deleteRestrictionQP :: maybeDateQP.toList,
+      limit = Some(100)
+    ))
+      .map(toDomain)
   }
 
-  def getApplication(applicationId: ApplicationId)(implicit hc: HeaderCarrier): Future[Option[ApplicationWithCollaborators]] = {
-    http
-      .get(url"$serviceBaseUrl/applications/$applicationId")
-      .execute[Option[ApplicationWithCollaborators]]
+  private def query[T](qry: ApplicationQuery)(implicit hc: HeaderCarrier, rds: HttpReads[T]): Future[T] = {
+    val params                                 = QueryParamsToQueryStringMap.toQuery(qry)
+    val singleValueParams: Map[String, String] = params.map {
+      case (k, vs) => k -> vs.mkString
+    }
+    http.get(url"$serviceBaseUrl/query?$singleValueParams")
+      .execute[T]
   }
 }
 
