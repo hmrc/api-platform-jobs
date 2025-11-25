@@ -119,25 +119,25 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Administrator(_, `joeBloggs`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, `johnDoe`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, `joeBloggs`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Administrator(_, `johnDoe`), _) => }),
         *
       )(*)
 
@@ -147,7 +147,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       result.message shouldBe "DeleteUnverifiedDevelopersJob Job ran successfully."
     }
 
-    "not remove developer from TPD if one of the calls to TPA remove collaborator fails " in new SuccessfulSetup {
+    "not remove developer from TPD if one of the calls to TPA remove collaborator fails" in new SuccessfulSetup {
       when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(failed(new RuntimeException("Failed")))
 
       val result: underTest.Result = await(underTest.execute)
@@ -155,25 +155,25 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Administrator(_, `joeBloggs`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.SANDBOX),
         eqTo(sandboxAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, `johnDoe`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, joeBloggs), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, `joeBloggs`), _) => }),
         *
       )(*)
       verify(mockTpoCmdConnector, atLeastOnce).dispatchToEnvironment(
         eqTo(Environment.PRODUCTION),
         eqTo(productionAppId),
-        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Developer(_, johnDoe), _) => }),
+        argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Administrator(_, `johnDoe`), _) => }),
         *
       )(*)
       verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(*[LaxEmailAddress])(*)
