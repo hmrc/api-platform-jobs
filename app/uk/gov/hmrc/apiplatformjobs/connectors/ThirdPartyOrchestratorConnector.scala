@@ -49,7 +49,7 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     query[List[ApplicationWithCollaborators]](ApplicationQuery.GeneralOpenEndedApplicationQuery(
-      EnvironmentQP(environment) :: deleteRestrictionQP :: maybeDateQP.toList,
+      EnvironmentQP(environment) :: ExcludeDeletedQP :: deleteRestrictionQP :: maybeDateQP.toList,
       limit = Some(100)
     ))
       .map(toDomain)
