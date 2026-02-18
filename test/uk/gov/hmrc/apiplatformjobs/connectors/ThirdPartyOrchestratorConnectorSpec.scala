@@ -145,7 +145,6 @@ class ThirdPartyOrchestratorConnectorSpec
       stubFor(
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
-          .withQueryParam("limit", equalTo("100"))
           .withQueryParam("lastUsedBefore", equalTo(dateString))
           .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .willReturn(
@@ -170,7 +169,6 @@ class ThirdPartyOrchestratorConnectorSpec
       stubFor(
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
-          .withQueryParam("limit", equalTo("100"))
           .withQueryParam("lastUsedBefore", equalTo(dateString))
           .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .willReturn(
@@ -189,7 +187,6 @@ class ThirdPartyOrchestratorConnectorSpec
       stubFor(
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
-          .withQueryParam("limit", equalTo("100"))
           .withQueryParam("lastUsedBefore", absent())
           .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
           .willReturn(

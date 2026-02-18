@@ -32,6 +32,8 @@ import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with FixedClock {
 
   trait Setup extends BaseSetup {
+    val appsToDeletePerCycle = 10
+
     val mockTpoCmdConnector: TpoApplicationCommandConnector = mock[TpoApplicationCommandConnector]
 
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
@@ -80,7 +82,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), eqTo(applicationId), *, *)(*))
         .thenReturn(Future.successful(HasSucceeded))
@@ -104,7 +106,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), eqTo(applicationId), *, *)(*))
         .thenReturn(Future.failed(new RuntimeException))
@@ -129,7 +131,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), eqTo(applicationId), *, *)(*))
         .thenReturn(Future.successful(HasSucceeded))
@@ -153,7 +155,7 @@ class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicati
       private val reasons       = s"Application automatically deleted because it has not been used since ${unusedApp.lastInteractionDate}"
 
       when(mockUnusedApplicationsService.updateUnusedApplications()).thenReturn(Future.successful(List.empty))
-      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment))
+      when(mockUnusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle))
         .thenReturn(Future.successful(List(unusedApp)))
       when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), eqTo(applicationId), *, *)(*))
         .thenReturn(Future.failed(new RuntimeException))

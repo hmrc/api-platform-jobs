@@ -40,7 +40,7 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
   import ThirdPartyOrchestratorConnector._
 
   def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationWithCollaborators]] = {
-    query[List[ApplicationWithCollaborators]](ApplicationQueries.applicationsByUserId(userId, false))
+    query[List[ApplicationWithCollaborators]](ApplicationQueries.applicationsByUserId(userId, includeDeleted = false))
   }
 
   def applicationSearch(environment: Environment, lastUseDate: Option[Instant], deleteRestriction: DeleteRestrictionType): Future[List[ApplicationUsageDetails]] = {
@@ -49,8 +49,7 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
     query[List[ApplicationWithCollaborators]](ApplicationQuery.GeneralOpenEndedApplicationQuery(
-      EnvironmentQP(environment) :: ExcludeDeletedQP :: deleteRestrictionQP :: maybeDateQP.toList,
-      limit = Some(100)
+      EnvironmentQP(environment) :: ExcludeDeletedQP :: deleteRestrictionQP :: maybeDateQP.toList
     ))
       .map(toDomain)
   }
