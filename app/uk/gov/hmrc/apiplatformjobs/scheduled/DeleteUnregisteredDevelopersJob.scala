@@ -58,7 +58,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
     (for {
       developerDetails  <- developerConnector.fetchExpiredUnregisteredDevelopers(jobConfig.limit)
       _                  = logger.info(s"Found ${developerDetails.size} unregistered developers")
-      filteredDevelopers = developerDetails.filterNot(developer => jobConfig.excludedEmails.toList.contains(developer.email))
+      filteredDevelopers = developerDetails.filterNot(developer => jobConfig.excludedEmails.contains(developer.email))
       _                 <- sequence(filteredDevelopers.map(deleteDeveloper("UnregisteredUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>
       logger.error("Could not delete unregistered developers", e)

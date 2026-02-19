@@ -104,9 +104,10 @@ abstract class DeleteUnusedApplicationsJob(
         }
     }
 
+    val appsToDeletePerCycle = 10
     for {
       _                    <- unusedApplicationsService.updateUnusedApplications()
-      applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment)
+      applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle)
       _                     = logInfo(s"Found [${applicationsToDelete.size}] applications to delete")
       _                    <- sequentialFutures(deleteApplication)(applicationsToDelete)
     } yield RunningOfJobSuccessful

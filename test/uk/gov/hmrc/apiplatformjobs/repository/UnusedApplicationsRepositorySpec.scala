@@ -237,6 +237,8 @@ class UnusedApplicationsRepositorySpec
   }
 
   "applicationsToBeDeleted" should {
+    val appsToDeletePerCycle = 10
+
     "correctly retrieve SANDBOX applications that are scheduled to be deleted" in new Setup {
       val sandboxApplicationToBeDeleted: UnusedApplication    = sandboxApplication(ApplicationId.random, scheduledDeletionDate = todaysDate.minusDays(1))
       val sandboxApplicationToNotBeDeleted: UnusedApplication = sandboxApplication(ApplicationId.random, scheduledDeletionDate = todaysDate.plusDays(1))
@@ -254,7 +256,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.SANDBOX, instant))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.SANDBOX, appsToDeletePerCycle, instant))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)
@@ -277,7 +279,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.PRODUCTION, instant))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.PRODUCTION, appsToDeletePerCycle, instant))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)
