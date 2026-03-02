@@ -69,7 +69,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
   }
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    def applicationsToUpdate(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
+    def applicationsToUpdate(knownApplications: List[UnusedApplication], currentUnusedApplications: List[ApplicationUsageDetails], neverUsedSandboxApplications: List[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
 
       val knownApplicationIds: Set[ApplicationId]         = knownApplications.map(_.applicationId).toSet
       val currentUnusedApplicationIds: Set[ApplicationId] = currentUnusedApplications.map(_.applicationId).toSet
@@ -90,7 +90,11 @@ abstract class UpdateUnusedApplicationRecordsJob(
     for {
       knownApplications                                        <- unusedApplicationsRepository.unusedApplications(environment)
       currentUnusedApplications                                <- tpoConnector.applicationSearch(environment, Some(notificationCutoffDate()), DeleteRestrictionType.NO_RESTRICTION)
-      updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications)
+      neverUsedSandboxApplications                             <- if(environment.isSandbox)
+                                                                    tpoConnector.applicationSearch(environment, ???, DeleteRestrictionType.NO_RESTRICTION)
+                                                                  else
+                                                                    Future.successful(List.empty)
+      updatesRequired: (Set[ApplicationId], Set[ApplicationId]) = applicationsToUpdate(knownApplications, currentUnusedApplications, neverUsedSandboxApplications)
 
       _                                                                       = logInfo(s"Found ${updatesRequired._1.size} new unused applications since last update")
       applicationsToAdd                                                       = currentUnusedApplications.filter(app => updatesRequired._1.contains(app.applicationId))
