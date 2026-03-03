@@ -96,7 +96,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
     val developers = Seq(CoreUserDetails(joeBloggs, joeBloggsId), CoreUserDetails(johnDoe, johnDoeId))
     when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
-    when(mockTpoConnector.fetchApplicationsByUserId(*[UserId])(*)).thenReturn(successful(Seq(sandBoxApp, prodApp)))
+    when(mockTpoConnector.fetchApplicationsByUserId(*[UserId])).thenReturn(successful(Seq(sandBoxApp, prodApp)))
     when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockThirdPartyDeveloperConnector.deleteDeveloper(*[LaxEmailAddress])(*)).thenReturn(successful(OK))

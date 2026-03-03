@@ -110,7 +110,7 @@ class ThirdPartyOrchestratorConnectorSpec
     def response(apps: List[ApplicationWithCollaborators]) = apps
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
-    val deleteRestriction                = DeleteRestrictionType.NO_RESTRICTION
+    val noDeleteRestriction              = DeleteRestrictionType.NO_RESTRICTION
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val checkLastUseInstant = now.minusMonths(12).asInstant
@@ -146,7 +146,7 @@ class ThirdPartyOrchestratorConnectorSpec
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
           .withQueryParam("lastUsedBefore", equalTo(dateString))
-          .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -154,7 +154,7 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(Environment.PRODUCTION, Some(checkLastUseInstant), deleteRestriction))
+      val results = await(connector.findApplicationsThatHaveNotBeenUsedSince(Environment.PRODUCTION, checkLastUseInstant))
 
       results should contain
       ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.details.createdOn, oldApplication1.details.lastAccess)
@@ -170,7 +170,7 @@ class ThirdPartyOrchestratorConnectorSpec
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
           .withQueryParam("lastUsedBefore", equalTo(dateString))
-          .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -178,17 +178,20 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(Environment.PRODUCTION, Some(lastUseInstant), deleteRestriction))
+      val results = await(connector.findApplicationsThatHaveNotBeenUsedSince(Environment.PRODUCTION, lastUseInstant))
 
       results.size should be(0)
     }
+  }
 
-    "ensure lastUseBefore is not in query param when lastUseDate is None" in new Setup {
+  "applications that should not be deleted" should {
+    def response(apps: List[ApplicationWithCollaborators]) = apps
+
+    "ensure is checking for Do Not Delete" in new Setup {
       stubFor(
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
-          .withQueryParam("lastUsedBefore", absent())
-          .withQueryParam("deleteRestriction", equalTo(deleteRestriction.toString))
+          .withQueryParam("deleteRestriction", equalTo(DeleteRestrictionType.DO_NOT_DELETE.toString))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -196,7 +199,7 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.applicationSearch(Environment.PRODUCTION, None, deleteRestriction))
+      val results = await(connector.findApplicationsThatShouldNotBeDeleted(Environment.PRODUCTION))
 
       results.size should be(0)
     }

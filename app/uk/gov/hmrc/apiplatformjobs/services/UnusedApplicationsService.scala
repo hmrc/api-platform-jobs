@@ -19,7 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.services
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.DeleteRestrictionType
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
@@ -34,9 +33,9 @@ class UnusedApplicationsService @Inject() (
   def updateUnusedApplications() = {
 
     for {
-      sandboxAppsNotToBeDeleted <- tpoConnector.applicationSearch(Environment.SANDBOX, None, DeleteRestrictionType.DO_NOT_DELETE)
+      sandboxAppsNotToBeDeleted <- tpoConnector.findApplicationsThatShouldNotBeDeleted(Environment.SANDBOX)
       sandboxResult             <- removeFromUnusedApplications(sandboxAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.SANDBOX)
-      prodAppsNotToBeDeleted    <- tpoConnector.applicationSearch(Environment.PRODUCTION, None, DeleteRestrictionType.DO_NOT_DELETE)
+      prodAppsNotToBeDeleted    <- tpoConnector.findApplicationsThatShouldNotBeDeleted(Environment.PRODUCTION)
       prodResult                <- removeFromUnusedApplications(prodAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.PRODUCTION)
     } yield sandboxResult.toList ++ prodResult.toList
   }
