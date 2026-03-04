@@ -204,17 +204,38 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
       calculatedDeletionDate shouldBe expectedDeletionDate
     }
-
-    // "correctly calculate date that Sandbox application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter+100" in new SandboxJobSetup {
-    //   val lastUseDate: LocalDate = nowAsDay.minusDays(deleteUnusedApplicationsAfter).minusDays(100)
-    //   val expectedDeletionDate   = nowAsDay.plusDays(30)
-    //   val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, true)
-
-    //   calculatedDeletionDate shouldBe expectedDeletionDate
-    // }
   }
 
   "SANDBOX job" should {
+    "add newly discovered never used application" in new SandboxJobSetup {
+      val adminUserEmail            = "foo@bar.com".toLaxEmail
+      val date31DaysAgo             = now.minusDays(31).toInstant(ZoneOffset.UTC)
+      val (neverUsedApplication, _) =
+        applicationDetails(Environment.SANDBOX, date31DaysAgo, Some(date31DaysAgo), Set(adminUserEmail))
+
+      when(mockTpoConnector.findApplicationsThatHaveNotBeenUsedSince(eqTo(Environment.SANDBOX), *)).thenReturn(successful(List.empty))
+      when(mockTpoConnector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(eqTo(Environment.SANDBOX), *)).thenReturn(successful(List(neverUsedApplication)))
+      when(mockThirdPartyDeveloperConnector.fetchVerifiedDevelopers(Set(adminUserEmail)))
+        .thenReturn(successful(Seq(DeveloperResponse(adminUserEmail, "Foo", "Bar", true, UserId.random))))
+      when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List.empty))
+
+      val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
+
+      await(underTest.runJob)
+
+      verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
+
+      val capturedInsertValue     = insertCaptor.getValue
+      capturedInsertValue.size shouldBe (1)
+      val unusedApplicationRecord = capturedInsertValue.head
+      unusedApplicationRecord.applicationId shouldBe (neverUsedApplication.applicationId)
+      unusedApplicationRecord.applicationName shouldBe (neverUsedApplication.applicationName)
+      unusedApplicationRecord.environment shouldBe (Environment.SANDBOX)
+      val expectedDeletionDate    = now.plusDays(7).toLocalDate()
+      unusedApplicationRecord.scheduledDeletionDate shouldBe expectedDeletionDate
+      unusedApplicationRecord.scheduledNotificationDates shouldBe List(expectedDeletionDate.minusDays(7), expectedDeletionDate.minusDays(1))
+    }
+
     "add newly discovered unused applications with last used dates to database" in new SandboxJobSetup {
       val adminUserEmail                                                           = "foo@bar.com".toLaxEmail
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
@@ -420,8 +441,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
         administratorDetails.toSeq,
         environment,
         lastInteractionDate,
-        List(lastInteractionDate.plusDays(335)),
-        lastInteractionDate.plusDays(365)
+        scheduledNotificationDates = List(now.toLocalDate()), // who cares
+        scheduledDeletionDate = now.toLocalDate()             // who cares
       )
     )
   }

@@ -126,7 +126,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
     val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).asLocalDate
-    val isNeverUsedApp                    = applicationUsageDetails.creationDate == lastInteractionDate
+    val isNeverUsedApp                    = applicationUsageDetails.creationDate.asLocalDate == lastInteractionDate
     val scheduledDeletionDate             = calculateScheduledDeletionDate(lastInteractionDate, isNeverUsedApp)
     val notificationSchedule              = calculateNotificationDates(scheduledDeletionDate, isNeverUsedApp)
 
