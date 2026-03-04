@@ -106,7 +106,7 @@ class ThirdPartyOrchestratorConnectorSpec
     }
   }
 
-  "applicationsLastUsedBefore" should {
+  "findApplicationsThatHaveNotBeenUsedSince" should {
     def response(apps: List[ApplicationWithCollaborators]) = apps
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
@@ -184,7 +184,78 @@ class ThirdPartyOrchestratorConnectorSpec
     }
   }
 
-  "applications that should not be deleted" should {
+  "findApplicationsThatHaveNeverBeenUsedCreatedBefore" should {
+    def response(apps: List[ApplicationWithCollaborators]) = apps
+
+    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
+    val noDeleteRestriction              = DeleteRestrictionType.NO_RESTRICTION
+
+    "return application details as ApplicationUsageDetails objects" in new Setup {
+      val createdInstant                  = now.minusDays(31).asInstant
+      val createdBeforeDate               = now.minusDays(30).asInstant
+      val createdBeforeDateString: String = dateFormatter.format(createdBeforeDate)
+
+      val neverUsedApplicationAdmin = "foo@bar.com".toLaxEmail
+      val neverUsedApplication      = standardApp.withCollaborators(
+        Collaborators.Administrator(UserId.random, neverUsedApplicationAdmin),
+        Collaborators.Developer(UserId.random, "a@b.com".toLaxEmail)
+      )
+        .modify(
+          _.copy(
+            createdOn = createdInstant,
+            lastAccess = Some(createdInstant)
+          )
+        )
+
+      stubFor(
+        get(urlPathEqualTo("/query"))
+          .withQueryParam("environment", equalTo("PRODUCTION"))
+          .withQueryParam("neverUsed", equalTo(""))
+          .withQueryParam("lastUsedBefore", equalTo(createdBeforeDateString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withJsonBody(response(List(neverUsedApplication)))
+          )
+      )
+
+      val results = await(connector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.PRODUCTION, createdBeforeDate))
+
+      results should contain
+      ApplicationUsageDetails(
+        neverUsedApplication.id,
+        neverUsedApplication.name,
+        Set(neverUsedApplicationAdmin),
+        neverUsedApplication.details.createdOn,
+        neverUsedApplication.details.lastAccess
+      )
+    }
+
+    "return empty Sequence when no results are returned" in new Setup {
+      val createdBeforeDate               = now.minusDays(30).asInstant
+      val createdBeforeDateString: String = dateFormatter.format(createdBeforeDate)
+
+      stubFor(
+        get(urlPathEqualTo("/query"))
+          .withQueryParam("environment", equalTo("PRODUCTION"))
+          .withQueryParam("neverUsed", equalTo(""))
+          .withQueryParam("lastUsedBefore", equalTo(createdBeforeDateString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
+          .willReturn(
+            aResponse()
+              .withStatus(OK)
+              .withJsonBody(response(Nil))
+          )
+      )
+
+      val results = await(connector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.PRODUCTION, createdBeforeDate))
+
+      results.size should be(0)
+    }
+  }
+
+  "findApplicationsThatShouldNotBeDeleted" should {
     def response(apps: List[ApplicationWithCollaborators]) = apps
 
     "ensure is checking for Do Not Delete" in new Setup {
