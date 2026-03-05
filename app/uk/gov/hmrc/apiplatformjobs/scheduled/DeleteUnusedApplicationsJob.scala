@@ -104,7 +104,7 @@ abstract class DeleteUnusedApplicationsJob(
         }
     }
 
-    val appsToDeletePerCycle = 10
+    val appsToDeletePerCycle = 100
     for {
       _                    <- unusedApplicationsService.updateUnusedApplications()
       applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle)
