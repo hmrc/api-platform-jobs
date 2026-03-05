@@ -24,7 +24,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, _}
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaborators, DeleteRestrictionType}
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationWithCollaborators
 import uk.gov.hmrc.apiplatform.modules.applications.query.domain.models.Param._
 import uk.gov.hmrc.apiplatform.modules.applications.query.domain.models.{ApplicationQueries, ApplicationQuery}
 import uk.gov.hmrc.apiplatform.modules.applications.query.domain.services.QueryParamsToQueryStringMap
@@ -39,22 +39,34 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
   import config.serviceBaseUrl
   import ThirdPartyOrchestratorConnector._
 
-  def fetchApplicationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[Seq[ApplicationWithCollaborators]] = {
+  implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  def fetchApplicationsByUserId(userId: UserId): Future[Seq[ApplicationWithCollaborators]] = {
     query[List[ApplicationWithCollaborators]](ApplicationQueries.applicationsByUserId(userId, includeDeleted = false))
   }
 
-  def applicationSearch(environment: Environment, lastUseDate: Option[Instant], deleteRestriction: DeleteRestrictionType): Future[List[ApplicationUsageDetails]] = {
-    val deleteRestrictionQP: DeleteRestrictionQP = if (deleteRestriction == DeleteRestrictionType.DO_NOT_DELETE) DoNotDeleteQP else NoRestrictionQP
-    val maybeDateQP                              = lastUseDate.map(date => LastUsedBeforeQP(date))
-
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+  def findApplicationsThatShouldNotBeDeleted(environment: Environment): Future[List[ApplicationUsageDetails]] = {
     query[List[ApplicationWithCollaborators]](ApplicationQuery.GeneralOpenEndedApplicationQuery(
-      EnvironmentQP(environment) :: ExcludeDeletedQP :: deleteRestrictionQP :: maybeDateQP.toList
+      EnvironmentQP(environment) :: ExcludeDeletedQP :: DoNotDeleteQP :: Nil
     ))
       .map(toDomain)
   }
 
-  private def query[T](qry: ApplicationQuery)(implicit hc: HeaderCarrier, rds: HttpReads[T]): Future[T] = {
+  def findApplicationsThatHaveNotBeenUsedSince(environment: Environment, lastUseDate: Instant): Future[List[ApplicationUsageDetails]] = {
+    query[List[ApplicationWithCollaborators]](ApplicationQuery.GeneralOpenEndedApplicationQuery(
+      EnvironmentQP(environment) :: ExcludeDeletedQP :: NoRestrictionQP :: LastUsedBeforeQP(lastUseDate) :: Nil
+    ))
+      .map(toDomain)
+  }
+
+  def findApplicationsThatHaveNeverBeenUsedCreatedBefore(environment: Environment, createdBeforeDate: Instant): Future[List[ApplicationUsageDetails]] = {
+    query[List[ApplicationWithCollaborators]](ApplicationQuery.GeneralOpenEndedApplicationQuery(
+      EnvironmentQP(environment) :: ExcludeDeletedQP :: NoRestrictionQP :: NeverUsedQP :: LastUsedBeforeQP(createdBeforeDate) :: Nil
+    ))
+      .map(toDomain)
+  }
+
+  private def query[T](qry: ApplicationQuery)(implicit rds: HttpReads[T]): Future[T] = {
     val params                                 = QueryParamsToQueryStringMap.toQuery(qry)
     val singleValueParams: Map[String, String] = params.map {
       case (k, vs) => k -> vs.mkString
