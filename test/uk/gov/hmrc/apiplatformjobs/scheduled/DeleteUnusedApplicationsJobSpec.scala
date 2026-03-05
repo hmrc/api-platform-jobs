@@ -32,7 +32,7 @@ import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 class DeleteUnusedApplicationsJobSpec extends AsyncHmrcSpec with UnusedApplicationTestConfiguration with FixedClock {
 
   trait Setup extends BaseSetup {
-    val appsToDeletePerCycle = 10
+    val appsToDeletePerCycle = 100
 
     val mockTpoCmdConnector: TpoApplicationCommandConnector = mock[TpoApplicationCommandConnector]
 
