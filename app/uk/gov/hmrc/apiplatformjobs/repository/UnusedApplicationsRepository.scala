@@ -119,7 +119,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
 
   }
 
-  def bulkInsert(documents: Seq[UnusedApplication]): Future[Boolean] = {
-    collection.bulkWrite(documents.map(InsertOneModel(_))).toFuture().map(_.wasAcknowledged())
+  def bulkInsert(documents: Seq[UnusedApplication]): Future[Int] = {
+    collection.bulkWrite(documents.map(InsertOneModel(_))).toFuture().map(_.getInsertedCount)
   }
 }
