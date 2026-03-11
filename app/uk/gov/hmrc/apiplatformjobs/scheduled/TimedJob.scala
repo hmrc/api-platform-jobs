@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time._
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.time.{Duration => _, _}
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future, duration}
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 
 import pureconfig.generic.ProductHint
 
@@ -59,19 +60,13 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
 
   override val isEnabled: Boolean = jobConfig.enabled
 
+  override val interval: FiniteDuration = jobConfig.executionInterval.interval
+
+  if (interval.toMinutes < 5L) throw new IllegalArgumentException(s"$logPrefix: Interval must be at least 5 minutes")
+
   override def initialDelay: FiniteDuration = jobConfig.startTime match {
-    case Some(startTime) => calculateInitialDelay(startTime.startTime)
+    case Some(startTime) => TimedJob.calculateInitialDelay(startTime.startTime, interval.toMinutes, now())
     case _               => FiniteDuration(0, TimeUnit.MILLISECONDS)
-  }
-
-  override def interval: FiniteDuration = jobConfig.executionInterval.interval
-
-  def calculateInitialDelay(timeOfFirstRun: LocalTime): FiniteDuration = {
-    val currentDateTime        = instant()
-    val timeToday              = LocalDateTime.of(now().toLocalDate, timeOfFirstRun).toInstant(ZoneOffset.UTC)
-    val nextInstanceOfTime     = if (timeToday.isBefore(currentDateTime)) timeToday.plus(Duration.ofDays(1)) else timeToday
-    val millisecondsToFirstRun = nextInstanceOfTime.toEpochMilli - currentDateTime.toEpochMilli
-    millisecondsToFirstRun.milliseconds
   }
 
   final override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
@@ -82,10 +77,37 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
   def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful]
 }
 
+object TimedJob {
+
+  /*
+   * We are using a configuredStartTime in order to avoid (or allow the avoidance of) running at midnight (or other busy point in time) just because the job deployed at 12 noon and runs every 4 hours
+   * This code is not super efficient but hopefully clearer - it's only run once on startup.
+   */
+  def initialStartTime(configuredStartTime: LocalTime, intervalMinutes: Long, earliestStartDateTime: LocalDateTime): LocalDateTime = {
+    var startTime: LocalDateTime = LocalDateTime.of(earliestStartDateTime.toLocalDate(), configuredStartTime)
+    // Loop through until we are some part interval before "now"
+    while (startTime.isAfter(earliestStartDateTime)) {
+      startTime = startTime.minusMinutes(intervalMinutes)
+    }
+    // Then loop forward until we are one interval after "now"
+    while (startTime.isBefore(earliestStartDateTime)) {
+      startTime = startTime.plusMinutes(intervalMinutes)
+    }
+    startTime
+  }
+
+  def calculateInitialDelay(configuredStartTime: LocalTime, intervalMinutes: Long, timeNow: LocalDateTime): FiniteDuration = {
+    val earliestStartDateTime: LocalDateTime = timeNow.plusMinutes(2) // Allow microservice to initialise completely
+    val startTime                            = initialStartTime(configuredStartTime, intervalMinutes, earliestStartDateTime)
+    FiniteDuration(ChronoUnit.MILLIS.between(timeNow, startTime), TimeUnit.MILLISECONDS)
+  }
+}
+
 class MongoLockService @Inject() (override val lockId: String, repository: LockRepository) extends LockService {
+  import scala.concurrent.duration._
 
   override val lockRepository: LockRepository = repository
-  override val ttl: duration.Duration         = 1.hours
+  override val ttl: Duration                  = 1.hours
 }
 
 trait PrefixLogger extends ApplicationLogger {
