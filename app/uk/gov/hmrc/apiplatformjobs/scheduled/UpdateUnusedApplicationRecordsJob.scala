@@ -78,11 +78,10 @@ abstract class UpdateUnusedApplicationRecordsJob(
   }
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
-    def applicationsToUpdate(knownApplications: List[UnusedApplication], allAppsConsideredFoundAsUnused: List[ApplicationUsageDetails])
-        : (Set[ApplicationId], Set[ApplicationId]) = {
+    def applicationsToUpdate(knownApplications: List[UnusedApplication], allAppsConsideredFoundAsUnused: Set[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
 
       val knownApplicationIds: Set[ApplicationId]               = knownApplications.map(_.applicationId).toSet
-      val allAppsConsideredFoundAsUnusedIds: Set[ApplicationId] = allAppsConsideredFoundAsUnused.map(_.applicationId).toSet
+      val allAppsConsideredFoundAsUnusedIds: Set[ApplicationId] = allAppsConsideredFoundAsUnused.map(_.applicationId)
 
       (allAppsConsideredFoundAsUnusedIds.diff(knownApplicationIds), knownApplicationIds.diff(allAppsConsideredFoundAsUnusedIds))
     }
@@ -107,15 +106,15 @@ abstract class UpdateUnusedApplicationRecordsJob(
                                          tpoConnector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.SANDBOX, createdBeforeDate)
                                        else
                                          Future.successful(List.empty)
-      allAppsConsideredFoundAsUnused = (currentUnusedApplications ++ neverUsedSandboxApplications)
+      allAppsConsideredFoundAsUnused = (currentUnusedApplications ++ neverUsedSandboxApplications).toSet
 
       (newlyFoundAppIds, noLongerConsideredAppIds) = applicationsToUpdate(knownApplications, allAppsConsideredFoundAsUnused)
 
       _                                                                       = logInfo(s"Found ${newlyFoundAppIds.size} new unused applications since last update")
       applicationsToAdd                                                       = allAppsConsideredFoundAsUnused.filter(app => newlyFoundAppIds.contains(app.applicationId))
-      verifiedApplicationAdministrators: Map[LaxEmailAddress, Administrator] <- verifiedAdministratorDetails(allAppsConsideredFoundAsUnused.flatMap(_.administrators).toSet)
-      newUnusedApplicationRecords: Seq[UnusedApplication]                     = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
-      insertedCount                                                          <- if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords) else Future.successful(0)
+      verifiedApplicationAdministrators: Map[LaxEmailAddress, Administrator] <- verifiedAdministratorDetails(allAppsConsideredFoundAsUnused.flatMap(_.administrators))
+      newUnusedApplicationRecords: Set[UnusedApplication]                     = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
+      insertedCount                                                          <- if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords.toSeq) else Future.successful(0)
       expectedInsertionCount                                                  = newUnusedApplicationRecords.size
       _                                                                       = if (insertedCount != expectedInsertionCount) logInfo(s"Successfully inserted $insertedCount new unused applications out of the expected $expectedInsertionCount")
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalTime}
 import scala.concurrent.{ExecutionContext, Future}
 
 import com.typesafe.config.ConfigFactory
@@ -48,7 +49,60 @@ class TimedJobSpec extends AsyncHmrcSpec with FixedClock {
     }
   }
 
+  "initialStartTime()" should {
+    val today: LocalDate    = now.toLocalDate()
+    val tomorrow: LocalDate = today.plusDays(1)
+    val tenAM: LocalTime    = LocalTime.of(10, 0)
+    val elevenPM: LocalTime = LocalTime.of(11, 0)
+    val hourLongInterval    = 60L
+    val fourHourInterval    = hourLongInterval * 4
+
+    "calculate where earliest start time before and within one interval of configured start time" in {
+      TimedJob.initialStartTime(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(9, 33, 15).atDate(today)) shouldBe today.atTime(tenAM)
+    }
+    "calculate where earliest start time before and within two intervals of configured start time" in {
+      TimedJob.initialStartTime(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(7, 30).atDate(today)) shouldBe today.atTime(LocalTime.of(8, 0))
+    }
+    "calculate where earliest start time after but within one intervals of configured start time" in {
+      TimedJob.initialStartTime(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(10, 30).atDate(today)) shouldBe today.atTime(LocalTime.of(11, 0))
+    }
+    "calculate where earliest start time after but within two intervals of configured start time" in {
+      TimedJob.initialStartTime(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(11, 50).atDate(today)) shouldBe today.atTime(LocalTime.of(12, 0))
+    }
+
+    "calculate where earliest start time after but within one interval of configured start time but rolls to next day" in {
+      TimedJob.initialStartTime(configuredStartTime = elevenPM, fourHourInterval, LocalTime.of(23, 30).atDate(today)) shouldBe tomorrow.atTime(3, 0)
+    }
+  }
+
   "calculateInitialDelay()" should {
+    import scala.concurrent.duration._
+
+    val today: LocalDate    = now.toLocalDate()
+    val tenAM: LocalTime    = LocalTime.of(10, 0)
+    val elevenPM: LocalTime = LocalTime.of(11, 0)
+    val hourLongInterval    = 60L
+    val fourHourInterval    = hourLongInterval * 4
+
+    "calculate where earliest start time before and within one interval of configured start time" in {
+      TimedJob.calculateInitialDelay(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(9, 33, 15).atDate(today)) shouldBe 26.minutes.plus(45.seconds)
+    }
+    "calculate where earliest start time before and within two intervals of configured start time" in {
+      TimedJob.calculateInitialDelay(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(7, 30).atDate(today)) shouldBe 30.minutes
+    }
+    "calculate where earliest start time after but within one intervals of configured start time" in {
+      TimedJob.calculateInitialDelay(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(10, 45).atDate(today)) shouldBe 15.minutes
+    }
+    "calculate where earliest start time after but within two intervals of configured start time" in {
+      TimedJob.calculateInitialDelay(configuredStartTime = tenAM, hourLongInterval, LocalTime.of(11, 50).atDate(today)) shouldBe 10.minutes
+    }
+
+    "calculate where earliest start time after but within one interval of configured start time but rolls to next day" in {
+      TimedJob.calculateInitialDelay(configuredStartTime = elevenPM, fourHourInterval, LocalTime.of(23, 30).atDate(today)) shouldBe 3.hours.plus(30.minutes)
+    }
+  }
+
+  "TestJob" should {
     "correctly calculate time until first run if time is later today" in new TestJobSetup {
       val futureTime    = now.plusHours(1).withSecond(0).withNano(0)
       val expectedDelay = futureTime.toInstant(utc).toEpochMilli - instant.toEpochMilli
