@@ -115,7 +115,9 @@ abstract class UpdateUnusedApplicationRecordsJob(
       applicationsToAdd                                                       = allAppsConsideredFoundAsUnused.filter(app => newlyFoundAppIds.contains(app.applicationId))
       verifiedApplicationAdministrators: Map[LaxEmailAddress, Administrator] <- verifiedAdministratorDetails(allAppsConsideredFoundAsUnused.flatMap(_.administrators).toSet)
       newUnusedApplicationRecords: Seq[UnusedApplication]                     = applicationsToAdd.map(unusedApplicationRecord(_, verifiedApplicationAdministrators))
-      _                                                                       = if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords)
+      insertedCount                                                          <- if (newUnusedApplicationRecords.nonEmpty) unusedApplicationsRepository.bulkInsert(newUnusedApplicationRecords) else Future.successful(0)
+      expectedInsertionCount                                                  = newUnusedApplicationRecords.size
+      _                                                                       = if (insertedCount != expectedInsertionCount) logInfo(s"Successfully inserted $insertedCount new unused applications out of the expected $expectedInsertionCount")
 
       _ = logInfo(s"Found ${noLongerConsideredAppIds.size} applications that have been used since last update")
       _ = if (noLongerConsideredAppIds.nonEmpty) Future.sequence(noLongerConsideredAppIds.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))

@@ -220,7 +220,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
-
+      when(mockUnusedApplicationsRepository.bulkInsert(*)).thenReturn(Future.successful(1))
       await(underTest.runJob)
 
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
@@ -248,7 +248,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
-
+      when(mockUnusedApplicationsRepository.bulkInsert(*)).thenReturn(Future.successful(1))
       await(underTest.runJob)
 
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
@@ -273,7 +273,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       when(mockUnusedApplicationsRepository.unusedApplications(Environment.SANDBOX)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
-      when(mockUnusedApplicationsRepository.bulkInsert(*)).thenReturn(Future.successful(true))
+      when(mockUnusedApplicationsRepository.bulkInsert(*)).thenReturn(Future.successful(1))
       await(underTest.runJob)
 
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
@@ -345,8 +345,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       when(mockUnusedApplicationsRepository.unusedApplications(Environment.PRODUCTION)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
-
+      when(mockUnusedApplicationsRepository.bulkInsert(*)).thenReturn(Future.successful(1))
       await(underTest.runJob)
+
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
       val capturedInsertValue     = insertCaptor.getValue
       capturedInsertValue.size shouldBe (1)
@@ -367,8 +368,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       when(mockUnusedApplicationsRepository.unusedApplications(Environment.PRODUCTION)).thenReturn(Future(List.empty))
 
       val insertCaptor: ArgumentCaptor[Seq[UnusedApplication]] = ArgumentCaptor.forClass(classOf[Seq[UnusedApplication]])
-
+      when(mockUnusedApplicationsRepository.bulkInsert(*)).thenReturn(Future.successful(1))
       await(underTest.runJob)
+
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
       val capturedInsertValue     = insertCaptor.getValue
       capturedInsertValue.size shouldBe (1)
