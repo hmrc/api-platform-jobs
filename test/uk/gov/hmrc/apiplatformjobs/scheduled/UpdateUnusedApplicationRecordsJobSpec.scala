@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import java.time.temporal.ChronoUnit
 import java.time.{Instant, LocalDate, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -93,119 +92,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     )
   }
 
-  "notificationCutoffDate" should {
-    "correctly calculate date to retrieve applications not used since" in new SandboxJobSetup {
-      val daysDifference              = deleteUnusedApplicationsAfter - notifyDeletionPendingInAdvance
-      val expectedCutoffDate: Instant = instant.minus(daysDifference, ChronoUnit.DAYS)
-
-      val calculatedCutoffDate = underTest.notificationCutoffDate()
-
-      calculatedCutoffDate.toEpochMilli shouldBe (expectedCutoffDate.toEpochMilli)
-    }
-  }
-
-  "calculateNotificationDates" should {
-    "correctly calculate when notifications should be sent" in new MultipleNotificationsSetup {
-      val scheduledDeletionDate: LocalDate = now.plusDays(40).toLocalDate()
-      val expectedNotificationDates        = notifyDeletionPendingInAdvance.map(scheduledDeletionDate.minusDays(_))
-
-      val calculatedNotificationDates = underTest.calculateNotificationDates(scheduledDeletionDate, false)
-
-      calculatedNotificationDates should contain allElementsOf (expectedNotificationDates)
-    }
-
-    "correctly calculate when notifications should be sent for never-used applications" in new MultipleNotificationsSetup {
-      val scheduledDeletionDate: LocalDate           = now.plusDays(7).toLocalDate()
-      val notifyDeletionPendingInAdvanceForNeverUsed = Seq(7, 1)
-
-      val expectedNotificationDates = notifyDeletionPendingInAdvanceForNeverUsed.map(scheduledDeletionDate.minusDays(_))
-
-      val calculatedNotificationDates = underTest.calculateNotificationDates(scheduledDeletionDate, true)
-
-      calculatedNotificationDates should contain allElementsOf (expectedNotificationDates)
-    }
-  }
-
-  "calculateScheduledDeletionDate for used apps" should {
-    "correctly calculate date that Sandbox application should be deleted" in new SandboxJobSetup {
-      val lastUseDate: LocalDate = now.toLocalDate()
-      val expectedDeletionDate   = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe expectedDeletionDate
-    }
-
-    "correctly calculate date that Sandbox application should be deleted when calculated date would be before now" in new SandboxJobSetup {
-      val lastUseDate: LocalDate = nowAsDay.minusDays(deleteUnusedApplicationsAfter).minusDays(2)
-      val expectedDeletionDate   = nowAsDay.plusDays(30)
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe expectedDeletionDate
-    }
-
-    "correctly calculate date that Production application should be deleted when lastUseDate is today" in new ProductionJobSetup {
-      val lastUseDate          = nowAsDay
-      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe expectedDeletionDate
-    }
-
-    "correctly calculate date that Production application should be deleted when lastUseDate is 364+30 days before today" in new ProductionJobSetup {
-      val lastUseDate          = nowAsDay.plusDays(30).minusDays(deleteUnusedApplicationsAfter - 1)
-      val expectedDeletionDate = lastUseDate.plusDays(deleteUnusedApplicationsAfter)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe expectedDeletionDate
-    }
-
-    "correctly calculate date that Production application should be deleted when lastUseDate is a year in the past" in new ProductionJobSetup {
-      val lastUseDate = nowAsDay.plusDays(30).minusDays(deleteUnusedApplicationsAfter)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe nowAsDay.plusDays(30)
-    }
-
-    "correctly calculate date that Production application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter" in new ProductionJobSetup {
-      val lastUseDate = nowAsDay.minusDays(deleteUnusedApplicationsAfter)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe nowAsDay.plusDays(30)
-    }
-
-    "correctly calculate date that Production application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter+1" in new ProductionJobSetup {
-      val lastUseDate = nowAsDay.minusDays(deleteUnusedApplicationsAfter).minusDays(1)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe nowAsDay.plusDays(30)
-    }
-
-    "correctly calculate date that Production application should be deleted when lastUseDate is now minus deleteUnusedApplicationsAfter+100" in new ProductionJobSetup {
-      val lastUseDate = nowAsDay.minusDays(deleteUnusedApplicationsAfter).minusDays(100)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, false)
-
-      calculatedDeletionDate shouldBe nowAsDay.plusDays(30)
-    }
-  }
-
-  "calculateScheduledDeletionDate for never used apps" should {
-    "correctly calculate date that Sandbox application should be deleted" in new SandboxJobSetup {
-      val lastUseDate: LocalDate = now.toLocalDate()
-      val expectedDeletionDate   = lastUseDate.plusDays(deleteNeverUsedApplicationsAfter)
-
-      val calculatedDeletionDate = underTest.calculateScheduledDeletionDate(lastUseDate, true)
-
-      calculatedDeletionDate shouldBe expectedDeletionDate
-    }
-  }
-
   "SANDBOX job" should {
     "add newly discovered never used application" in new SandboxJobSetup {
       val adminUserEmail            = "foo@bar.com".toLaxEmail
@@ -239,7 +125,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     "add newly discovered unused applications with last used dates to database" in new SandboxJobSetup {
       val adminUserEmail                                                           = "foo@bar.com".toLaxEmail
       val applicationWithLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
-        applicationDetails(Environment.SANDBOX, now.minusMonths(13).toInstant(ZoneOffset.UTC), Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)), Set(adminUserEmail))
+        applicationDetails(Environment.SANDBOX, now.minusMonths(14).toInstant(ZoneOffset.UTC), Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)), Set(adminUserEmail))
 
       when(mockTpoConnector.findApplicationsThatHaveNotBeenUsedSince(eqTo(Environment.SANDBOX), *)).thenReturn(successful(List(applicationWithLastUseDate._1)))
       when(mockTpoConnector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(eqTo(Environment.SANDBOX), *)).thenReturn(successful(List.empty))
@@ -259,8 +145,12 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       unusedApplicationRecord.applicationId shouldBe (applicationWithLastUseDate._1.applicationId)
       unusedApplicationRecord.applicationName shouldBe (applicationWithLastUseDate._1.applicationName)
       unusedApplicationRecord.environment shouldBe (Environment.SANDBOX)
+      val expectedDeletionDate    = now.plusDays(30).toLocalDate()
+      unusedApplicationRecord.scheduledDeletionDate shouldBe expectedDeletionDate
+      unusedApplicationRecord.scheduledNotificationDates shouldBe List(expectedDeletionDate.minusDays(30))
     }
 
+    // 2026-03-12: TPA.applications.lastAccess is now always populated, but it is still an Option in the model, so keeping this test for now
     "add newly discovered unused applications with no last used dates to database" in new SandboxJobSetup {
       val adminUserEmail                                                              = "foo@bar.com".toLaxEmail
       val applicationWithoutLastUseDate: (ApplicationUsageDetails, UnusedApplication) =
@@ -283,6 +173,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       unusedApplicationRecord.applicationId shouldBe (applicationWithoutLastUseDate._1.applicationId)
       unusedApplicationRecord.applicationName shouldBe (applicationWithoutLastUseDate._1.applicationName)
       unusedApplicationRecord.environment shouldBe (Environment.SANDBOX)
+      val expectedDeletionDate    = now.plusDays(7).toLocalDate()
+      unusedApplicationRecord.scheduledDeletionDate shouldBe expectedDeletionDate
+      unusedApplicationRecord.scheduledNotificationDates shouldBe List(expectedDeletionDate.minusDays(7), expectedDeletionDate.minusDays(1))
     }
 
     "not persist application details already stored in database" in new SandboxJobSetup {

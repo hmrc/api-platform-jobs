@@ -19,6 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant, LocalDate}
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.Configuration
@@ -41,41 +42,18 @@ abstract class UpdateUnusedApplicationRecordsJob(
     lockRepository: LockRepository
   ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
 
+  private val neverUsedAppNotificationPeriod        = 7.days
+  private val neverUsedAppAllowedPeriodOfInactivity = 30.days
+
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
-  def notificationCutoffDate(): Instant =
+  private def notificationCutoffDate(allowedPeriodOfInactivity: FiniteDuration, longestNotification: FiniteDuration): Instant =
     instant()
-      .minus(deleteUnusedApplicationsAfter(environment).toMillis, ChronoUnit.MILLIS)
-      .plus(firstNotificationInAdvance(environment).toMillis, ChronoUnit.MILLIS)
+      .minus(allowedPeriodOfInactivity.toMillis, ChronoUnit.MILLIS)
+      .plus(longestNotification.toMillis, ChronoUnit.MILLIS)
 
-  /** The dates we will be sending notifications out to Admins */
-  def calculateNotificationDates(scheduledDeletionDate: LocalDate, neverUsed: Boolean): Seq[LocalDate] =
-    if (neverUsed) {
-      Seq(scheduledDeletionDate.minusDays(7), scheduledDeletionDate.minusDays(1))
-    } else {
-      sendNotificationsInAdvance(environment)
-        .map(inAdvance => scheduledDeletionDate.minusDays(inAdvance.toDays.toInt))
-        .toSeq
-    }
-
-  /** The date we will be deleting the application */
-  def calculateScheduledDeletionDate(lastInteractionDate: LocalDate, neverUsed: Boolean): LocalDate = {
-    val today = LocalDate.now(clock)
-
-    if (neverUsed) {
-      today.plusDays(7)
-    } else {
-      val proposedDeletionDate = lastInteractionDate
-        .plus(deleteUnusedApplicationsAfter(environment).toDays, ChronoUnit.DAYS)
-
-      val dateOfFirstNotification = proposedDeletionDate.minusDays(30)
-
-      if (dateOfFirstNotification.isBefore(today))
-        today.plusDays(30)
-      else
-        proposedDeletionDate
-    }
-  }
+  def notificationCutoffDateForUnusedApps(): Instant    = notificationCutoffDate(deleteUnusedApplicationsAfter(environment), firstNotificationInAdvance(environment))
+  def notificationCutoffDateForNeverUsedApps(): Instant = notificationCutoffDate(neverUsedAppAllowedPeriodOfInactivity, neverUsedAppNotificationPeriod)
 
   override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
     def applicationsToUpdate(knownApplications: List[UnusedApplication], allAppsConsideredFoundAsUnused: Set[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
@@ -96,14 +74,12 @@ abstract class UpdateUnusedApplicationRecordsJob(
       }
     }
 
-    val createdBeforeDate = instant().minus(30, ChronoUnit.DAYS)
-
     for {
       knownApplications         <- unusedApplicationsRepository.unusedApplications(environment)
-      currentUnusedApplications <- tpoConnector.findApplicationsThatHaveNotBeenUsedSince(environment, notificationCutoffDate())
+      currentUnusedApplications <- tpoConnector.findApplicationsThatHaveNotBeenUsedSince(environment, notificationCutoffDateForUnusedApps())
 
       neverUsedSandboxApplications  <- if (environment.isSandbox)
-                                         tpoConnector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.SANDBOX, createdBeforeDate)
+                                         tpoConnector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.SANDBOX, notificationCutoffDateForNeverUsedApps())
                                        else
                                          Future.successful(List.empty)
       allAppsConsideredFoundAsUnused = (currentUnusedApplications ++ neverUsedSandboxApplications).toSet
@@ -126,10 +102,12 @@ abstract class UpdateUnusedApplicationRecordsJob(
   def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
-    val lastInteractionDate               = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).asLocalDate
-    val isNeverUsedApp                    = applicationUsageDetails.creationDate.asLocalDate == lastInteractionDate
-    val scheduledDeletionDate             = calculateScheduledDeletionDate(lastInteractionDate, isNeverUsedApp)
-    val notificationSchedule              = calculateNotificationDates(scheduledDeletionDate, isNeverUsedApp)
+
+    val lastInteractionDate   = applicationUsageDetails.lastAccessDate.getOrElse(applicationUsageDetails.creationDate).asLocalDate
+    val isNeverUsedApp        = applicationUsageDetails.creationDate.asLocalDate == lastInteractionDate
+    val notificationPeriods   = if (isNeverUsedApp) Set(neverUsedAppNotificationPeriod, 1.day) else sendNotificationsInAdvance(environment)
+    val scheduledDeletionDate = LocalDate.now(clock).plusDays(notificationPeriods.max.toDays)
+    val notificationSchedule  = notificationPeriods.map(inAdvance => scheduledDeletionDate.minusDays(inAdvance.toDays.toInt))
 
     UnusedApplication(
       applicationUsageDetails.applicationId,
@@ -137,7 +115,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
       verifiedApplicationAdministrators.toSeq,
       environment,
       lastInteractionDate,
-      notificationSchedule,
+      notificationSchedule.toSeq,
       scheduledDeletionDate
     )
   }
