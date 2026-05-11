@@ -65,7 +65,7 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
   if (interval.toMinutes < 5L) throw new IllegalArgumentException(s"$logPrefix: Interval must be at least 5 minutes")
 
   override def initialDelay: FiniteDuration = jobConfig.startTime match {
-    case Some(startTime) => TimedJob.calculateInitialDelay(startTime.startTime, interval.toMinutes, now())
+    case Some(startTime) => TimedJob.calculateInitialDelay(startTime.startTime, interval.toMinutes, now)
     case _               => FiniteDuration(0, TimeUnit.MILLISECONDS)
   }
 
