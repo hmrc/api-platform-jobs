@@ -55,7 +55,7 @@ class DeleteUnverifiedDevelopersJob @Inject() (
     logger.info("Starting DeleteUnverifiedDevelopersJob")
 
     (for {
-      developerDetails <- developerConnector.fetchUnverifiedDevelopers(instant().minus(Duration.ofDays(createdBeforeInDays)), jobConfig.limit)
+      developerDetails <- developerConnector.fetchUnverifiedDevelopers(instant.minus(Duration.ofDays(createdBeforeInDays)), jobConfig.limit)
       _                 = logger.info(s"Found ${developerDetails.size} unverified developers")
       _                <- sequence(developerDetails.map(deleteDeveloper("UnverifiedUser")))
     } yield RunningOfJobSuccessful) recoverWith { case NonFatal(e) =>

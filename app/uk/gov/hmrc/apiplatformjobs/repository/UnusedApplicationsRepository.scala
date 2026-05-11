@@ -78,7 +78,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(_.toList)
   }
 
-  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: Instant = instant()): Future[List[UnusedApplication]] = {
+  def unusedApplicationsToBeNotified(environment: Environment, notificationDate: Instant = instant): Future[List[UnusedApplication]] = {
     collection
       .find(
         and(
@@ -90,7 +90,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(_.toList)
   }
 
-  def updateNotificationsSent(environment: Environment, applicationId: ApplicationId, notificationDate: Instant = instant()): Future[Boolean] = {
+  def updateNotificationsSent(environment: Environment, applicationId: ApplicationId, notificationDate: Instant = instant): Future[Boolean] = {
     val query = Document("environment" -> Codecs.toBson(environment), "applicationId" -> Codecs.toBson(applicationId))
 
     collection
@@ -103,7 +103,7 @@ class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: 
       .map(!_.scheduledNotificationDates.exists(y => y.atStartOfDay.toInstant(ZoneOffset.UTC).isBefore(notificationDate))) // No notification dates prior to specified date
   }
 
-  def unusedApplicationsToBeDeleted(environment: Environment, limit: Int, deletionDate: Instant = instant()): Future[List[UnusedApplication]] = {
+  def unusedApplicationsToBeDeleted(environment: Environment, limit: Int, deletionDate: Instant = instant): Future[List[UnusedApplication]] = {
     collection
       .find(and(equal("environment", Codecs.toBson(environment)), lte("scheduledDeletionDate", Codecs.toBson(deletionDate))))
       .limit(limit)

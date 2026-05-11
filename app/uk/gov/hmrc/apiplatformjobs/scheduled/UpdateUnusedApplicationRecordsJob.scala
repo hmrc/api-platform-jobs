@@ -48,7 +48,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
   /** The date we should use to find applications that have not been used since. This should be far enough in advance that all required notifications can be sent out.
     */
   private def notificationCutoffDate(allowedPeriodOfInactivity: FiniteDuration, longestNotification: FiniteDuration): Instant =
-    instant()
+    instant
       .minus(allowedPeriodOfInactivity.toMillis, ChronoUnit.MILLIS)
       .plus(longestNotification.toMillis, ChronoUnit.MILLIS)
 
