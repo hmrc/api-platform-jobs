@@ -33,6 +33,8 @@ import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.Appli
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models._
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
+import uk.gov.hmrc.apiplatform.modules.organisations.domain
+import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.{Organisation, OrganisationName}
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors._
@@ -66,6 +68,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector           = mock[ThirdPartyDeveloperConnector]
     val mockTpoConnector: ThirdPartyOrchestratorConnector                        = mock[ThirdPartyOrchestratorConnector]
     val mockTpoCmdConnector: TpoApplicationCommandConnector                      = mock[TpoApplicationCommandConnector]
+    val mockOrganisationConnector: OrganisationConnector                         = mock[OrganisationConnector]
 
     val underTest = new DeleteUnverifiedDevelopersJob(
       mockLockKeeper,
@@ -73,6 +76,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       mockThirdPartyDeveloperConnector,
       mockTpoConnector,
       mockTpoCmdConnector,
+      mockOrganisationConnector,
       clock
     )
   }
@@ -94,12 +98,19 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
     val prodApp    = standardApp.withId(productionAppId).withCollaborators(appAADUsers).withEnvironment(Environment.PRODUCTION)
     val sandBoxApp = standardApp.withId(sandboxAppId).withCollaborators(appADUsers).withEnvironment(Environment.SANDBOX)
 
+    val organisationId = OrganisationId.random
+    val collaborator   = domain.models.Collaborator(domain.models.Collaborator.Roles.Administrator, joeBloggsId)
+    val organisation   = Organisation(organisationId, OrganisationName("Org name"), Organisation.OrganisationType.UkLimitedCompany, instant, Set(collaborator))
+
     val developers = Seq(CoreUserDetails(joeBloggs, joeBloggsId), CoreUserDetails(johnDoe, johnDoeId))
+
     when(mockThirdPartyDeveloperConnector.fetchUnverifiedDevelopers(*, *)(*)).thenReturn(successful(developers))
     when(mockTpoConnector.fetchApplicationsByUserId(*[UserId])).thenReturn(successful(Seq(sandBoxApp, prodApp)))
     when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockThirdPartyDeveloperConnector.deleteDeveloper(*[LaxEmailAddress])(*)).thenReturn(successful(OK))
+    when(mockOrganisationConnector.fetchOrganisationsByUserId(*[UserId])(*)).thenReturn(successful(List(organisation)))
+    when(mockOrganisationConnector.removeCollaboratorFromOrganisation(*[OrganisationId], *[UserId], *[LaxEmailAddress])(*)).thenReturn(successful(Right(organisation)))
   }
 
   "DeleteUnverifiedDevelopersJob" should {
@@ -140,6 +151,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
         argMatching({ case ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("Delete-UnverifiedUser"), Collaborators.Administrator(_, `johnDoe`), _) => }),
         *
       )(*)
+      verify(mockOrganisationConnector, times(1)).removeCollaboratorFromOrganisation(eqTo(organisationId), eqTo(joeBloggsId), eqTo(joeBloggs))(*)
 
       // called twice as tpd fetchExpiredUnregisteredDevelopers returns 2 records
       verify(mockThirdPartyDeveloperConnector, times(2)).deleteDeveloper(*[LaxEmailAddress])(*)

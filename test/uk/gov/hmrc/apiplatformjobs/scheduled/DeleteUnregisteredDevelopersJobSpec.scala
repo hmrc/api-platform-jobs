@@ -36,6 +36,8 @@ import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.Appli
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors.ScheduledJob
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models._
+import uk.gov.hmrc.apiplatform.modules.organisations.domain
+import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.{Organisation, OrganisationName}
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors._
@@ -74,13 +76,15 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector               = mock[ThirdPartyDeveloperConnector]
     val mockTpoConnector: ThirdPartyOrchestratorConnector                            = mock[ThirdPartyOrchestratorConnector]
     val mockTpoCmdConnector: TpoApplicationCommandConnector                          = mock[TpoApplicationCommandConnector]
+    val mockOrganisationConnector: OrganisationConnector                             = mock[OrganisationConnector]
 
     val underTest = new DeleteUnregisteredDevelopersJob(
       mockLockKeeper,
       deleteUnregisteredDevelopersJobConfig,
       mockThirdPartyDeveloperConnector,
       mockTpoConnector,
-      mockTpoCmdConnector
+      mockTpoCmdConnector,
+      mockOrganisationConnector
     )
   }
 
@@ -101,12 +105,19 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
     val productionApp = standardApp.withId(ApplicationIdData.one).withCollaborators(productionCollabs).withEnvironment(Environment.PRODUCTION)
     val sandboxApp    = standardApp.withId(ApplicationIdData.two).withCollaborators(sandboxCollabs).withEnvironment(Environment.SANDBOX)
 
+    val organisationId = OrganisationId.random
+    val collaborator   = domain.models.Collaborator(domain.models.Collaborator.Roles.Administrator, joeBloggs.id)
+    val organisation   = Organisation(organisationId, OrganisationName("Org name"), Organisation.OrganisationType.UkLimitedCompany, instant, Set(collaborator))
+
     val unregisteredUsers = List(joeBloggs, johnDoe) ++ excludedUsers
+
     when(mockThirdPartyDeveloperConnector.fetchExpiredUnregisteredDevelopers(*)(*)).thenReturn(successful(unregisteredUsers))
     when(mockTpoConnector.fetchApplicationsByUserId(*[UserId])).thenReturn(successful(Seq(sandboxApp, productionApp)))
     when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.SANDBOX), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockTpoCmdConnector.dispatchToEnvironment(eqTo(Environment.PRODUCTION), *[ApplicationId], *, *)(*)).thenReturn(successful(HasSucceeded))
     when(mockThirdPartyDeveloperConnector.deleteUnregisteredDeveloper(*[LaxEmailAddress])(*)).thenReturn(successful(OK))
+    when(mockOrganisationConnector.fetchOrganisationsByUserId(*[UserId])(*)).thenReturn(successful(List(organisation)))
+    when(mockOrganisationConnector.removeCollaboratorFromOrganisation(*[OrganisationId], *[UserId], *[LaxEmailAddress])(*)).thenReturn(successful(Right(organisation)))
 
     def verifyRemovalOfCollaborators(environment: Environment, appId: ApplicationId, expectedCollaborators: Set[Collaborator]) = {
       val commandCaptor = ArgCaptor[ApplicationCommand]
@@ -145,6 +156,7 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
 
       verifyRemovalOfCollaborators(Environment.SANDBOX, sandboxApp.id, deletableSandboxCollabs)
       verifyRemovalOfCollaborators(Environment.PRODUCTION, productionApp.id, deletableProductionCollabs)
+      verify(mockOrganisationConnector, times(1)).removeCollaboratorFromOrganisation(eqTo(organisationId), eqTo(joeBloggs.id), eqTo(joeBloggs.email))(*)
       // called twice as fetchExpiredUnregisteredDevelopers returns two records
       verify(mockThirdPartyDeveloperConnector, times(2)).deleteUnregisteredDeveloper(*[LaxEmailAddress])(*)
 
