@@ -55,7 +55,7 @@ trait DeleteDeveloper {
         tpoCmdConnector.dispatchToEnvironment(appResponse.deployedTo, appResponse.id, command, Set.empty)
       }
 
-      def processOrg(organisation: Organisation): Future[Either[String, Organisation]] = {
+      def processOrg(organisation: Organisation): Future[Organisation] = {
         logger.info(s"Removing user:${developer.id.value} from org:${organisation.id.value}")
         organisationConnector.removeCollaboratorFromOrganisation(organisation.id, developer.id, developer.email)
       }

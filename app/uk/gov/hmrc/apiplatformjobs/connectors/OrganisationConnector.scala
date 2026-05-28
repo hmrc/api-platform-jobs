@@ -19,7 +19,8 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-import play.api.libs.json.{Json, Writes}
+import play.api.http.Status._
+import play.api.libs.json.{Json, Reads, Writes}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, _}
@@ -40,14 +41,18 @@ class OrganisationConnector @Inject() (http: HttpClientV2, config: OrganisationC
       .execute[List[Organisation]]
   }
 
-  def removeCollaboratorFromOrganisation(id: OrganisationId, userId: UserId, email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Either[String, Organisation]] = {
-    import cats.implicits._
-    val failed = (err: UpstreamErrorResponse) => s"Failed to remove user $userId from organisation $id"
+  def removeCollaboratorFromOrganisation(id: OrganisationId, userId: UserId, email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Organisation] = {
 
     http.delete(url"${config.serviceBaseUrl}/organisation/${id.value}/member/$userId")
       .withBody(Json.toJson(RemoveMemberRequest(userId, email)))
-      .execute[Either[UpstreamErrorResponse, Organisation]]
-      .map(_.leftMap(failed))
+      .execute[HttpResponse]
+      .map(resp =>
+        resp.status match {
+          case OK          => resp.json.as[Organisation]
+          case BAD_REQUEST => throw new BadRequestException(resp.json.as[ErrorMessage].message)
+          case status      => throw new InternalServerException(s"Failed to remove user $userId from organisation $id with HTTP status $status")
+        }
+      )
   }
 }
 
@@ -58,4 +63,6 @@ object OrganisationConnector {
   case class RemoveMemberRequest(userId: UserId, email: LaxEmailAddress)
   implicit val writesRemoveMemberRequest: Writes[RemoveMemberRequest] = Json.writes[RemoveMemberRequest]
 
+  case class ErrorMessage(message: String)
+  implicit val readsErrorMessage: Reads[ErrorMessage] = Json.reads[ErrorMessage]
 }

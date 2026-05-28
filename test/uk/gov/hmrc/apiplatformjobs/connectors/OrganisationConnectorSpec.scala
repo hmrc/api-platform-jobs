@@ -24,8 +24,9 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status._
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, InternalServerException, UpstreamErrorResponse}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{OrganisationId, UserId}
@@ -33,7 +34,7 @@ import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 import uk.gov.hmrc.apiplatform.modules.organisations.domain
 import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.{Organisation, OrganisationName}
 
-import uk.gov.hmrc.apiplatformjobs.connectors.OrganisationConnector.RemoveMemberRequest
+import uk.gov.hmrc.apiplatformjobs.connectors.OrganisationConnector.{ErrorMessage, RemoveMemberRequest}
 import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
 class OrganisationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding with FixedClock {
@@ -43,6 +44,8 @@ class OrganisationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with Gu
   val organisationId = OrganisationId.random
   val collaborator   = domain.models.Collaborator(domain.models.Collaborator.Roles.Administrator, userId)
   val organisation   = Organisation(organisationId, OrganisationName("Org name"), Organisation.OrganisationType.UkLimitedCompany, instant, Set(collaborator))
+
+  implicit val writesErrorMessage: Writes[ErrorMessage] = Json.writes[ErrorMessage]
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -101,7 +104,21 @@ class OrganisationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with Gu
                 .withStatus(OK)
             )
         )
-        await(connector.removeCollaboratorFromOrganisation(organisationId, userId, emailAddress)) shouldBe Right(organisation)
+        await(connector.removeCollaboratorFromOrganisation(organisationId, userId, emailAddress)) shouldBe organisation
+      }
+
+      "propagate error when endpoint returns a bad request" in new Setup {
+        stubFor(
+          delete(urlPathEqualTo(s"/organisation/${organisationId.value}/member/$userId"))
+            .willReturn(
+              aResponse()
+                .withStatus(BAD_REQUEST)
+                .withJsonBody(ErrorMessage("Failed because of x"))
+            )
+        )
+        intercept[BadRequestException] {
+          await(connector.removeCollaboratorFromOrganisation(organisationId, userId, emailAddress))
+        }
       }
 
       "propagate error when endpoint returns error" in new Setup {
@@ -112,8 +129,9 @@ class OrganisationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with Gu
                 .withStatus(INTERNAL_SERVER_ERROR)
             )
         )
-        val result = await(connector.removeCollaboratorFromOrganisation(organisationId, userId, emailAddress))
-        result shouldBe Left(s"Failed to remove user $userId from organisation $organisationId")
+        intercept[InternalServerException] {
+          await(connector.removeCollaboratorFromOrganisation(organisationId, userId, emailAddress))
+        }
       }
     }
   }
