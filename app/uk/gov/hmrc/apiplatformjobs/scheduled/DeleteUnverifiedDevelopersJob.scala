@@ -37,6 +37,7 @@ class DeleteUnverifiedDevelopersJob @Inject() (
     val developerConnector: ThirdPartyDeveloperConnector,
     val tpoConnector: ThirdPartyOrchestratorConnector,
     val tpoCmdConnector: TpoApplicationCommandConnector,
+    val organisationConnector: OrganisationConnector,
     val clock: Clock
   ) extends ScheduledMongoJob
     with DeleteDeveloper

@@ -26,6 +26,7 @@ import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{Applicat
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAddress}
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.Organisation
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
 import uk.gov.hmrc.apiplatformjobs.connectors._
@@ -37,25 +38,33 @@ trait DeleteDeveloper {
   def tpoConnector: ThirdPartyOrchestratorConnector
   def tpoCmdConnector: TpoApplicationCommandConnector
   def developerConnector: ThirdPartyDeveloperConnector
+  def organisationConnector: OrganisationConnector
 
   val deleteFunction: (LaxEmailAddress) => Future[Int]
 
   def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[HasSucceeded] = {
     val timestamp = Instant.now()
 
-    val matchesCoreDetails: (Collaborator) => Boolean = (collaborator) => collaborator.userId == developer.id && collaborator.emailAddress == developer.email
+    val matchesCoreAppDetails: (Collaborator) => Boolean = (collaborator) => collaborator.userId == developer.id && collaborator.emailAddress == developer.email
 
     def process(): Future[HasSucceeded] = {
       def processApp(appResponse: ApplicationWithCollaborators): Future[HasSucceeded] = {
-        val collaborator = appResponse.collaborators.find(matchesCoreDetails).get // Safe to do here
+        val collaborator = appResponse.collaborators.find(matchesCoreAppDetails).get // Safe to do here
         val command      = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob(s"Delete-$jobLabel"), collaborator, timestamp)
         logger.info(s"Removing user:${collaborator.userId.value} from app:${appResponse.id.value}")
         tpoCmdConnector.dispatchToEnvironment(appResponse.deployedTo, appResponse.id, command, Set.empty)
       }
 
+      def processOrg(organisation: Organisation): Future[Organisation] = {
+        logger.info(s"Removing user:${developer.id.value} from org:${organisation.id.value}")
+        organisationConnector.removeCollaboratorFromOrganisation(organisation.id, developer.id, developer.email)
+      }
+
       for {
         apps <- tpoConnector.fetchApplicationsByUserId(developer.id)
         _    <- sequence(apps.map(processApp))
+        orgs <- organisationConnector.fetchOrganisationsByUserId(developer.id)
+        _    <- sequence(orgs.map(processOrg))
       } yield HasSucceeded
     }
 
