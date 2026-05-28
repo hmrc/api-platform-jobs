@@ -118,7 +118,7 @@ class OrganisationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with Gu
         )
         intercept[BadRequestException] {
           await(connector.removeCollaboratorFromOrganisation(organisationId, userId, emailAddress))
-        }
+        }.message shouldBe "Failed because of x"
       }
 
       "propagate error when endpoint returns error" in new Setup {
