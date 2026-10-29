@@ -32,7 +32,6 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
 
   def defaultConfiguration: Configuration = jobConfiguration()
 
-  // scalastyle:off magic.number
   def jobConfiguration(
       deleteUnusedSandboxApplicationsAfter: Int = 365,
       deleteUnusedProductionApplicationsAfter: Int = 365,
