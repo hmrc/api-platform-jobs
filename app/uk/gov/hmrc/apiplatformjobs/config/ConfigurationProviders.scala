@@ -64,7 +64,6 @@ class ThirdPartyDeveloperConnectorConfigProvider @Inject() (val sc: ServicesConf
 class DeleteUnverifiedDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnverifiedDevelopersJobConfig] {
   import scala.jdk.DurationConverters._
 
-  // scalastyle:off magic.number
   override def get(): DeleteUnverifiedDevelopersJobConfig = {
     val enabled: Boolean             = configuration.underlying.getBoolean("deleteUnverifiedDevelopersJob.enabled")
     val initialDelay: FiniteDuration = configuration.underlying.getDuration("deleteUnverifiedDevelopersJob.initialDelay").toScala
