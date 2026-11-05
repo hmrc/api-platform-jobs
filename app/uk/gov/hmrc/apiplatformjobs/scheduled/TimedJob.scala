@@ -16,41 +16,44 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import play.api.Configuration
+import pureconfig.generic.ProductHint
+import pureconfig.generic.semiauto.deriveReader
+import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
+import uk.gov.hmrc.apiplatformjobs.scheduling.{LockedScheduledJob, ScheduledJobsRunner}
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
+
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.time.{Duration => _, _}
+import java.time.{Duration as _, *}
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
-import pureconfig.generic.ProductHint
 
-import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.{LockRepository, LockService}
-
-import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
-
-case class StartTime(val startTime: LocalTime)             extends AnyVal
-case class ExecutionInterval(val interval: FiniteDuration) extends AnyVal
+case class StartTime(startTime: LocalTime)             extends AnyVal   
+case class ExecutionInterval(interval: FiniteDuration) extends AnyVal
 
 case class TimedJobConfig(startTime: Option[StartTime], executionInterval: ExecutionInterval, enabled: Boolean) {
-  override def toString = s"TimedJobConfig{startTime=${startTime} interval=${executionInterval.interval} enabled=$enabled}"
+  override def toString = s"TimedJobConfig{startTime=$startTime interval=${executionInterval.interval} enabled=$enabled}"
 }
 
-abstract class TimedJob @Inject() (override val name: String, configuration: Configuration, val clock: Clock, lockRepository: LockRepository)
-    extends ScheduledMongoJob
+abstract class TimedJob @Inject() (override val name: String, configuration: Configuration, val clock: Clock, val mongoLockRepository: MongoLockRepository)
+    extends LockedScheduledJob
     with PrefixLogger
     with ClockNow {
 
   override val logPrefix: String        = s"[$name]"
-  override val lockService: LockService = new MongoLockService(s"$name-Lock", lockRepository)
+//  override val mongoLockService: LockService = new MongoLockService(s"$name-Lock", lockRepository)
 
-  import pureconfig._
-  import pureconfig.generic.auto._
-  import pureconfig.configurable._
+  import pureconfig.*
+  import pureconfig.configurable.*
+  import pureconfig.generic.scala3.*
+  import pureconfig.generic.semiauto.*
 
   implicit val localTimeConvert: ConfigConvert[LocalTime] = localTimeConfigConvert(DateTimeFormatter.ISO_LOCAL_TIME)
+  implicit val hint: ConfigReader[TimedJobConfig] = deriveReader[TimedJobConfig]
   implicit def hint[A]: ProductHint[A]                    = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
 
   private val tjc = ConfigSource.fromConfig(configuration.underlying).at(name).load[TimedJobConfig]
@@ -58,7 +61,7 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
 
   val jobConfig: TimedJobConfig = tjc.toOption.get
 
-  override val isEnabled: Boolean = jobConfig.enabled
+  override val enabled: Boolean = jobConfig.enabled
 
   override val interval: FiniteDuration = jobConfig.executionInterval.interval
 
@@ -69,12 +72,12 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
     case _               => FiniteDuration(0, TimeUnit.MILLISECONDS)
   }
 
-  final override def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful] = {
+  final override def executeInLock(implicit ec: ExecutionContext): Future[Result] = {
     logInfo("Starting scheduled job...")
     functionToExecute()
   }
 
-  def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful]
+  def functionToExecute()(implicit executionContext: ExecutionContext): Future[Result]
 }
 
 object TimedJob {
@@ -84,7 +87,7 @@ object TimedJob {
    * This code is not super efficient but hopefully clearer - it's only run once on startup.
    */
   def initialStartTime(configuredStartTime: LocalTime, intervalMinutes: Long, earliestStartDateTime: LocalDateTime): LocalDateTime = {
-    var startTime: LocalDateTime = LocalDateTime.of(earliestStartDateTime.toLocalDate(), configuredStartTime)
+    var startTime: LocalDateTime = LocalDateTime.of(earliestStartDateTime.toLocalDate, configuredStartTime)
     // Loop through until we are some part interval before "now"
     while (startTime.isAfter(earliestStartDateTime)) {
       startTime = startTime.minusMinutes(intervalMinutes)
@@ -104,7 +107,7 @@ object TimedJob {
 }
 
 class MongoLockService @Inject() (override val lockId: String, repository: LockRepository) extends LockService {
-  import scala.concurrent.duration._
+  import scala.concurrent.duration.*
 
   override val lockRepository: LockRepository = repository
   override val ttl: Duration                  = 1.hours

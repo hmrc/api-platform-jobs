@@ -17,19 +17,17 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.Clock
-
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.LockRepository
-
+import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
-abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, override val clock: Clock, lockRepository: LockRepository)
-    extends TimedJob(s"$jobName.$environment", configuration, clock, lockRepository)
+abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, override val clock: Clock, mongoLockRepository: MongoLockRepository)
+    extends TimedJob(s"$jobName.$environment", configuration, clock, mongoLockRepository)
     with UnusedApplicationsTimings with ClockNow {
 
   import pureconfig._
-  import pureconfig.generic.auto._
+  import pureconfig.generic.scala3._
   import pureconfig.generic.ProductHint
 
   implicit val productHintUnusedApplicationsConfiguration: ProductHint[UnusedApplicationsConfiguration] =

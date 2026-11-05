@@ -21,7 +21,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationNameData, DeleteRestrictionType}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 
@@ -42,75 +42,75 @@ class UnusedApplicationsServiceSpec extends AsyncHmrcSpec with FixedClock {
     val prodAppId         = ApplicationId.random
     val createdOn         = now.minusMonths(18).toInstant(ZoneOffset.UTC)
     val lastUseDate       = now.minusMonths(12).toInstant(ZoneOffset.UTC)
-    val deleteRestriction = DeleteRestrictionType.DO_NOT_DELETE
+    val deleteRestriction = DeleteRestrictionType.DoNotDelete
     val sandboxApp        = ApplicationUsageDetails(sandboxAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
     val prodApp           = ApplicationUsageDetails(prodAppId, ApplicationNameData.one, Set("foo@bar.com".toLaxEmail), createdOn, Some(lastUseDate))
   }
 
   "updateUnusedApplications" should {
-    "should remove SANDBOX app from unusedApplication collection" in new Setup {
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX)))
+    "should remove Sandbox app from unusedApplication collection" in new Setup {
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox)))
         .thenReturn(Future.successful(List(sandboxApp)))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.SANDBOX, sandboxAppId)).thenReturn(Future.successful(true))
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION)))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.Sandbox, sandboxAppId)).thenReturn(Future.successful(true))
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production)))
         .thenReturn(Future.successful(List.empty))
 
       val result = await(underTest.updateUnusedApplications())
       result.size shouldBe 1
       result shouldBe List(true)
 
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX))
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.SANDBOX), eqTo(sandboxAppId))
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox))
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.Sandbox), eqTo(sandboxAppId))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production))
     }
 
-    "should remove PRODUCTION app from unusedApplication collection" in new Setup {
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX)))
+    "should remove Production app from unusedApplication collection" in new Setup {
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox)))
         .thenReturn(Future.successful(List.empty))
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION)))
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production)))
         .thenReturn(Future.successful(List(prodApp)))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.PRODUCTION, prodAppId)).thenReturn(Future.successful(true))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.Production, prodAppId)).thenReturn(Future.successful(true))
 
       val result = await(underTest.updateUnusedApplications())
       result.size shouldBe 1
       result shouldBe List(true)
 
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX))
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION))
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.PRODUCTION), eqTo(prodAppId))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production))
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.Production), eqTo(prodAppId))
     }
 
     "should remove no apps from unusedApplication collection" in new Setup {
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX)))
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox)))
         .thenReturn(Future.successful(List.empty))
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION)))
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production)))
         .thenReturn(Future.successful(List.empty))
 
       val result = await(underTest.updateUnusedApplications())
       result.size shouldBe 0
       result shouldBe List.empty
 
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX))
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production))
       verifyZeroInteractions(mockUnusedApplicationsRepository)
     }
 
-    "should remove SANDBOX AND PRODUCTION apps not to be deleted from unusedApplication collection" in new Setup {
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX)))
+    "should remove Sandbox AND Production apps not to be deleted from unusedApplication collection" in new Setup {
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox)))
         .thenReturn(Future.successful(List(sandboxApp)))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.SANDBOX, sandboxAppId)).thenReturn(Future.successful(true))
-      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION)))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.Sandbox, sandboxAppId)).thenReturn(Future.successful(true))
+      when(mockTpoConnector.findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production)))
         .thenReturn(Future.successful(List(prodApp)))
-      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.PRODUCTION, prodAppId)).thenReturn(Future.successful(true))
+      when(mockUnusedApplicationsRepository.deleteUnusedApplicationRecord(Environment.Production, prodAppId)).thenReturn(Future.successful(true))
 
       val result = await(underTest.updateUnusedApplications())
       result.size shouldBe 2
       result shouldBe List(true, true)
 
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.SANDBOX))
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.SANDBOX), eqTo(sandboxAppId))
-      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.PRODUCTION))
-      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.PRODUCTION), eqTo(prodAppId))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Sandbox))
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.Sandbox), eqTo(sandboxAppId))
+      verify(mockTpoConnector).findApplicationsThatShouldNotBeDeleted(eqTo(Environment.Production))
+      verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.Production), eqTo(prodAppId))
     }
   }
 }

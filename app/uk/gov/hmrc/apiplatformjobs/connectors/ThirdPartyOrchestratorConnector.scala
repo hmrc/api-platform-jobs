@@ -69,7 +69,7 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
   private def query[T](qry: ApplicationQuery)(implicit rds: HttpReads[T]): Future[T] = {
     val params                                 = QueryParamsToQueryStringMap.toQuery(qry)
     val singleValueParams: Map[String, String] = params.map {
-      case (k, vs) => k -> vs.mkString
+      case (k, vs) => k.text -> vs.mkString
     }
     http.get(url"$serviceBaseUrl/query?$singleValueParams")
       .execute[T]

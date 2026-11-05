@@ -19,12 +19,9 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.time.{Clock, Instant}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.LockRepository
-
+import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
-
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
@@ -36,10 +33,10 @@ abstract class SendUnusedApplicationNotificationsJob(
     environment: Environment,
     configuration: Configuration,
     override val clock: Clock,
-    lockRepository: LockRepository
-  ) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, lockRepository) {
+    override val mongoLockRepository: MongoLockRepository
+  ) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, mongoLockRepository) {
 
-  override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
+  override def functionToExecute()(implicit executionContext: ExecutionContext): Future[Result] = {
     val notificationTime = Instant.now(clock)
 
     for {
@@ -51,7 +48,7 @@ abstract class SendUnusedApplicationNotificationsJob(
                           case _    => logWarn(s"Unable to send notifications to any administrators of Application [${app.applicationName} (${app.applicationId})]")
                         }
                       })
-    } yield RunningOfJobSuccessful
+    } yield Result(s"Scheduled job $name succeeded")
 
   }
 
@@ -64,16 +61,19 @@ class SendUnusedSandboxApplicationNotificationsJob @Inject() (
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     override val clock: Clock,
-    lockRepository: LockRepository
+    override val mongoLockRepository: MongoLockRepository
   ) extends SendUnusedApplicationNotificationsJob(
       unusedApplicationsRepository,
       emailConnector,
       unusedApplicationsService,
-      Environment.SANDBOX,
+      Environment.Sandbox,
       configuration,
       clock,
-      lockRepository
-    )
+  mongoLockRepository
+    ) {
+  override val enabled: Boolean = true
+
+}
 
 @Singleton
 class SendUnusedProductionApplicationNotificationsJob @Inject() (
@@ -82,13 +82,15 @@ class SendUnusedProductionApplicationNotificationsJob @Inject() (
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     override val clock: Clock,
-    lockRepository: LockRepository
+    override val mongoLockRepository: MongoLockRepository
   ) extends SendUnusedApplicationNotificationsJob(
       unusedApplicationsRepository,
       emailConnector,
       unusedApplicationsService,
-      Environment.PRODUCTION,
+      Environment.Production,
       configuration,
       clock,
-      lockRepository
-    )
+  mongoLockRepository
+    ) {
+  override val enabled: Boolean = true
+}

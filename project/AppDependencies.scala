@@ -3,8 +3,8 @@ import sbt._
 object AppDependencies {
   def apply(): Seq[ModuleID] = compileDeps ++ testDeps
 
-  private lazy val bootstrapVersion    = "10.7.0"
-  private lazy val hmrcMongoVersion    = "2.13.0"
+  private lazy val bootstrapVersion    = "10.8.0"
+  private lazy val hmrcMongoVersion    = "2.14.0"
   private lazy val commonDomainVersion = "1.4.0"
   private lazy val appDomainVersion    = "1.6.0"
   private lazy val orgDomainVersion    = "1.25.0"
@@ -17,7 +17,9 @@ object AppDependencies {
     "uk.gov.hmrc"                 %% "api-platform-common-domain"                 % commonDomainVersion,
     "uk.gov.hmrc"                 %% "api-platform-application-domain"            % appDomainVersion,
     "uk.gov.hmrc"                 %% "api-platform-organisation-domain"           % orgDomainVersion,
-    "com.github.pureconfig"       %% "pureconfig"                                 % "0.17.7"
+    "com.github.pureconfig"       %% "pureconfig-core"                            % "0.17.11",
+    "com.github.pureconfig" %% "pureconfig-generic-scala3" % "0.17.11",
+
   )
 
   private lazy val testDeps = Seq(

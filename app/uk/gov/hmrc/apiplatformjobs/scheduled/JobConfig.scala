@@ -16,18 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import com.typesafe.config.Config
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+import uk.gov.hmrc.apiplatformjobs.scheduling.{LockedScheduledJob, ScheduledJob}
+import uk.gov.hmrc.mongo.lock.LockService
+
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-
-import com.typesafe.config.Config
-
-import uk.gov.hmrc.mongo.lock.LockService
-
-import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
-
-import uk.gov.hmrc.apiplatformjobs.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
 
@@ -42,7 +39,7 @@ object JobConfig {
   }
 }
 
-trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState with ApplicationLogger {
+/*trait ScheduledMongoJob extends LockedScheduledJob with ScheduledJobState with ApplicationLogger {
 
   val lockService: LockService
   def isEnabled: Boolean
@@ -60,7 +57,7 @@ trait ScheduledMongoJob extends ExclusiveScheduledJob with ScheduledJobState wit
       failure.asResult
     }
   }
-}
+}*/
 
 trait ScheduledJobState { e: ScheduledJob =>
   sealed trait RunningOfJobSuccessful

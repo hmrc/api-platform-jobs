@@ -18,27 +18,26 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import cats.data.NonEmptyList
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.asInstant
 import play.api.Application
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, InternalServerException}
-
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborators
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, Environment, UserId}
-import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, Environment, LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.*
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
-
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.nelReads
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.nelWrites
 
 class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding with FixedClock {
 
@@ -46,7 +45,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
   val actor        = Actors.ScheduledJob("TestMe")
   val timestamp    = instant
   val userId       = UserId.random
-  val emailAddress = "bob@example.com".toLaxEmail
+  val emailAddress = LaxEmailAddress("bob@example.com")/*.toLaxEmail*/
   val collaborator = Collaborators.Developer(userId, emailAddress)
 
   override def fakeApplication(): Application =
@@ -69,7 +68,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
   "ApplicationCommandConnector" when {
     "dispatch request" should {
       val anAdminEmail          = "admin@example.com".toLaxEmail
-      val developerCollaborator = Collaborators.Developer(UserId.random, "dev@example.com".toLaxEmail)
+      val developerCollaborator = Collaborators.Developer(UserId.random, LaxEmailAddress("dev@example.com")/*.toLaxEmail*/)
       val jsonText              =
         s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00.000Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
       val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
@@ -115,7 +114,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
                 .withStatus(OK)
             )
         )
-        await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty)) shouldBe (HasSucceeded)
+        await(connector.dispatchToEnvironment(Environment.Production, appId, command, Set.empty)) shouldBe HasSucceeded
       }
 
       "throw when a command fails" in new Setup {
@@ -131,7 +130,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
         )
 
         intercept[BadRequestException] {
-          await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
+          await(connector.dispatchToEnvironment(Environment.Production, appId, command, Set.empty))
         }
       }
 
@@ -146,7 +145,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
         )
 
         intercept[InternalServerException] {
-          await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
+          await(connector.dispatchToEnvironment(Environment.Production, appId, command, Set.empty))
         }
       }
 
@@ -160,7 +159,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
         )
 
         intercept[InternalServerException] {
-          await(connector.dispatchToEnvironment(Environment.PRODUCTION, appId, command, Set.empty))
+          await(connector.dispatchToEnvironment(Environment.Production, appId, command, Set.empty))
         }
       }
     }
