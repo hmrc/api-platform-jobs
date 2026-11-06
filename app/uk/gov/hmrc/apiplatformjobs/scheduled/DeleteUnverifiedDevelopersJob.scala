@@ -58,9 +58,9 @@ jobConfig: DeleteUnverifiedDevelopersJobConfig,
       developerDetails <- developerConnector.fetchUnverifiedDevelopers(instant.minus(Duration.ofDays(createdBeforeInDays)), jobConfig.limit)
       _                 = logger.info(s"Found ${developerDetails.size} unverified developers")
       _                <- sequence(developerDetails.map(deleteDeveloper("UnverifiedUser")))
-    } yield Result(s"Scheduled job $name succeeded")) recoverWith { case NonFatal(e) =>
+    } yield Result("succeeded")) recoverWith { case NonFatal(e) =>
       logger.error("Could not delete unverified developers", e)
-      successful(Result(s"Job $name failed due to ${e.getMessage}"))
+      successful(Result(s"failed due to ${e.getMessage}"))
     }
   }
 }

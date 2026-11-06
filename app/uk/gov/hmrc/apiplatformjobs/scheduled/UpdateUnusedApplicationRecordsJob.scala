@@ -16,18 +16,18 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
+import play.api.Configuration
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment, LaxEmailAddress}
+import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
+import uk.gov.hmrc.apiplatformjobs.models.*
+import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
+
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant, LocalDate}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment, LaxEmailAddress}
-import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.*
-import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
-import uk.gov.hmrc.apiplatformjobs.models.*
-import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class UpdateUnusedApplicationRecordsJob(
     tpoConnector: ThirdPartyOrchestratorConnector,
@@ -37,7 +37,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
     configuration: Configuration,
     override val clock: Clock,
     override val mongoLockRepository: MongoLockRepository
-  ) extends UnusedApplicationsJob("UpdateUnusedApplicatio recordsJob", environment, configuration, clock, mongoLockRepository) {
+  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, mongoLockRepository) {
 
   private val neverUsedAppNotificationPeriod        = 7.days
   private val neverUsedAppAllowedPeriodOfInactivity = 30.days

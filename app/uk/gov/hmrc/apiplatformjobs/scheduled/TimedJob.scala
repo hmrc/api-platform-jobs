@@ -20,7 +20,7 @@ import play.api.Configuration
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveReader
 import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
-import uk.gov.hmrc.apiplatformjobs.scheduling.{LockedScheduledJob, ScheduledJobsRunner}
+import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
 
 import java.time.format.DateTimeFormatter
@@ -32,7 +32,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 
-case class StartTime(startTime: LocalTime)             extends AnyVal   
+case class StartTime(localTime: LocalTime)             extends AnyVal
 case class ExecutionInterval(interval: FiniteDuration) extends AnyVal
 
 case class TimedJobConfig(startTime: Option[StartTime], executionInterval: ExecutionInterval, enabled: Boolean) {
@@ -53,7 +53,8 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
   import pureconfig.generic.semiauto.*
 
   implicit val localTimeConvert: ConfigConvert[LocalTime] = localTimeConfigConvert(DateTimeFormatter.ISO_LOCAL_TIME)
-  implicit val hint: ConfigReader[TimedJobConfig] = deriveReader[TimedJobConfig]
+  implicit val hintTjc: ConfigReader[TimedJobConfig]      = deriveReader[TimedJobConfig]
+  implicit val hintSt: ConfigReader[StartTime]            = deriveReader[StartTime]
   implicit def hint[A]: ProductHint[A]                    = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
 
   private val tjc = ConfigSource.fromConfig(configuration.underlying).at(name).load[TimedJobConfig]
@@ -68,7 +69,7 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
   if (interval.toMinutes < 5L) throw new IllegalArgumentException(s"$logPrefix: Interval must be at least 5 minutes")
 
   override def initialDelay: FiniteDuration = jobConfig.startTime match {
-    case Some(startTime) => TimedJob.calculateInitialDelay(startTime.startTime, interval.toMinutes, now)
+    case Some(startTime) => TimedJob.calculateInitialDelay(startTime.localTime, interval.toMinutes, now)
     case _               => FiniteDuration(0, TimeUnit.MILLISECONDS)
   }
 

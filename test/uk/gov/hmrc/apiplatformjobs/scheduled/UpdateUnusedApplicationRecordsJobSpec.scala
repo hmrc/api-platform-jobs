@@ -41,7 +41,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
     val mockTpoConnector: ThirdPartyOrchestratorConnector              = mock[ThirdPartyOrchestratorConnector]
     val mockThirdPartyDeveloperConnector: ThirdPartyDeveloperConnector = mock[ThirdPartyDeveloperConnector]
     val mockUnusedApplicationsRepository: UnusedApplicationsRepository = mock[UnusedApplicationsRepository]
-    val nowAsDay                                                       = now.toLocalDate()
+    val nowAsDay                                                       = now.toLocalDate
   }
 
   trait SandboxJobSetup extends Setup {

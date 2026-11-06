@@ -60,9 +60,9 @@ class DeleteUnregisteredDevelopersJob @Inject() (
       _                  = logger.info(s"Found ${developerDetails.size} unregistered developers")
       filteredDevelopers = developerDetails.filterNot(developer => jobConfig.excludedEmails.contains(developer.email))
       _                 <- sequence(filteredDevelopers.map(deleteDeveloper("UnregisteredUser")))
-    } yield Result(s"Scheduled job $name succeeded")) recoverWith { case NonFatal(e) =>
+    } yield Result("succeeded")) recoverWith { case NonFatal(e) =>
       logger.error("Could not delete unregistered developers", e)
-      successful(Result(s"Job $name failed due to ${e.getMessage}"))
+      successful(Result(s"failed due to ${e.getMessage}"))
     }
   }
 }

@@ -18,6 +18,9 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.Clock
 import play.api.Configuration
+import pureconfig.generic.scala3.HintsAwareConfigReaderDerivation
+import pureconfig.generic.semiauto
+import pureconfig.generic.semiauto.deriveReader
 import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
@@ -27,13 +30,18 @@ abstract class UnusedApplicationsJob(jobName: String, environment: Environment, 
     with UnusedApplicationsTimings with ClockNow {
 
   import pureconfig._
-  import pureconfig.generic.scala3._
   import pureconfig.generic.ProductHint
 
-  implicit val productHintUnusedApplicationsConfiguration: ProductHint[UnusedApplicationsConfiguration] =
-    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(_.toUpperCase))
+  given  productHintUnusedApplicationsConfiguration: ProductHint[UnusedApplicationsConfiguration] =
+//    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(_.toUpperCase))
+    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, PascalCase))
+
+//  given productHintUnusedApplicationsEnvironmentConfiguration: ProductHint[UnusedApplicationsEnvironmentConfiguration] =
+//    ProductHint.apply[UnusedApplicationsEnvironmentConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, CamelCase))
+
+  given ConfigReader[UnusedApplicationsConfiguration] = deriveReader
 
   override val unusedApplicationsConfiguration: UnusedApplicationsConfiguration = {
-    ConfigSource.fromConfig(configuration.underlying).at("UnusedApplications").load[UnusedApplicationsConfiguration].toOption.get
+    ConfigSource.fromConfig(configuration.underlying).at("UnusedApplications").loadOrThrow[UnusedApplicationsConfiguration]
   }
 }

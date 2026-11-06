@@ -44,7 +44,7 @@ trait LockedScheduledJob extends ScheduledJob {
         executeInLock
       } map {
         case Some(Result(message)) => Result(s"Job named $name ran, and completed with result $message")
-        case None                  => Result(s"Job named $name cannot acquire Mongo lock, not running")
+        case None                  => Result(s"Job named $name cannot acquire Mongo lock so not running")
       }
     } else {
       Future.successful(Result(s"Job named $name is disabled"))

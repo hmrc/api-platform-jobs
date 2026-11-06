@@ -65,7 +65,7 @@ abstract class DeleteUnusedApplicationsJob(
       executionContext: ExecutionContext
     ): Future[ApplicationUpdateResult] = {
 
-    val authorisationKey = if (environment.isProduction) unusedApplicationsConfiguration.production.authorisationKey else unusedApplicationsConfiguration.Sandbox.authorisationKey
+    val authorisationKey = if (environment.isProduction) unusedApplicationsConfiguration.production.authorisationKey else unusedApplicationsConfiguration.sandbox.authorisationKey
     val encodedAuthKey   = encodeBase64String(authorisationKey.getBytes(UTF_8))
 
     val deleteRequest = DeleteUnusedApplication(jobId, encodedAuthKey, reasons, timestamp)
@@ -107,7 +107,7 @@ abstract class DeleteUnusedApplicationsJob(
       applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle)
       _                     = logInfo(s"Found [${applicationsToDelete.size}] applications to delete")
       _                    <- sequentialFutures(deleteApplication)(applicationsToDelete)
-    } yield Result(s"Scheduled job $name succeeded")
+    } yield Result("succeeded")
   }
 }
 
