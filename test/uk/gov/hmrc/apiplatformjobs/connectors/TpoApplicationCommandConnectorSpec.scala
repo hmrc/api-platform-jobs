@@ -44,7 +44,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
   val actor        = Actors.ScheduledJob("TestMe")
   val timestamp    = instant
   val userId       = UserId.random
-  val emailAddress = LaxEmailAddress("bob@example.com")/*.toLaxEmail*/
+  val emailAddress = LaxEmailAddress("bob@example.com") /*.toLaxEmail*/
   val collaborator = Collaborators.Developer(userId, emailAddress)
 
   override def fakeApplication(): Application =
@@ -67,7 +67,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
   "ApplicationCommandConnector" when {
     "dispatch request" should {
       val anAdminEmail          = "admin@example.com".toLaxEmail
-      val developerCollaborator = Collaborators.Developer(UserId.random, LaxEmailAddress("dev@example.com")/*.toLaxEmail*/)
+      val developerCollaborator = Collaborators.Developer(UserId.random, LaxEmailAddress("dev@example.com") /*.toLaxEmail*/ )
       val jsonText              =
         s"""{"command":{"actor":{"email":"${anAdminEmail.text}","actorType":"COLLABORATOR"},"collaborator":{"userId":"${developerCollaborator.userId.value}","emailAddress":"dev@example.com","role":"DEVELOPER"},"timestamp":"2020-01-01T12:00:00.000Z","updateType":"removeCollaborator"},"verifiedCollaboratorsToNotify":["admin@example.com"]}"""
       val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant

@@ -49,7 +49,7 @@ abstract class DeleteUnusedApplicationsJob(
     case Nil          => Future.successful(())
     case head :: tail =>
       fn(head)
-        .recover { case NonFatal(e) =>
+        .recover { case NonFatal(_) =>
           ()
         }
         .flatMap(_ => sequentialFutures(fn)(tail))
@@ -85,7 +85,7 @@ abstract class DeleteUnusedApplicationsJob(
 
       (for {
         deleteSuccessful <- deleteApplicationViaCmd(application.environment, application.applicationId, name, reasons, instant)
-        _: Unit          <- if (deleteSuccessful == ApplicationUpdateSuccessResult) {
+        _                <- if (deleteSuccessful == ApplicationUpdateSuccessResult) {
                               logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
                               unusedApplicationsRepository
                                 .deleteUnusedApplicationRecord(environment, application.applicationId)

@@ -69,7 +69,7 @@ class SendUnusedSandboxApplicationNotificationsJob @Inject() (
       Environment.Sandbox,
       configuration,
       clock,
-  mongoLockRepository
+      mongoLockRepository
     ) {
   override val enabled: Boolean = true
 
@@ -90,7 +90,7 @@ class SendUnusedProductionApplicationNotificationsJob @Inject() (
       Environment.Production,
       configuration,
       clock,
-  mongoLockRepository
+      mongoLockRepository
     ) {
   override val enabled: Boolean = true
 }

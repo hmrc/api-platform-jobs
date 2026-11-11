@@ -31,8 +31,8 @@ import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 
 class DeleteUnverifiedDevelopersJob @Inject() (
 //    override val lockService: DeleteUnverifiedDevelopersJobLockService,
-override val mongoLockRepository: MongoLockRepository,
-jobConfig: DeleteUnverifiedDevelopersJobConfig,
+    override val mongoLockRepository: MongoLockRepository,
+    jobConfig: DeleteUnverifiedDevelopersJobConfig,
     val developerConnector: ThirdPartyDeveloperConnector,
     val tpoConnector: ThirdPartyOrchestratorConnector,
     val tpoCmdConnector: TpoApplicationCommandConnector,
@@ -43,13 +43,13 @@ jobConfig: DeleteUnverifiedDevelopersJobConfig,
     with ApplicationLogger
     with ClockNow {
 
-  override def name: String                                     = "DeleteUnverifiedDevelopersJob"
-  override def interval: FiniteDuration                         = jobConfig.interval
-  override def initialDelay: FiniteDuration                     = jobConfig.initialDelay
+  override def name: String                                   = "DeleteUnverifiedDevelopersJob"
+  override def interval: FiniteDuration                       = jobConfig.interval
+  override def initialDelay: FiniteDuration                   = jobConfig.initialDelay
   override val enabled: Boolean                               = jobConfig.enabled
-  implicit val hc: HeaderCarrier                                = HeaderCarrier()
+  implicit val hc: HeaderCarrier                              = HeaderCarrier()
   override val deleteFunction: LaxEmailAddress => Future[Int] = developerConnector.deleteDeveloper
-  val createdBeforeInDays                                       = 30
+  val createdBeforeInDays                                     = 30
 
   override def executeInLock(implicit ec: ExecutionContext): Future[Result] = {
     logger.info("Starting DeleteUnverifiedDevelopersJob")

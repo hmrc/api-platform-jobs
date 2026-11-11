@@ -16,14 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import pureconfig.ConfigReader
-import pureconfig._
-import pureconfig.error._
-import pureconfig.generic.semiauto._
-import pureconfig.generic.FieldCoproductHint
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 
 import scala.concurrent.duration.FiniteDuration
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 
 trait UnusedApplicationsTimings {
   val unusedApplicationsConfiguration: UnusedApplicationsConfiguration

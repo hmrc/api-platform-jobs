@@ -20,7 +20,6 @@ import org.apache.commons.lang3.time.StopWatch
 import org.apache.pekko.actor.{Cancellable, Scheduler}
 import play.api.inject.ApplicationLifecycle
 import play.api.{Application, Logging}
-import uk.gov.hmrc.apiplatformjobs.scheduling.ScheduledJobs
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.repository
 
-import java.time.LocalDate
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.mongo.logging.ObservableFutureImplicits.ObservableFuture
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.testkit.NoMaterializer
 import org.mongodb.scala.Document
@@ -26,14 +23,17 @@ import org.mongodb.scala.model.Filters
 import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationNameData
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 import uk.gov.hmrc.mongo.logging.ObservableFutureImplicits
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+
+import java.time.LocalDate
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class UnusedApplicationsRepositorySpec
     extends AsyncHmrcSpec
@@ -63,10 +63,10 @@ class UnusedApplicationsRepositorySpec
       UnusedApplication(applicationId, ApplicationNameData.one, Seq(), Environment.Sandbox, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
 
     def productionApplication(
-                               applicationId: ApplicationId,
-                               lastInteractionDate: LocalDate = todaysDate,
-                               scheduledNotificationDates: Seq[LocalDate] = Seq(now.plusDays(1).toLocalDate),
-                               scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate
+        applicationId: ApplicationId,
+        lastInteractionDate: LocalDate = todaysDate,
+        scheduledNotificationDates: Seq[LocalDate] = Seq(now.plusDays(1).toLocalDate),
+        scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate
       ) =
       UnusedApplication(applicationId, ApplicationNameData.two, Seq(), Environment.Production, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
   }
@@ -349,5 +349,4 @@ class UnusedApplicationsRepositorySpec
 
     await(mongoDatabase.getCollection("unusedApplications").insertOne(Document(raw)).toFuture())
   }
-
 }

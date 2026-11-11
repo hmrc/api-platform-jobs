@@ -17,14 +17,11 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import com.typesafe.config.Config
-import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
-import uk.gov.hmrc.apiplatformjobs.scheduling.{LockedScheduledJob, ScheduledJob}
-import uk.gov.hmrc.mongo.lock.LockService
+import uk.gov.hmrc.apiplatformjobs.scheduling.ScheduledJob
 
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
 
@@ -38,26 +35,6 @@ object JobConfig {
     new JobConfig(config.getDuration("initialDelay").finite(), config.getDuration("interval").finite(), config.getBoolean("enabled"))
   }
 }
-
-/*trait ScheduledMongoJob extends LockedScheduledJob with ScheduledJobState with ApplicationLogger {
-
-  val lockService: LockService
-  def isEnabled: Boolean
-
-  def runJob(implicit ec: ExecutionContext): Future[RunningOfJobSuccessful]
-
-  override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
-    lockService.withLock {
-      runJob
-    } map {
-      case Some(_) => Result(s"$name Job ran successfully.")
-      case _       => Result(s"$name did not run because repository was locked by another instance of the scheduler.")
-    } recover { case failure: RunningOfJobFailed =>
-      logger.error("The execution of the job failed.", failure.wrappedCause)
-      failure.asResult
-    }
-  }
-}*/
 
 trait ScheduledJobState { e: ScheduledJob =>
   sealed trait RunningOfJobSuccessful

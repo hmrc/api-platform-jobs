@@ -29,7 +29,7 @@ import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 
 class DeleteUnregisteredDevelopersJob @Inject() (
-                                                  override val mongoLockRepository: MongoLockRepository,
+    override val mongoLockRepository: MongoLockRepository,
 //    override val mongoLockService: DeleteUnregisteredDevelopersJobLockService,
     jobConfig: DeleteUnregisteredDevelopersJobConfig,
     val developerConnector: ThirdPartyDeveloperConnector,
@@ -44,8 +44,8 @@ class DeleteUnregisteredDevelopersJob @Inject() (
   override def interval: FiniteDuration     = jobConfig.interval
   override def initialDelay: FiniteDuration = jobConfig.initialDelay
 
-  override val enabled: Boolean = jobConfig.enabled
-  implicit val hc: HeaderCarrier  = HeaderCarrier()
+  override val enabled: Boolean  = jobConfig.enabled
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   override val deleteFunction: LaxEmailAddress => Future[Int] = email => {
     developerConnector.deleteUnregisteredDeveloper(email)

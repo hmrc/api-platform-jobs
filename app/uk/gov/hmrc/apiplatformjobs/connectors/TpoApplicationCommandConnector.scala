@@ -44,7 +44,6 @@ class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: Thir
     )(implicit hc: HeaderCarrier
     ): Future[HasSucceeded] = {
 
-    import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
     import play.api.libs.json._
     import uk.gov.hmrc.http.HttpReads.Implicits._
     import play.api.http.Status._
