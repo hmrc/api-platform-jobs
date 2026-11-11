@@ -16,28 +16,27 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
-import java.time.LocalDateTime
-import scala.concurrent.ExecutionContext.Implicits.global
 import cats.data.NonEmptyList
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.asInstant
 import play.api.Application
 import play.api.http.Status.*
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, InternalServerException}
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborators
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommands, CommandFailure, CommandFailures, DispatchRequest}
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, ApplicationId, Environment, LaxEmailAddress, UserId}
-import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.*
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.*
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.nelWrites
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.asInstant
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
-import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.nelReads
-import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.nelWrites
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, InternalServerException}
+
+import java.time.LocalDateTime
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneAppPerSuite with WiremockSugar with UrlEncoding with FixedClock {
 
@@ -74,7 +73,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
       val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
       val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.AppCollaborator(anAdminEmail), developerCollaborator, timestamp)
       val req                   = DispatchRequest(cmd, Set(anAdminEmail))
-      import cats.syntax.option._
+      import cats.syntax.option.*
 
       "write to json" in {
         Json.toJson(req).toString() shouldBe jsonText
@@ -91,7 +90,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
       val timestamp             = LocalDateTime.of(2020, 1, 1, 12, 0, 0).asInstant
       val cmd                   = ApplicationCommands.RemoveCollaborator(Actors.ScheduledJob("BOB"), developerCollaborator, timestamp)
       val req                   = DispatchRequest(cmd, Set.empty)
-      import cats.syntax.option._
+      import cats.syntax.option.*
 
       "write to json" in {
         Json.toJson(req).toString() shouldBe jsonText
@@ -107,7 +106,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
 
       "removeCollaborator" in new Setup {
         stubFor(
-          patch(urlPathEqualTo(s"/environment/PRODUCTION/application/$appId"))
+          patch(urlPathEqualTo(s"/environment/Production/application/$appId"))
             .withJsonRequestBody(request)
             .willReturn(
               aResponse()
@@ -121,7 +120,7 @@ class TpoApplicationCommandConnectorSpec extends AsyncHmrcSpec with ResponseUtil
         val errors = NonEmptyList.one[CommandFailure](CommandFailures.CannotRemoveLastAdmin)
 
         stubFor(
-          patch(urlPathEqualTo(s"/environment/PRODUCTION/application/$appId"))
+          patch(urlPathEqualTo(s"/environment/Production/application/$appId"))
             .willReturn(
               aResponse()
                 .withStatus(BAD_REQUEST)

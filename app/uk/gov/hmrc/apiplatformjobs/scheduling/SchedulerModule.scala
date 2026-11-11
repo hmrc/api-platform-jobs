@@ -19,7 +19,6 @@ package uk.gov.hmrc.apiplatformjobs.scheduling
 import com.google.inject.Provider
 import play.api.inject.Module
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.apiplatformjobs.scheduling.ScheduledJobsProvider
 import uk.gov.hmrc.apiplatformjobs.scheduled.*
 
 import javax.inject.{Inject, Singleton}

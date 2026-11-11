@@ -29,6 +29,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.*
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Environment, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.EnumJsonHelper.asScreamingSnakeCase
 import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.asInstant
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
 import uk.gov.hmrc.apiplatformjobs.models.*
@@ -107,7 +108,7 @@ class ThirdPartyOrchestratorConnectorSpec
     def response(apps: List[ApplicationWithCollaborators]) = apps
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
-    val noDeleteRestriction              = DeleteRestrictionType.NoRestriction
+    val noDeleteRestriction              = DeleteRestrictionType.NoRestriction.asScreamingSnakeCase
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val checkLastUseInstant = now.minusMonths(12).asInstant
@@ -209,7 +210,7 @@ class ThirdPartyOrchestratorConnectorSpec
           .withQueryParam("environment", equalTo("PRODUCTION"))
           .withQueryParam("neverUsed", equalTo(""))
           .withQueryParam("lastUsedBefore", equalTo(createdBeforeDateString))
-          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.asScreamingSnakeCase))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -238,7 +239,7 @@ class ThirdPartyOrchestratorConnectorSpec
           .withQueryParam("environment", equalTo("PRODUCTION"))
           .withQueryParam("neverUsed", equalTo(""))
           .withQueryParam("lastUsedBefore", equalTo(createdBeforeDateString))
-          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.asScreamingSnakeCase))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -259,7 +260,7 @@ class ThirdPartyOrchestratorConnectorSpec
       stubFor(
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
-          .withQueryParam("deleteRestriction", equalTo(DeleteRestrictionType.DoNotDelete.toString))
+          .withQueryParam("deleteRestriction", equalTo(DeleteRestrictionType.DoNotDelete.asScreamingSnakeCase))
           .willReturn(
             aResponse()
               .withStatus(OK)

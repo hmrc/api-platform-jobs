@@ -229,7 +229,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       verify(mockOrganisationConnector, times(1)).removeCollaboratorFromOrganisation(eqTo(organisationId), eqTo(johnDoeId), eqTo(johnDoe))(using *)
       verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(*[LaxEmailAddress])(using *)
 
-      result.message shouldBe "The execution of scheduled job DeleteUnverifiedDevelopersJob failed with error 'Failed because of x'. The next execution of the job will do retry."
+      result.message shouldBe "Job named DeleteUnverifiedDevelopersJob ran, and completed with result failed due to Failed because of x"
     }
 
     "not execute if the job is already running" in new Setup {
@@ -247,8 +247,7 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
       val result: underTest.Result = await(underTest.execute)
 
       verify(mockThirdPartyDeveloperConnector, never).deleteDeveloper(*[LaxEmailAddress])(using *)
-      result.message shouldBe "The execution of scheduled job DeleteUnverifiedDevelopersJob failed with error 'Failed'. " +
-        "The next execution of the job will do retry."
+      result.message shouldBe "Job named DeleteUnverifiedDevelopersJob ran, and completed with result failed due to Failed"
     }
   }
 }

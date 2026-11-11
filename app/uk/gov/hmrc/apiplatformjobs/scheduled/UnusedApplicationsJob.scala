@@ -19,25 +19,28 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.time.Clock
 import play.api.Configuration
 import pureconfig.generic.scala3.HintsAwareConfigReaderDerivation
-import pureconfig.generic.semiauto
-import pureconfig.generic.semiauto.deriveReader
-import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
 abstract class UnusedApplicationsJob(jobName: String, environment: Environment, configuration: Configuration, override val clock: Clock, mongoLockRepository: MongoLockRepository)
-    extends TimedJob(s"$jobName.$environment", configuration, clock, mongoLockRepository)
+    extends TimedJob(s"$jobName.${environment.displayText.toUpperCase}", configuration, clock, mongoLockRepository)
     with UnusedApplicationsTimings with ClockNow {
 
-  import pureconfig._
   import pureconfig.generic.ProductHint
+  import pureconfig.*
+  import pureconfig.generic.semiauto.deriveReader
+  import pureconfig.generic.*
+  import scala.deriving.Mirror
 
-  given  productHintUnusedApplicationsConfiguration: ProductHint[UnusedApplicationsConfiguration] =
-//    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(_.toUpperCase))
-    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, PascalCase))
+  extension (c: ConfigReader.type)
+    inline def derived[A: {Mirror.Of, ProductHint, CoproductHint}]: ConfigReader[A] = deriveReader[A]
+  given ProductHint[UnusedApplicationsConfiguration] =
+    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(_.toUpperCase))
+//    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, PascalCase))
 
-//  given productHintUnusedApplicationsEnvironmentConfiguration: ProductHint[UnusedApplicationsEnvironmentConfiguration] =
-//    ProductHint.apply[UnusedApplicationsEnvironmentConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, CamelCase))
+  given productHintUnusedApplicationsEnvironmentConfiguration: ProductHint[UnusedApplicationsEnvironmentConfiguration] =
+    ProductHint.apply[UnusedApplicationsEnvironmentConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, CamelCase))
 
   given ConfigReader[UnusedApplicationsConfiguration] = deriveReader
 

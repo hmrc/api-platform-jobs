@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import play.api.Configuration
 import pureconfig.generic.ProductHint
-import pureconfig.generic.semiauto.deriveReader
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
 import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
@@ -31,9 +31,21 @@ import javax.inject.Inject
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
-
 case class StartTime(localTime: LocalTime)             extends AnyVal
 case class ExecutionInterval(interval: FiniteDuration) extends AnyVal
+
+import pureconfig.*
+import pureconfig.configurable.*
+//  import pureconfig.generic.scala3.*
+import pureconfig.generic.semiauto.*
+
+given ConfigReader[StartTime]      = deriveReader
+//given ProductHint[TimedJobConfig]  = ProductHint[TimedJobConfig](ConfigFieldMapping(_.toUpperCase))
+given ProductHint[TimedJobConfig]                       = ProductHint[TimedJobConfig](ConfigFieldMapping(CamelCase, CamelCase))
+given ConfigReader[TimedJobConfig] = deriveReader
+given ConfigConvert[LocalTime]     = localTimeConfigConvert(DateTimeFormatter.ISO_LOCAL_TIME)
+//given ProductHint[Environment]     = ProductHint[Environment](ConfigFieldMapping(_.toLowerCase))
+//given ConfigConvert[Environment]   = deriveEnumerationConvert(transformName = _.toLowerCase)
 
 case class TimedJobConfig(startTime: Option[StartTime], executionInterval: ExecutionInterval, enabled: Boolean) {
   override def toString = s"TimedJobConfig{startTime=$startTime interval=${executionInterval.interval} enabled=$enabled}"
@@ -44,23 +56,17 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
     with PrefixLogger
     with ClockNow {
 
-  override val logPrefix: String        = s"[$name]"
-//  override val mongoLockService: LockService = new MongoLockService(s"$name-Lock", lockRepository)
+  override val logPrefix: String = s"[$name]"
+  //  override val mongoLockService: LockService = new MongoLockService(s"$name-Lock", lockRepository)
 
-  import pureconfig.*
-  import pureconfig.configurable.*
-  import pureconfig.generic.scala3.*
-  import pureconfig.generic.semiauto.*
+  /*given ProductHint[Environment] = ProductHint[Environment](new ConfigFieldMapping {
+    def apply(fieldName: String) = fieldName.toUpperCase
+  })*/
 
-  implicit val localTimeConvert: ConfigConvert[LocalTime] = localTimeConfigConvert(DateTimeFormatter.ISO_LOCAL_TIME)
-  implicit val hintTjc: ConfigReader[TimedJobConfig]      = deriveReader[TimedJobConfig]
-  implicit val hintSt: ConfigReader[StartTime]            = deriveReader[StartTime]
-  implicit def hint[A]: ProductHint[A]                    = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
+//  private val tjc = ConfigSource.fromConfig(configuration.underlying).at(name).load[TimedJobConfig]
+//  tjc.swap.map(x => logger.warn(x.toString()))
 
-  private val tjc = ConfigSource.fromConfig(configuration.underlying).at(name).load[TimedJobConfig]
-  tjc.swap.map(x => logger.warn(x.toString()))
-
-  val jobConfig: TimedJobConfig = tjc.toOption.get
+  val jobConfig: TimedJobConfig = ConfigSource.fromConfig(configuration.underlying).at(name).loadOrThrow[TimedJobConfig]
 
   override val enabled: Boolean = jobConfig.enabled
 

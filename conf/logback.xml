@@ -24,6 +24,7 @@
     <logger name="com.google.inject" level="INFO"/>
 
     <logger name="uk.gov" level="INFO"/>
+    <logger name="pureconfig" level="TRACE"/>
 
     <logger name="application" level="INFO"/>
 
@@ -31,7 +32,7 @@
         <appender-ref ref="STDOUT"/>
     </logger>
 
-    <root level="INFO">
+    <root level="TRACE">
         <appender-ref ref="FILE"/>
         <appender-ref ref="STDOUT"/>
     </root>

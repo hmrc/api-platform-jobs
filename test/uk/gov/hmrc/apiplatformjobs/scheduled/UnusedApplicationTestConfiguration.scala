@@ -48,14 +48,14 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
 
     new Configuration(ConfigFactory.parseString(s"""
                                                    |UnusedApplications {
-                                                   |  Sandbox {
+                                                   |  SANDBOX {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedSandboxApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$sandboxNotificationsString]
                                                    |    environmentName = "$sandboxEnvironmentName"
                                                    |    authorisationKey = "$sandboxAuthKey"
                                                    |  }
                                                    |
-                                                   |  Production {
+                                                   |  PRODUCTION {
                                                    |    deleteUnusedApplicationsAfter = ${deleteUnusedProductionApplicationsAfter}d
                                                    |    sendNotificationsInAdvance = [$productionNotificationsString]
                                                    |    environmentName = "$productionEnvironmentName"
@@ -64,13 +64,13 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |}
                                                    |
                                                    |UpdateUnusedApplicationRecordsJob {
-                                                   |  Sandbox {
+                                                   |  SANDBOX {
                                                    |    startTime = "00:30" # Time is in UTC
                                                    |    executionInterval = 1d
                                                    |    enabled = false
                                                    |  }
                                                    |
-                                                   |  Production {
+                                                   |  PRODUCTION {
                                                    |    startTime = "00:40" # Time is in UTC
                                                    |    executionInterval = 1d
                                                    |    enabled = false
@@ -78,13 +78,13 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |}
                                                    |
                                                    |SendUnusedApplicationNotificationsJob {
-                                                   |  Sandbox {
+                                                   |  SANDBOX {
                                                    |    startTime = "00:50" # Time is in UTC
                                                    |    executionInterval = 1d
                                                    |    enabled = false
                                                    |  }
                                                    |
-                                                   |  Production {
+                                                   |  PRODUCTION {
                                                    |    startTime = "01:00" # Time is in UTC
                                                    |    executionInterval = 1d
                                                    |    enabled = false
@@ -92,13 +92,13 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |}
                                                    |
                                                    |DeleteUnusedApplicationsJob {
-                                                   |  Sandbox {
+                                                   |  SANDBOX {
                                                    |    startTime = "01:10" # Time is in UTC
                                                    |    executionInterval = 1d
                                                    |    enabled = false
                                                    |  }
                                                    |
-                                                   |  Production {
+                                                   |  PRODUCTION {
                                                    |    startTime = "01:20" # Time is in UTC
                                                    |    executionInterval = 1d
                                                    |    enabled = false
