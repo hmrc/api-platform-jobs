@@ -114,9 +114,9 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       val capturedInsertValue     = insertCaptor.getValue
       capturedInsertValue.size shouldBe 1
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId shouldBe (neverUsedApplication.applicationId)
-      unusedApplicationRecord.applicationName shouldBe (neverUsedApplication.applicationName)
-      unusedApplicationRecord.environment shouldBe (Environment.Sandbox)
+      unusedApplicationRecord.applicationId shouldBe neverUsedApplication.applicationId
+      unusedApplicationRecord.applicationName shouldBe neverUsedApplication.applicationName
+      unusedApplicationRecord.environment shouldBe Environment.Sandbox
       val expectedDeletionDate    = now.plusDays(7).toLocalDate
       unusedApplicationRecord.scheduledDeletionDate shouldBe expectedDeletionDate
       unusedApplicationRecord.scheduledNotificationDates shouldBe List(expectedDeletionDate.minusDays(7), expectedDeletionDate.minusDays(1))
@@ -140,12 +140,12 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
 
       val capturedInsertValue     = insertCaptor.getValue
-      capturedInsertValue.size shouldBe (1)
+      capturedInsertValue.size shouldBe 1
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId shouldBe (applicationWithLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName shouldBe (applicationWithLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (Environment.Sandbox)
-      val expectedDeletionDate    = now.plusDays(30).toLocalDate()
+      unusedApplicationRecord.applicationId shouldBe applicationWithLastUseDate._1.applicationId
+      unusedApplicationRecord.applicationName shouldBe applicationWithLastUseDate._1.applicationName
+      unusedApplicationRecord.environment shouldBe Environment.Sandbox
+      val expectedDeletionDate    = now.plusDays(30).toLocalDate
       unusedApplicationRecord.scheduledDeletionDate shouldBe expectedDeletionDate
       unusedApplicationRecord.scheduledNotificationDates shouldBe List(expectedDeletionDate.minusDays(30))
     }
@@ -168,12 +168,12 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
       val capturedInsertValue     = insertCaptor.getValue
-      capturedInsertValue.size shouldBe (1)
+      capturedInsertValue.size shouldBe 1
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId shouldBe (applicationWithoutLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName shouldBe (applicationWithoutLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (Environment.Sandbox)
-      val expectedDeletionDate    = now.plusDays(7).toLocalDate()
+      unusedApplicationRecord.applicationId shouldBe applicationWithoutLastUseDate._1.applicationId
+      unusedApplicationRecord.applicationName shouldBe applicationWithoutLastUseDate._1.applicationName
+      unusedApplicationRecord.environment shouldBe Environment.Sandbox
+      val expectedDeletionDate    = now.plusDays(7).toLocalDate
       unusedApplicationRecord.scheduledDeletionDate shouldBe expectedDeletionDate
       unusedApplicationRecord.scheduledNotificationDates shouldBe List(expectedDeletionDate.minusDays(7), expectedDeletionDate.minusDays(1))
     }
@@ -243,11 +243,11 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
       val capturedInsertValue     = insertCaptor.getValue
-      capturedInsertValue.size shouldBe (1)
+      capturedInsertValue.size shouldBe 1
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId shouldBe (applicationWithLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName shouldBe (applicationWithLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (Environment.Production)
+      unusedApplicationRecord.applicationId shouldBe applicationWithLastUseDate._1.applicationId
+      unusedApplicationRecord.applicationName shouldBe applicationWithLastUseDate._1.applicationName
+      unusedApplicationRecord.environment shouldBe Environment.Production
     }
 
     "add newly discovered unused applications with no last used dates to database" in new ProductionJobSetup {
@@ -266,11 +266,11 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
       verify(mockUnusedApplicationsRepository).bulkInsert(insertCaptor.capture())
       val capturedInsertValue     = insertCaptor.getValue
-      capturedInsertValue.size shouldBe (1)
+      capturedInsertValue.size shouldBe 1
       val unusedApplicationRecord = capturedInsertValue.head
-      unusedApplicationRecord.applicationId shouldBe (applicationWithoutLastUseDate._1.applicationId)
-      unusedApplicationRecord.applicationName shouldBe (applicationWithoutLastUseDate._1.applicationName)
-      unusedApplicationRecord.environment shouldBe (Environment.Production)
+      unusedApplicationRecord.applicationId shouldBe applicationWithoutLastUseDate._1.applicationId
+      unusedApplicationRecord.applicationName shouldBe applicationWithoutLastUseDate._1.applicationName
+      unusedApplicationRecord.environment shouldBe Environment.Production
     }
 
     "not persist application details already stored in database" in new ProductionJobSetup {
@@ -288,8 +288,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
 
       await(underTest.executeInLock)
 
-      // verify(mockUnusedApplicationsRepository, times(0)).collection.bulkWrite(*)
-
       verifyZeroInteractions(mockThirdPartyDeveloperConnector)
     }
 
@@ -301,7 +299,7 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
           now.minusMonths(13).toInstant(ZoneOffset.UTC),
           Some(now.minusMonths(13).toInstant(ZoneOffset.UTC)),
           Set()
-        ) // scalastyle:off magic.number
+        )
 
       when(mockTpoConnector.findApplicationsThatHaveNotBeenUsedSince(eqTo(Environment.Production), *)).thenReturn(successful(List.empty))
       when(mockUnusedApplicationsRepository.unusedApplications(eqTo(Environment.Production))).thenReturn(Future(List(application._2)))
@@ -310,8 +308,6 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
       await(underTest.executeInLock)
 
       verify(mockUnusedApplicationsRepository).deleteUnusedApplicationRecord(eqTo(Environment.Production), eqTo(application._2.applicationId))
-
-      // verify(mockUnusedApplicationsRepository, times(0)).collection.bulkWrite(*)
 
       verifyZeroInteractions(mockThirdPartyDeveloperConnector)
     }
@@ -336,8 +332,8 @@ class UpdateUnusedApplicationRecordsJobSpec extends AsyncHmrcSpec with UnusedApp
         administratorDetails.toSeq,
         environment,
         lastInteractionDate,
-        scheduledNotificationDates = List(now.toLocalDate()), // who cares
-        scheduledDeletionDate = now.toLocalDate()             // who cares
+        scheduledNotificationDates = List(now.toLocalDate), // who cares
+        scheduledDeletionDate = now.toLocalDate             // who cares
       )
     )
   }

@@ -35,9 +35,9 @@ abstract class UnusedApplicationsJob(jobName: String, environment: Environment, 
 
   extension (c: ConfigReader.type)
     inline def derived[A: {Mirror.Of, ProductHint, CoproductHint}]: ConfigReader[A] = deriveReader[A]
+
   given ProductHint[UnusedApplicationsConfiguration] =
     ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(_.toUpperCase))
-//    ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, PascalCase))
 
   given productHintUnusedApplicationsEnvironmentConfiguration: ProductHint[UnusedApplicationsEnvironmentConfiguration] =
     ProductHint.apply[UnusedApplicationsEnvironmentConfiguration](fieldMapping = ConfigFieldMapping(CamelCase, CamelCase))

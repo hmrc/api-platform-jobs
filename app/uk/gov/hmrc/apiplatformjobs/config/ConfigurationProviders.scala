@@ -31,7 +31,7 @@ import uk.gov.hmrc.apiplatformjobs.scheduled.{DeleteUnregisteredDevelopersJobCon
 
 class ConfigurationModule extends Module {
 
-  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[?]] = {
     Seq(
       bind[ApiPlatformMicroserviceConnectorConfig].toProvider[ApiPlatformMicroserviceConnectorConfigProvider],
       bind[ThirdPartyDeveloperConnectorConfig].toProvider[ThirdPartyDeveloperConnectorConfigProvider],
@@ -64,7 +64,6 @@ class ThirdPartyDeveloperConnectorConfigProvider @Inject() (val sc: ServicesConf
 class DeleteUnverifiedDevelopersJobConfigProvider @Inject() (configuration: Configuration) extends Provider[DeleteUnverifiedDevelopersJobConfig] {
   import scala.jdk.DurationConverters._
 
-  // scalastyle:off magic.number
   override def get(): DeleteUnverifiedDevelopersJobConfig = {
     val enabled: Boolean             = configuration.underlying.getBoolean("deleteUnverifiedDevelopersJob.enabled")
     val initialDelay: FiniteDuration = configuration.underlying.getDuration("deleteUnverifiedDevelopersJob.initialDelay").toScala

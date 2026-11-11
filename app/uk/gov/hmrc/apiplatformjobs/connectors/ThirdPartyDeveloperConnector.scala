@@ -16,22 +16,21 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors
 
+import play.api.libs.json.*
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{LaxEmailAddress, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.*
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.*
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.*
+import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-
-import play.api.libs.json._
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
-import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{LaxEmailAddress, UserId}
-import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.*
-
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
-import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
 
 object ThirdPartyDeveloperConnector {
 
@@ -47,48 +46,13 @@ object ThirdPartyDeveloperConnector {
   case class ThirdPartyDeveloperConnectorConfig(baseUrl: String)
 
   object JsonFormatters {
-    import play.api.libs.json.Format
-    import cats.data.NonEmptyList
-    import play.api.libs.functional.syntax.toInvariantFunctorOps
-    import play.api.libs.json.Writes
+    import play.api.libs.json.{Format, Writes}
     implicit val FindUserIdResponseReads: Reads[FindUserIdResponse]                                     = Json.reads[FindUserIdResponse]
     implicit val FindUserIdRequestWrite: Writes[FindUserIdRequest]                                      = Json.writes[FindUserIdRequest]
     implicit val formatDeleteDeveloperRequest: Format[DeleteDeveloperRequest]                           = Json.format[DeleteDeveloperRequest]
     implicit val formatDeleteUnregisteredDevelopersRequest: Format[DeleteUnregisteredDevelopersRequest] = Json.format[DeleteUnregisteredDevelopersRequest]
     implicit val formatDeveloperResponse: Format[DeveloperResponse]                                     = Json.format[DeveloperResponse]
     implicit val formatUnregisteredDeveloperResponse: Format[UnregisteredDeveloperResponse]             = Json.format[UnregisteredDeveloperResponse]
-
-   /* implicit def nonEmptyListFormat[A: Format]: Format[NonEmptyList[A]] =
-      new Format[NonEmptyList[A]] {
-        override def writes(o: NonEmptyList[A]): JsValue = Json.toJson(o.toList)
-
-        override def reads(json: JsValue): JsResult[NonEmptyList[A]] =
-          Json.fromJson[List[A]](json).flatMap { values =>
-            NonEmptyList
-              .fromList(values)
-              .map(JsSuccess.apply(_))
-              .getOrElse(JsError(s"non-empty list cannot be empty"))
-          }
-      }*/
-      
-      /*implicit def nelReads[A: Reads]: Reads[NonEmptyList[A]] =
-      Reads.list[A].reads(_).flatMap {
-        case Nil => JsError("List may not be empty")
-        case h :: t => JsSuccess(NonEmptyList(h, t))
-      }*/
-/*
-    implicit def writesNonEmptyList[T: Writes]: Writes[NonEmptyList[T]] = Writes[NonEmptyList[T]] { v =>
-      JsArray((v.head :: v.tail).map(Json.toJson(_)))
-    }
-
-    implicit def nonEmptyListWriter[Error](implicit writer: Writes[Error]): Writes[NonEmptyList[Error]] =
-      Writes.list[Error].contramap(_.toList)*/
-/*
-      implicit def nonEmptyListWrites[A: Writes]: Writes[NonEmptyList[A]] =
-        Writes.of[List[A]].contramap[NonEmptyList[A]](_.toList)*/
-    /*implicit val nelErrorWrites: Writes[NonEmptyList[Error]] = Writes { errors =>
-      Json.toJson(errors.toList)
-    }*/
   }
 }
 
@@ -96,7 +60,7 @@ object ThirdPartyDeveloperConnector {
 class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClientV2)(implicit ec: ExecutionContext)
     extends ResponseUtils {
 
-  import ThirdPartyDeveloperConnector._
+  import ThirdPartyDeveloperConnector.*
 
   val dateFormatter = DateTimeFormatter.BASIC_ISO_DATE
 
