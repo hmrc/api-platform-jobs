@@ -18,12 +18,12 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import javax.inject.Inject
 import scala.concurrent.Future.{sequence, successful}
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future, duration}
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
@@ -33,7 +33,6 @@ import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 
 class DeleteUnregisteredDevelopersJob @Inject() (
     override val mongoLockRepository: MongoLockRepository,
-//    override val mongoLockService: DeleteUnregisteredDevelopersJobLockService,
     jobConfig: DeleteUnregisteredDevelopersJobConfig,
     val developerConnector: ThirdPartyDeveloperConnector,
     val tpoConnector: ThirdPartyOrchestratorConnector,
@@ -68,13 +67,6 @@ class DeleteUnregisteredDevelopersJob @Inject() (
       successful(Result(s"failed due to ${e.getMessage}"))
     }
   }
-}
-
-class DeleteUnregisteredDevelopersJobLockService @Inject() (repository: LockRepository) extends LockService {
-
-  override val lockRepository: LockRepository = repository
-  override val lockId: String                 = "DeleteUnregisteredDevelopersJob"
-  override val ttl: duration.Duration         = 1.hours
 }
 
 case class DeleteUnregisteredDevelopersJobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean, limit: Int, excludedEmails: List[LaxEmailAddress])

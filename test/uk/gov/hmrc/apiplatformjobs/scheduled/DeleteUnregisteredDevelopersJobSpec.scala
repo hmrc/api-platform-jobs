@@ -55,10 +55,8 @@ class DeleteUnregisteredDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAf
   }
 
   trait Setup extends BaseSetup {
-    implicit val hc: HeaderCarrier                                 = HeaderCarrier()
-    val lockKeeperSuccess: () => Boolean                           = () => true
-    val mockLockKeeper: DeleteUnregisteredDevelopersJobLockService = new DeleteUnregisteredDevelopersJobLockService(mockLockRepository)
-
+    implicit val hc: HeaderCarrier       = HeaderCarrier()
+    val lockKeeperSuccess: () => Boolean = () => true
     when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(Some(Lock("", "", Instant.now, Instant.now))))
     when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 
