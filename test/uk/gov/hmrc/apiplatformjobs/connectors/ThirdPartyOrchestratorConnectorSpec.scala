@@ -52,7 +52,7 @@ class ThirdPartyOrchestratorConnectorSpec
       .configure("metrics.jvm" -> false)
       .build()
 
-  class Setup(proxyEnabled: Boolean = false) {
+  class Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val mockConfig                 = mock[ThirdPartyOrchestratorConnector.Config]
     when(mockConfig.serviceBaseUrl).thenReturn(wireMockUrl)

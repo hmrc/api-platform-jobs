@@ -52,7 +52,7 @@ class OrganisationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with Gu
       .configure("metrics.jvm" -> false)
       .build()
 
-  class Setup(proxyEnabled: Boolean = false) {
+  class Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     val mockConfig = mock[OrganisationConnector.Config]

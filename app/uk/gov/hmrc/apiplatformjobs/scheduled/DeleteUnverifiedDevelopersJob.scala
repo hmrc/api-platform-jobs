@@ -33,7 +33,6 @@ import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 
 class DeleteUnverifiedDevelopersJob @Inject() (
-//    override val lockService: DeleteUnverifiedDevelopersJobLockService,
     override val mongoLockRepository: MongoLockRepository,
     jobConfig: DeleteUnverifiedDevelopersJobConfig,
     val developerConnector: ThirdPartyDeveloperConnector,
