@@ -17,9 +17,12 @@
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
 import java.time.Clock
-import play.api.Configuration
+
 import pureconfig.generic.scala3.HintsAwareConfigReaderDerivation
+
+import play.api.Configuration
 import uk.gov.hmrc.mongo.lock.MongoLockRepository
+
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
@@ -34,7 +37,7 @@ abstract class UnusedApplicationsJob(jobName: String, environment: Environment, 
   import scala.deriving.Mirror
 
   extension (c: ConfigReader.type)
-    inline def derived[A: {Mirror.Of, ProductHint, CoproductHint}]: ConfigReader[A] = deriveReader[A]
+    inline def derived[A: Mirror.Of, ProductHint, CoproductHint]: ConfigReader[A] = deriveReader[A]
 
   given ProductHint[UnusedApplicationsConfiguration] =
     ProductHint.apply[UnusedApplicationsConfiguration](fieldMapping = ConfigFieldMapping(_.toUpperCase))

@@ -16,18 +16,20 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import play.api.Configuration
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment, LaxEmailAddress}
-import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
-import uk.gov.hmrc.apiplatformjobs.models.*
-import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.mongo.lock.MongoLockRepository
-
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant, LocalDate}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
+
+import play.api.Configuration
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
+
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment, LaxEmailAddress}
+
+import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
+import uk.gov.hmrc.apiplatformjobs.models.*
+import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class UpdateUnusedApplicationRecordsJob(
     tpoConnector: ThirdPartyOrchestratorConnector,
@@ -134,8 +136,8 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject() (
       Environment.Sandbox,
       configuration,
       clock,
-  mongoLockRepository
-    ) 
+      mongoLockRepository
+    )
 
 @Singleton
 class UpdateUnusedProductionApplicationRecordsJob @Inject() (
@@ -152,5 +154,5 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject() (
       Environment.Production,
       configuration,
       clock,
-  mongoLockRepository
+      mongoLockRepository
     )

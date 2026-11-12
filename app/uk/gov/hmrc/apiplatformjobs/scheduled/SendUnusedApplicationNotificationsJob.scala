@@ -19,9 +19,12 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.time.{Clock, Instant}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.{LockRepository, MongoLockRepository}
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
+
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
+
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService

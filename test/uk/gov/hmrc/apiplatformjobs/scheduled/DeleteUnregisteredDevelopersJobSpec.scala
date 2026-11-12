@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.time.Instant
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import scala.concurrent.Future
-import scala.concurrent.Future._
+import scala.concurrent.Future.*
 import scala.concurrent.duration.FiniteDuration
 
 import org.mockito.captor.ArgCaptor
@@ -29,18 +29,18 @@ import play.api.http.Status.OK
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.mongo.lock.Lock
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborators._
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.Collaborators.*
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaboratorsFixtures, Collaborator}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommand
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands.RemoveCollaborator
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.*
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.Actors.ScheduledJob
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
-import uk.gov.hmrc.apiplatform.modules.common.domain.models._
 import uk.gov.hmrc.apiplatform.modules.organisations.domain
 import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.{Organisation, OrganisationName}
 
+import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 

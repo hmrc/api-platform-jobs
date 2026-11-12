@@ -17,18 +17,19 @@
 package uk.gov.hmrc.apiplatformjobs.connectors
 
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+
 import cats.data.NonEmptyList
 import com.google.inject.{Inject, Singleton}
 
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse, InternalServerException, StringContextOps}
 
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models._
-import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
-//import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.nonEmptyListFormat
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.*
 import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.nelReads
+import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 
 @Singleton

@@ -18,7 +18,7 @@ package uk.gov.hmrc.apiplatformjobs.models
 
 import java.time.Instant
 
-import play.api.libs.json._
+import play.api.libs.json.*
 
 trait ApplicationUpdate {
   def timestamp: Instant

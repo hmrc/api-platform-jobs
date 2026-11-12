@@ -19,8 +19,8 @@ package uk.gov.hmrc.apiplatformjobs.models
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate}
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationName

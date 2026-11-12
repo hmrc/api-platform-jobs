@@ -16,22 +16,25 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import org.apache.commons.codec.binary.Base64.encodeBase64String
-import play.api.Configuration
-import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands.DeleteUnusedApplication
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
-import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
-import uk.gov.hmrc.apiplatformjobs.connectors.*
-import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateResult, ApplicationUpdateSuccessResult, UnusedApplication}
-import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
-import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.MongoLockRepository
-
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.{Clock, Instant}
 import javax.inject.{Inject, Singleton}
 import scala.util.control.NonFatal
+
+import org.apache.commons.codec.binary.Base64.encodeBase64String
+
+import play.api.Configuration
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
+
+import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands.DeleteUnusedApplication
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
+import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
+
+import uk.gov.hmrc.apiplatformjobs.connectors.*
+import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateResult, ApplicationUpdateSuccessResult, UnusedApplication}
+import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
+import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
 
 abstract class DeleteUnusedApplicationsJob(
     tpoCmdConnector: TpoApplicationCommandConnector,

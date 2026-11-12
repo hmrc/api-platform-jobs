@@ -22,14 +22,17 @@ import java.time.{LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+
 import play.api.libs.json.{Json, OFormat}
 import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import play.mvc.Http.Status.*
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse, StringContextOps}
+
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
+
 import uk.gov.hmrc.apiplatformjobs.connectors.EmailConnector.toNotifications
 import uk.gov.hmrc.apiplatformjobs.models.UnusedApplication
 

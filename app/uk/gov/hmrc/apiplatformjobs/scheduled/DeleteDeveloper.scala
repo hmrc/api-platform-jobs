@@ -28,8 +28,8 @@ import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAdd
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.Organisation
 
+import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 
 trait DeleteDeveloper {

@@ -16,14 +16,15 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduling
 
-import org.apache.commons.lang3.time.StopWatch
-import org.apache.pekko.actor.{Cancellable, Scheduler}
-import play.api.inject.ApplicationLifecycle
-import play.api.{Application, Logging}
-
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
+
+import org.apache.commons.lang3.time.StopWatch
+import org.apache.pekko.actor.{Cancellable, Scheduler}
+
+import play.api.inject.ApplicationLifecycle
+import play.api.{Application, Logging}
 
 case class ScheduledJobs(allJobs: List[ScheduledJob])
 
@@ -32,9 +33,9 @@ class ScheduledJobsRunner @Inject() (
     application: Application,
     applicationLifecycle: ApplicationLifecycle,
     scheduledJobs: ScheduledJobs
-)(implicit
+  )(implicit
     val ec: ExecutionContext
-) extends Logging {
+  ) extends Logging {
 
   val scheduler: Scheduler = application.actorSystem.scheduler
 

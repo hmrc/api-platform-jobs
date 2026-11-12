@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import com.typesafe.config.Config
-import uk.gov.hmrc.apiplatformjobs.scheduling.ScheduledJob
-
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
+
+import com.typesafe.config.Config
+
+import uk.gov.hmrc.apiplatformjobs.scheduling.ScheduledJob
 
 case class JobConfig(initialDelay: FiniteDuration, interval: FiniteDuration, enabled: Boolean)
 

@@ -16,12 +16,6 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import play.api.Configuration
-import pureconfig.generic.ProductHint
-import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
-import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
-import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
-
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.{Duration as _, *}
@@ -29,6 +23,15 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
+
+import pureconfig.generic.ProductHint
+
+import play.api.Configuration
+import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
+
+import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
+
+import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 
 case class StartTime(localTime: LocalTime)             extends AnyVal
 case class ExecutionInterval(interval: FiniteDuration) extends AnyVal

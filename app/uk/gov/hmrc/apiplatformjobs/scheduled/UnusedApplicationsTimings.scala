@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduled
 
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
-
 import scala.concurrent.duration.FiniteDuration
+
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.Environment
 
 trait UnusedApplicationsTimings {
   val unusedApplicationsConfiguration: UnusedApplicationsConfiguration
@@ -52,9 +52,9 @@ trait UnusedApplicationsTimings {
 
 }
 
-case class UnusedApplicationsConfiguration (sandbox: UnusedApplicationsEnvironmentConfiguration, production: UnusedApplicationsEnvironmentConfiguration)
+case class UnusedApplicationsConfiguration(sandbox: UnusedApplicationsEnvironmentConfiguration, production: UnusedApplicationsEnvironmentConfiguration)
 
-case class UnusedApplicationsEnvironmentConfiguration (
+case class UnusedApplicationsEnvironmentConfiguration(
     deleteUnusedApplicationsAfter: FiniteDuration,
     sendNotificationsInAdvance: Set[FiniteDuration],
     authorisationKey: String,

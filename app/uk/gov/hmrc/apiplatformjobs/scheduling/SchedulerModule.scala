@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.apiplatformjobs.scheduling
 
+import javax.inject.{Inject, Singleton}
+
 import com.google.inject.Provider
+
 import play.api.inject.Module
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.apiplatformjobs.scheduled.*
 
-import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.apiplatformjobs.scheduled.*
 
 class SchedulerModule extends Module {
 
@@ -33,21 +35,24 @@ class SchedulerModule extends Module {
 
 @Singleton
 class ScheduledJobsProvider @Inject() (
-                                        deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
-                                        deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
-                                        updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordsJob,
-                                        updateUnusedProductionApplicationRecordsJob: UpdateUnusedProductionApplicationRecordsJob,
-                                        sendUnusedSandboxApplicationNotificationsJob: SendUnusedSandboxApplicationNotificationsJob,
-                                        sendUnusedProductionApplicationNotificationsJob: SendUnusedProductionApplicationNotificationsJob,
-                                        deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
-                                        deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
-                                      ) extends Provider[ScheduledJobs] {
-  override def get(): ScheduledJobs = ScheduledJobs(List(deleteUnverifiedDevelopersJob,
+    deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
+    deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
+    updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordsJob,
+    updateUnusedProductionApplicationRecordsJob: UpdateUnusedProductionApplicationRecordsJob,
+    sendUnusedSandboxApplicationNotificationsJob: SendUnusedSandboxApplicationNotificationsJob,
+    sendUnusedProductionApplicationNotificationsJob: SendUnusedProductionApplicationNotificationsJob,
+    deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
+    deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob
+  ) extends Provider[ScheduledJobs] {
+
+  override def get(): ScheduledJobs = ScheduledJobs(List(
+    deleteUnverifiedDevelopersJob,
     deleteUnregisteredDevelopersJob,
     updateUnusedSandboxApplicationRecordsJob,
     updateUnusedProductionApplicationRecordsJob,
     sendUnusedSandboxApplicationNotificationsJob,
     sendUnusedProductionApplicationNotificationsJob,
     deleteUnusedSandboxApplicationsJob,
-    deleteUnusedProductionApplicationsJob))
+    deleteUnusedProductionApplicationsJob
+  ))
 }

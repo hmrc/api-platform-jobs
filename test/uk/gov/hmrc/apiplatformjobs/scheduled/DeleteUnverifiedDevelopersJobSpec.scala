@@ -19,7 +19,7 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.time.Instant
 import java.util.concurrent.TimeUnit.{HOURS, SECONDS}
 import scala.concurrent.Future
-import scala.concurrent.Future._
+import scala.concurrent.Future.*
 import scala.concurrent.duration.FiniteDuration
 
 import org.scalatest.BeforeAndAfterAll
@@ -30,14 +30,14 @@ import uk.gov.hmrc.mongo.lock.Lock
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.{ApplicationWithCollaboratorsFixtures, Collaborator, Collaborators}
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.*
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
-import uk.gov.hmrc.apiplatform.modules.common.domain.models._
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 import uk.gov.hmrc.apiplatform.modules.organisations.domain
 import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.{Organisation, OrganisationName}
 
+import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 import uk.gov.hmrc.apiplatformjobs.utils.AsyncHmrcSpec
 

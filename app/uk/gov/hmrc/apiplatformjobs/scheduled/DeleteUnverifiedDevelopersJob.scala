@@ -22,10 +22,13 @@ import scala.concurrent.Future.{sequence, successful}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future, duration}
 import scala.util.control.NonFatal
+
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.{LockRepository, LockService, MongoLockRepository}
+
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress
 import uk.gov.hmrc.apiplatform.modules.common.services.{ApplicationLogger, ClockNow}
+
 import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.scheduling.LockedScheduledJob
 
