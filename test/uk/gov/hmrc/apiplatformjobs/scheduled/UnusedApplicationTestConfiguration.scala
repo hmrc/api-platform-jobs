@@ -109,7 +109,7 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
   def unusedApplicationRecord(applicationId: ApplicationId, environment: Environment): UnusedApplication =
     UnusedApplication(
       applicationId,
-      ApplicationNameData.one, // scalastyle:off magic.number
+      ApplicationNameData.one,
       Seq.empty,
       environment,
       LocalDate.now.minusYears(1),
