@@ -46,16 +46,16 @@ case class SendEmailRequest(
   )
 
 object SendEmailRequest {
-  implicit val sendEmailRequestFmt: OFormat[SendEmailRequest] = Json.format[SendEmailRequest]
+  given sendEmailRequestFmt: OFormat[SendEmailRequest] = Json.format[SendEmailRequest]
 }
 
 @Singleton
-class EmailConnector @Inject() (http: HttpClientV2, config: EmailConfig)(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationLogger {
+class EmailConnector @Inject() (http: HttpClientV2, config: EmailConfig)(using val ec: ExecutionContext) extends ResponseUtils with ApplicationLogger {
   val serviceUrl = config.baseUrl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    val emailTemplateName          = "apiApplicationToBeDeletedNotification"
+    given hc: HeaderCarrier = HeaderCarrier()
+    val emailTemplateName   = "apiApplicationToBeDeletedNotification"
 
     val notifications = toNotifications(unusedApplication, environmentName)
 

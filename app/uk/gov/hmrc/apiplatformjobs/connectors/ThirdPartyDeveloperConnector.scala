@@ -59,7 +59,7 @@ object ThirdPartyDeveloperConnector {
 }
 
 @Singleton
-class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClientV2)(implicit ec: ExecutionContext)
+class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClientV2)(using ec: ExecutionContext)
     extends ResponseUtils {
 
   import ThirdPartyDeveloperConnector.*

@@ -33,7 +33,7 @@ import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 
 @Singleton
-class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(implicit ec: ExecutionContext) extends ApplicationLogger {
+class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(using ec: ExecutionContext) extends ApplicationLogger {
 
   import config.serviceBaseUrl
 
@@ -42,14 +42,14 @@ class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: Thir
       applicationId: ApplicationId,
       command: ApplicationCommand,
       adminsToEmail: Set[LaxEmailAddress]
-    )(implicit hc: HeaderCarrier
+    )(using hc: HeaderCarrier
     ): Future[HasSucceeded] = {
 
     import play.api.libs.json._
     import uk.gov.hmrc.http.HttpReads.Implicits._
     import play.api.http.Status._
 
-    def parseWithLogAndThrow[T](input: String)(implicit reads: Reads[T]): T = {
+    def parseWithLogAndThrow[T](input: String)(using reads: Reads[T]): T = {
       Json.parse(input).validate[T] match {
         case JsSuccess(t, _) =>
           logger.debug(s"Found dispatch command failure(s) - $t")

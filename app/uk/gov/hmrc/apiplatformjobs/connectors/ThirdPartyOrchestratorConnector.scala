@@ -34,12 +34,12 @@ import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 
 @Singleton
-class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(implicit ec: ExecutionContext) extends ApplicationLogger {
+class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(using ec: ExecutionContext) extends ApplicationLogger {
 
   import config.serviceBaseUrl
   import ThirdPartyOrchestratorConnector._
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
 
   def fetchApplicationsByUserId(userId: UserId): Future[Seq[ApplicationWithCollaborators]] = {
     query[List[ApplicationWithCollaborators]](ApplicationQueries.applicationsByUserId(userId, includeDeleted = false))
