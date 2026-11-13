@@ -70,8 +70,12 @@ abstract class TimedJob @Inject() (override val name: String, configuration: Con
   }
 
   final override def executeInLock(implicit ec: ExecutionContext): Future[Result] = {
-    logInfo("Starting scheduled job...")
-    functionToExecute()
+    if (enabled) {
+      logInfo("Starting scheduled job...")
+      functionToExecute()
+    } else {
+      Future.successful(Result(s"Job named $name is disabled"))
+    }
   }
 
   def functionToExecute()(implicit executionContext: ExecutionContext): Future[Result]

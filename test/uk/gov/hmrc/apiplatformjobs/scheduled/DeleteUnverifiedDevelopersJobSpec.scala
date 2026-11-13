@@ -58,8 +58,6 @@ class DeleteUnverifiedDevelopersJobSpec extends AsyncHmrcSpec with BeforeAndAfte
 
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
-    val mockLockKeeper: DeleteUnverifiedDevelopersJobLockService = new DeleteUnverifiedDevelopersJobLockService(mockLockRepository)
-
     when(mockLockRepository.takeLock(*, *, *)).thenReturn(Future.successful(Some(Lock("", "", Instant.now, Instant.now))))
     when(mockLockRepository.releaseLock(*, *)).thenReturn(Future.successful(()))
 

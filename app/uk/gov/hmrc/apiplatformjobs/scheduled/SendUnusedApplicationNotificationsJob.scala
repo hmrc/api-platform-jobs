@@ -73,10 +73,7 @@ class SendUnusedSandboxApplicationNotificationsJob @Inject() (
       configuration,
       clock,
       mongoLockRepository
-    ) {
-  override val enabled: Boolean = true
-
-}
+    )
 
 @Singleton
 class SendUnusedProductionApplicationNotificationsJob @Inject() (
@@ -94,6 +91,4 @@ class SendUnusedProductionApplicationNotificationsJob @Inject() (
       configuration,
       clock,
       mongoLockRepository
-    ) {
-  override val enabled: Boolean = true
-}
+    )

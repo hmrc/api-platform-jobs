@@ -131,9 +131,7 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
       clock,
       mongoLockRepository
     )
-    with ClockNow {
-  override val enabled: Boolean = true
-}
+    with ClockNow
 
 @Singleton
 class DeleteUnusedProductionApplicationsJob @Inject() (
@@ -143,7 +141,6 @@ class DeleteUnusedProductionApplicationsJob @Inject() (
     configuration: Configuration,
     clock: Clock,
     override val mongoLockRepository: MongoLockRepository
-//    lockRepository: LockRepository
   ) extends DeleteUnusedApplicationsJob(
       tpoCmdConnector,
       unusedApplicationsRepository,
@@ -152,8 +149,4 @@ class DeleteUnusedProductionApplicationsJob @Inject() (
       configuration,
       clock,
       mongoLockRepository
-    ) {
-  override val enabled: Boolean = true
-
-//  override val mongoLockRepository: MongoLockRepository = ???
-}
+    )
