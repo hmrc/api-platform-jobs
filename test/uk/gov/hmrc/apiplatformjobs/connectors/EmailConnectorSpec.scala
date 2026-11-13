@@ -21,17 +21,17 @@ import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 import play.api.Application
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.client.HttpClientV2
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationName
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.*
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 
 import uk.gov.hmrc.apiplatformjobs.models.{Administrator, UnusedApplication}
@@ -75,7 +75,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneA
         ApplicationId.random,
         applicationName,
         Seq(Administrator(adminEmail, userFirstName, userLastName)),
-        Environment.SANDBOX,
+        Environment.Sandbox,
         lastInteractionDate,
         Seq.empty,
         scheduledDeletionDate
@@ -86,7 +86,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneA
         ApplicationId.random,
         applicationName,
         Seq(Administrator(adminEmail, userFirstName, userLastName), Administrator(adminEmail, userFirstName, userLastName)),
-        Environment.SANDBOX,
+        Environment.Sandbox,
         lastInteractionDate,
         Seq.empty,
         scheduledDeletionDate
@@ -99,7 +99,7 @@ class EmailConnectorSpec extends AsyncHmrcSpec with ResponseUtils with GuiceOneA
       val expectedParameters: Map[String, String] = Map(
         "userFirstName"    -> userFirstName,
         "userLastName"     -> userLastName,
-        "applicationName"  -> applicationName.value,
+        "applicationName"  -> applicationName,
         "environmentName"  -> environmentName,
         "timeSinceLastUse" -> timeSinceLastUse,
         "daysToDeletion"   -> daysToDeletion

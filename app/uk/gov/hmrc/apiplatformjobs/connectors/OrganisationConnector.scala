@@ -19,29 +19,30 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.{Json, Reads, Writes}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import play.api.libs.ws.writeableOf_JsValue
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, _}
+import uk.gov.hmrc.http.{HeaderCarrier, *}
 
-import uk.gov.hmrc.apiplatform.modules.common.domain.models._
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.*
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.Organisation
 
 @Singleton
-class OrganisationConnector @Inject() (http: HttpClientV2, config: OrganisationConnector.Config)(implicit ec: ExecutionContext) extends ApplicationLogger {
+class OrganisationConnector @Inject() (http: HttpClientV2, config: OrganisationConnector.Config)(using ec: ExecutionContext) extends ApplicationLogger {
 
   import OrganisationConnector._
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  def fetchOrganisationsByUserId(userId: UserId)(implicit hc: HeaderCarrier): Future[List[Organisation]] = {
+  def fetchOrganisationsByUserId(userId: UserId)(using hc: HeaderCarrier): Future[List[Organisation]] = {
     http.get(url"${config.serviceBaseUrl}/organisation/user/$userId")
       .execute[List[Organisation]]
   }
 
-  def removeCollaboratorFromOrganisation(id: OrganisationId, userId: UserId, email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Organisation] = {
+  def removeCollaboratorFromOrganisation(id: OrganisationId, userId: UserId, email: LaxEmailAddress)(using hc: HeaderCarrier): Future[Organisation] = {
 
     http.delete(url"${config.serviceBaseUrl}/organisation/${id.value}/member/$userId")
       .withBody(Json.toJson(RemoveMemberRequest(userId, email)))
@@ -61,8 +62,8 @@ object OrganisationConnector {
   case class Config(serviceBaseUrl: String)
 
   case class RemoveMemberRequest(userId: UserId, email: LaxEmailAddress)
-  implicit val writesRemoveMemberRequest: Writes[RemoveMemberRequest] = Json.writes[RemoveMemberRequest]
+  given writesRemoveMemberRequest: Writes[RemoveMemberRequest] = Json.writes[RemoveMemberRequest]
 
   case class ErrorMessage(message: String)
-  implicit val readsErrorMessage: Reads[ErrorMessage] = Json.reads[ErrorMessage]
+  given readsErrorMessage: Reads[ErrorMessage] = Json.reads[ErrorMessage]
 }

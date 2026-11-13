@@ -66,13 +66,13 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |  SANDBOX {
                                                    |    startTime = "00:30" # Time is in UTC
                                                    |    executionInterval = 1d
-                                                   |    enabled = false
+                                                   |    enabled = true
                                                    |  }
                                                    |
                                                    |  PRODUCTION {
                                                    |    startTime = "00:40" # Time is in UTC
                                                    |    executionInterval = 1d
-                                                   |    enabled = false
+                                                   |    enabled = true
                                                    |  }
                                                    |}
                                                    |
@@ -80,13 +80,13 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |  SANDBOX {
                                                    |    startTime = "00:50" # Time is in UTC
                                                    |    executionInterval = 1d
-                                                   |    enabled = false
+                                                   |    enabled = true
                                                    |  }
                                                    |
                                                    |  PRODUCTION {
                                                    |    startTime = "01:00" # Time is in UTC
                                                    |    executionInterval = 1d
-                                                   |    enabled = false
+                                                   |    enabled = true
                                                    |  }
                                                    |}
                                                    |
@@ -94,13 +94,13 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
                                                    |  SANDBOX {
                                                    |    startTime = "01:10" # Time is in UTC
                                                    |    executionInterval = 1d
-                                                   |    enabled = false
+                                                   |    enabled = true
                                                    |  }
                                                    |
                                                    |  PRODUCTION {
                                                    |    startTime = "01:20" # Time is in UTC
                                                    |    executionInterval = 1d
-                                                   |    enabled = false
+                                                   |    enabled = true
                                                    |  }
                                                    |}
                                                    |""".stripMargin))
@@ -109,7 +109,7 @@ trait UnusedApplicationTestConfiguration extends FixedClock {
   def unusedApplicationRecord(applicationId: ApplicationId, environment: Environment): UnusedApplication =
     UnusedApplication(
       applicationId,
-      ApplicationNameData.one, // scalastyle:off magic.number
+      ApplicationNameData.one,
       Seq.empty,
       environment,
       LocalDate.now.minusYears(1),

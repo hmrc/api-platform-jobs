@@ -20,21 +20,23 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit.DAYS
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 import play.api.Application
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
 
-import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models._
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.*
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Environment, UserId}
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.EnumJsonHelper.asScreamingSnakeCase
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.asInstant
 
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyOrchestratorConnector
-import uk.gov.hmrc.apiplatformjobs.models._
+import uk.gov.hmrc.apiplatformjobs.models.*
 import uk.gov.hmrc.apiplatformjobs.utils.{AsyncHmrcSpec, UrlEncoding}
 
 class ThirdPartyOrchestratorConnectorSpec
@@ -50,7 +52,7 @@ class ThirdPartyOrchestratorConnectorSpec
       .configure("metrics.jvm" -> false)
       .build()
 
-  class Setup(proxyEnabled: Boolean = false) {
+  class Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val mockConfig                 = mock[ThirdPartyOrchestratorConnector.Config]
     when(mockConfig.serviceBaseUrl).thenReturn(wireMockUrl)
@@ -110,7 +112,7 @@ class ThirdPartyOrchestratorConnectorSpec
     def response(apps: List[ApplicationWithCollaborators]) = apps
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
-    val noDeleteRestriction              = DeleteRestrictionType.NO_RESTRICTION
+    val noDeleteRestriction              = DeleteRestrictionType.NoRestriction.asScreamingSnakeCase
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val checkLastUseInstant = now.minusMonths(12).asInstant
@@ -154,7 +156,7 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.findApplicationsThatHaveNotBeenUsedSince(Environment.PRODUCTION, checkLastUseInstant))
+      val results = await(connector.findApplicationsThatHaveNotBeenUsedSince(Environment.Production, checkLastUseInstant))
 
       results should contain
       ApplicationUsageDetails(oldApplication1.id, oldApplication1.name, Set(oldApplication1Admin), oldApplication1.details.createdOn, oldApplication1.details.lastAccess)
@@ -178,7 +180,7 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.findApplicationsThatHaveNotBeenUsedSince(Environment.PRODUCTION, lastUseInstant))
+      val results = await(connector.findApplicationsThatHaveNotBeenUsedSince(Environment.Production, lastUseInstant))
 
       results.size should be(0)
     }
@@ -188,7 +190,7 @@ class ThirdPartyOrchestratorConnectorSpec
     def response(apps: List[ApplicationWithCollaborators]) = apps
 
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
-    val noDeleteRestriction              = DeleteRestrictionType.NO_RESTRICTION
+    val noDeleteRestriction              = DeleteRestrictionType.NoRestriction
 
     "return application details as ApplicationUsageDetails objects" in new Setup {
       val createdInstant                  = now.minusDays(31).asInstant
@@ -212,7 +214,7 @@ class ThirdPartyOrchestratorConnectorSpec
           .withQueryParam("environment", equalTo("PRODUCTION"))
           .withQueryParam("neverUsed", equalTo(""))
           .withQueryParam("lastUsedBefore", equalTo(createdBeforeDateString))
-          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.asScreamingSnakeCase))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -220,7 +222,7 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.PRODUCTION, createdBeforeDate))
+      val results = await(connector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.Production, createdBeforeDate))
 
       results should contain
       ApplicationUsageDetails(
@@ -241,7 +243,7 @@ class ThirdPartyOrchestratorConnectorSpec
           .withQueryParam("environment", equalTo("PRODUCTION"))
           .withQueryParam("neverUsed", equalTo(""))
           .withQueryParam("lastUsedBefore", equalTo(createdBeforeDateString))
-          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.toString))
+          .withQueryParam("deleteRestriction", equalTo(noDeleteRestriction.asScreamingSnakeCase))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -249,7 +251,7 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.PRODUCTION, createdBeforeDate))
+      val results = await(connector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.Production, createdBeforeDate))
 
       results.size should be(0)
     }
@@ -262,7 +264,7 @@ class ThirdPartyOrchestratorConnectorSpec
       stubFor(
         get(urlPathEqualTo("/query"))
           .withQueryParam("environment", equalTo("PRODUCTION"))
-          .withQueryParam("deleteRestriction", equalTo(DeleteRestrictionType.DO_NOT_DELETE.toString))
+          .withQueryParam("deleteRestriction", equalTo(DeleteRestrictionType.DoNotDelete.asScreamingSnakeCase))
           .willReturn(
             aResponse()
               .withStatus(OK)
@@ -270,7 +272,7 @@ class ThirdPartyOrchestratorConnectorSpec
           )
       )
 
-      val results = await(connector.findApplicationsThatShouldNotBeDeleted(Environment.PRODUCTION))
+      val results = await(connector.findApplicationsThatShouldNotBeDeleted(Environment.Production))
 
       results.size should be(0)
     }

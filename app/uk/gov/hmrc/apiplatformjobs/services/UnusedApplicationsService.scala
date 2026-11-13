@@ -27,16 +27,16 @@ import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 class UnusedApplicationsService @Inject() (
     tpoConnector: ThirdPartyOrchestratorConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository
-  )(implicit val ec: ExecutionContext
+  )(using ec: ExecutionContext
   ) {
 
   def updateUnusedApplications() = {
 
     for {
-      sandboxAppsNotToBeDeleted <- tpoConnector.findApplicationsThatShouldNotBeDeleted(Environment.SANDBOX)
-      sandboxResult             <- removeFromUnusedApplications(sandboxAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.SANDBOX)
-      prodAppsNotToBeDeleted    <- tpoConnector.findApplicationsThatShouldNotBeDeleted(Environment.PRODUCTION)
-      prodResult                <- removeFromUnusedApplications(prodAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.PRODUCTION)
+      sandboxAppsNotToBeDeleted <- tpoConnector.findApplicationsThatShouldNotBeDeleted(Environment.Sandbox)
+      sandboxResult             <- removeFromUnusedApplications(sandboxAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.Sandbox)
+      prodAppsNotToBeDeleted    <- tpoConnector.findApplicationsThatShouldNotBeDeleted(Environment.Production)
+      prodResult                <- removeFromUnusedApplications(prodAppsNotToBeDeleted.map(_.applicationId).toSet, Environment.Production)
     } yield sandboxResult.toList ++ prodResult.toList
   }
 
