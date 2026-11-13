@@ -47,7 +47,7 @@ class UnusedApplicationsRepositorySpec
     with BeforeAndAfterAll
     with FixedClock {
 
-  implicit val materializer: Materializer = NoMaterializer
+  given materializer: Materializer = NoMaterializer
 
   private val unusedApplicationRepository = new UnusedApplicationsRepository(mongoComponent, FixedClock.clock)
 

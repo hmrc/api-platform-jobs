@@ -54,8 +54,8 @@ class EmailConnector @Inject() (http: HttpClientV2, config: EmailConfig)(using v
   val serviceUrl = config.baseUrl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
-    given hc: HeaderCarrier = HeaderCarrier()
-    val emailTemplateName   = "apiApplicationToBeDeletedNotification"
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+    val emailTemplateName          = "apiApplicationToBeDeletedNotification"
 
     val notifications = toNotifications(unusedApplication, environmentName)
 

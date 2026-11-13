@@ -27,7 +27,7 @@ import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 class UnusedApplicationsService @Inject() (
     tpoConnector: ThirdPartyOrchestratorConnector,
     unusedApplicationsRepository: UnusedApplicationsRepository
-  )(implicit val ec: ExecutionContext
+  )(using ec: ExecutionContext
   ) {
 
   def updateUnusedApplications() = {

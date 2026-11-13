@@ -42,7 +42,7 @@ trait DeleteDeveloper {
 
   val deleteFunction: (LaxEmailAddress) => Future[Int]
 
-  def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[HasSucceeded] = {
+  def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(using ec: ExecutionContext, hc: HeaderCarrier): Future[HasSucceeded] = {
     val timestamp = Instant.now()
 
     val matchesCoreAppDetails: (Collaborator) => Boolean = (collaborator) => collaborator.userId == developer.id && collaborator.emailAddress == developer.email

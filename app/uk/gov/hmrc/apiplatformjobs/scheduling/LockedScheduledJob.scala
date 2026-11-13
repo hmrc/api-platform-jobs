@@ -32,7 +32,7 @@ trait LockedScheduledJob extends ScheduledJob {
 
   def enabled: Boolean
 
-  def executeInLock(implicit ec: ExecutionContext): Future[Result]
+  def executeInLock(using ec: ExecutionContext): Future[Result]
 
   val mongoLockRepository: MongoLockRepository
 

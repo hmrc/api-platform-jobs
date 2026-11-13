@@ -53,7 +53,7 @@ class DeleteUnregisteredDevelopersJob @Inject() (
     developerConnector.deleteUnregisteredDeveloper(email)
   }
 
-  override def executeInLock(implicit ec: ExecutionContext): Future[Result] = {
+  override def executeInLock(using ec: ExecutionContext): Future[Result] = {
     logger.info("Starting DeleteUnregisteredDevelopersJob")
     implicit val hc: HeaderCarrier = HeaderCarrier()
 

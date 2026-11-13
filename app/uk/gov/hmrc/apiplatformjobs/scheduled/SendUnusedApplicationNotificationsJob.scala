@@ -39,7 +39,7 @@ abstract class SendUnusedApplicationNotificationsJob(
     override val mongoLockRepository: MongoLockRepository
   ) extends UnusedApplicationsJob("SendUnusedApplicationNotificationsJob", environment, configuration, clock, mongoLockRepository) {
 
-  override def functionToExecute()(implicit executionContext: ExecutionContext): Future[Result] = {
+  override def functionToExecute()(using executionContext: ExecutionContext): Future[Result] = {
     val notificationTime = Instant.now(clock)
 
     for {

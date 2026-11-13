@@ -39,7 +39,7 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
   import config.serviceBaseUrl
   import ThirdPartyOrchestratorConnector._
 
-  given hc: HeaderCarrier = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   def fetchApplicationsByUserId(userId: UserId): Future[Seq[ApplicationWithCollaborators]] = {
     query[List[ApplicationWithCollaborators]](ApplicationQueries.applicationsByUserId(userId, includeDeleted = false))
@@ -66,7 +66,7 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
       .map(toDomain)
   }
 
-  private def query[T](qry: ApplicationQuery)(implicit rds: HttpReads[T]): Future[T] = {
+  private def query[T](qry: ApplicationQuery)(using rds: HttpReads[T]): Future[T] = {
     val params                                 = QueryParamsToQueryStringMap.toQuery(qry)
     val singleValueParams: Map[String, String] = params.map {
       case (k, vs) => k.text -> vs.mkString

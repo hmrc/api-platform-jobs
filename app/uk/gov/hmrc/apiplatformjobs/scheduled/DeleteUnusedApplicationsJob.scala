@@ -64,7 +64,7 @@ abstract class DeleteUnusedApplicationsJob(
       jobId: String,
       reasons: String,
       timestamp: Instant
-    )(implicit hc: HeaderCarrier,
+    )(using hc: HeaderCarrier,
       executionContext: ExecutionContext
     ): Future[ApplicationUpdateResult] = {
 
