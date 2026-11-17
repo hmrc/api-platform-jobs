@@ -25,13 +25,13 @@ import org.apache.commons.codec.binary.Base64.encodeBase64String
 
 import play.api.Configuration
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.lock.LockRepository
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
 
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.ApplicationCommands.DeleteUnusedApplication
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment}
 import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 
-import uk.gov.hmrc.apiplatformjobs.connectors._
+import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.models.{ApplicationUpdateFailureResult, ApplicationUpdateResult, ApplicationUpdateSuccessResult, UnusedApplication}
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 import uk.gov.hmrc.apiplatformjobs.services.UnusedApplicationsService
@@ -43,16 +43,16 @@ abstract class DeleteUnusedApplicationsJob(
     environment: Environment,
     configuration: Configuration,
     override val clock: Clock,
-    lockRepository: LockRepository
-  ) extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, lockRepository) with ClockNow {
+    override val mongoLockRepository: MongoLockRepository
+  ) extends UnusedApplicationsJob("DeleteUnusedApplicationsJob", environment, configuration, clock, mongoLockRepository) with ClockNow {
 
-  import scala.concurrent._
+  import scala.concurrent.*
 
   final def sequentialFutures[I](fn: I => Future[Unit])(input: List[I])(implicit ec: ExecutionContext): Future[Unit] = input match {
     case Nil          => Future.successful(())
     case head :: tail =>
       fn(head)
-        .recover { case NonFatal(e) =>
+        .recover { case NonFatal(_) =>
           ()
         }
         .flatMap(_ => sequentialFutures(fn)(tail))
@@ -64,7 +64,7 @@ abstract class DeleteUnusedApplicationsJob(
       jobId: String,
       reasons: String,
       timestamp: Instant
-    )(implicit hc: HeaderCarrier,
+    )(using hc: HeaderCarrier,
       executionContext: ExecutionContext
     ): Future[ApplicationUpdateResult] = {
 
@@ -80,7 +80,7 @@ abstract class DeleteUnusedApplicationsJob(
       }
   }
 
-  override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
+  override def functionToExecute()(implicit executionContext: ExecutionContext): Future[Result] = {
     def deleteApplication(application: UnusedApplication): Future[Unit] = {
       implicit val hc: HeaderCarrier = HeaderCarrier()
       logInfo(s"Deleting Application [${application.applicationName} (${application.applicationId})] in TPA")
@@ -88,7 +88,7 @@ abstract class DeleteUnusedApplicationsJob(
 
       (for {
         deleteSuccessful <- deleteApplicationViaCmd(application.environment, application.applicationId, name, reasons, instant)
-        _: Unit          <- if (deleteSuccessful == ApplicationUpdateSuccessResult) {
+        _                <- if (deleteSuccessful == ApplicationUpdateSuccessResult) {
                               logInfo(s"Deletion successful - removing [${application.applicationName} (${application.applicationId})] from unusedApplications")
                               unusedApplicationsRepository
                                 .deleteUnusedApplicationRecord(environment, application.applicationId)
@@ -110,7 +110,7 @@ abstract class DeleteUnusedApplicationsJob(
       applicationsToDelete <- unusedApplicationsRepository.unusedApplicationsToBeDeleted(environment, appsToDeletePerCycle)
       _                     = logInfo(s"Found [${applicationsToDelete.size}] applications to delete")
       _                    <- sequentialFutures(deleteApplication)(applicationsToDelete)
-    } yield RunningOfJobSuccessful
+    } yield Result("succeeded")
   }
 }
 
@@ -121,15 +121,15 @@ class DeleteUnusedSandboxApplicationsJob @Inject() (
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
-    lockRepository: LockRepository
+    override val mongoLockRepository: MongoLockRepository
   ) extends DeleteUnusedApplicationsJob(
       tpoCmdConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
-      Environment.SANDBOX,
+      Environment.Sandbox,
       configuration,
       clock,
-      lockRepository
+      mongoLockRepository
     )
     with ClockNow
 
@@ -140,13 +140,13 @@ class DeleteUnusedProductionApplicationsJob @Inject() (
     unusedApplicationsService: UnusedApplicationsService,
     configuration: Configuration,
     clock: Clock,
-    lockRepository: LockRepository
+    override val mongoLockRepository: MongoLockRepository
   ) extends DeleteUnusedApplicationsJob(
       tpoCmdConnector,
       unusedApplicationsRepository,
       unusedApplicationsService,
-      Environment.PRODUCTION,
+      Environment.Production,
       configuration,
       clock,
-      lockRepository
+      mongoLockRepository
     )

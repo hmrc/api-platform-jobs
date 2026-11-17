@@ -14,28 +14,27 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.apiplatformjobs.config
+package uk.gov.hmrc.apiplatformjobs.scheduling
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
-import com.google.inject.AbstractModule
+import com.google.inject.Provider
 
-import play.api.Application
-import play.api.inject.ApplicationLifecycle
+import play.api.inject.Module
+import play.api.{Configuration, Environment}
 
-import uk.gov.hmrc.apiplatformjobs.scheduled._
-import uk.gov.hmrc.apiplatformjobs.scheduling.{RunningOfScheduledJobs, ScheduledJob}
+import uk.gov.hmrc.apiplatformjobs.scheduled.*
 
-class SchedulerModule extends AbstractModule {
+class SchedulerModule extends Module {
 
-  override def configure(): Unit = {
-    bind(classOf[Scheduler]).asEagerSingleton()
-  }
+  override def bindings(environment: Environment, configuration: Configuration) = Seq(
+    bind[ScheduledJobs].toProvider[ScheduledJobsProvider],
+    bind[ScheduledJobsRunner].toSelf.eagerly()
+  )
 }
 
 @Singleton
-class Scheduler @Inject() (
+class ScheduledJobsProvider @Inject() (
     deleteUnverifiedDevelopersJob: DeleteUnverifiedDevelopersJob,
     deleteUnregisteredDevelopersJob: DeleteUnregisteredDevelopersJob,
     updateUnusedSandboxApplicationRecordsJob: UpdateUnusedSandboxApplicationRecordsJob,
@@ -43,22 +42,17 @@ class Scheduler @Inject() (
     sendUnusedSandboxApplicationNotificationsJob: SendUnusedSandboxApplicationNotificationsJob,
     sendUnusedProductionApplicationNotificationsJob: SendUnusedProductionApplicationNotificationsJob,
     deleteUnusedSandboxApplicationsJob: DeleteUnusedSandboxApplicationsJob,
-    deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob,
-    override val applicationLifecycle: ApplicationLifecycle,
-    override val application: Application
-  )(implicit val ec: ExecutionContext
-  ) extends RunningOfScheduledJobs {
+    deleteUnusedProductionApplicationsJob: DeleteUnusedProductionApplicationsJob
+  ) extends Provider[ScheduledJobs] {
 
-  override lazy val scheduledJobs: Seq[ScheduledJob] =
-    Seq(
-      deleteUnverifiedDevelopersJob,
-      deleteUnregisteredDevelopersJob,
-      updateUnusedSandboxApplicationRecordsJob,
-      updateUnusedProductionApplicationRecordsJob,
-      sendUnusedSandboxApplicationNotificationsJob,
-      sendUnusedProductionApplicationNotificationsJob,
-      deleteUnusedSandboxApplicationsJob,
-      deleteUnusedProductionApplicationsJob
-    )
-      .filter(_.isEnabled)
+  override def get(): ScheduledJobs = ScheduledJobs(List(
+    deleteUnverifiedDevelopersJob,
+    deleteUnregisteredDevelopersJob,
+    updateUnusedSandboxApplicationRecordsJob,
+    updateUnusedProductionApplicationRecordsJob,
+    sendUnusedSandboxApplicationNotificationsJob,
+    sendUnusedProductionApplicationNotificationsJob,
+    deleteUnusedSandboxApplicationsJob,
+    deleteUnusedProductionApplicationsJob
+  ))
 }

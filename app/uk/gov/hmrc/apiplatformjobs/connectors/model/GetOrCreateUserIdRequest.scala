@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.apiplatformjobs.connectors.model
 
-import play.api.libs.json._
+import play.api.libs.json.*
 
 case class GetOrCreateUserIdRequest(email: String)
 

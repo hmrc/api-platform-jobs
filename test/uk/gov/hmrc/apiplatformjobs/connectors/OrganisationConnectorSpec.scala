@@ -18,17 +18,17 @@ package uk.gov.hmrc.apiplatformjobs.connectors
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 import play.api.Application
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, InternalServerException, UpstreamErrorResponse}
 
-import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.LaxEmailAddress.StringSyntax.toLaxEmail
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{OrganisationId, UserId}
 import uk.gov.hmrc.apiplatform.modules.common.utils.FixedClock
 import uk.gov.hmrc.apiplatform.modules.organisations.domain
@@ -52,7 +52,7 @@ class OrganisationConnectorSpec extends AsyncHmrcSpec with ResponseUtils with Gu
       .configure("metrics.jvm" -> false)
       .build()
 
-  class Setup(proxyEnabled: Boolean = false) {
+  class Setup {
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     val mockConfig = mock[OrganisationConnector.Config]

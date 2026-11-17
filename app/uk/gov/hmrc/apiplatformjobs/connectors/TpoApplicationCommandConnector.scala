@@ -21,17 +21,19 @@ import scala.concurrent.{ExecutionContext, Future}
 import cats.data.NonEmptyList
 import com.google.inject.{Inject, Singleton}
 
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse, InternalServerException, StringContextOps}
 
 import uk.gov.hmrc.apiplatform.modules.commands.applications.domain.models.{ApplicationCommand, CommandFailure, DispatchRequest}
-import uk.gov.hmrc.apiplatform.modules.common.domain.models._
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.*
+import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters.nelReads
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 
 @Singleton
-class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(implicit ec: ExecutionContext) extends ApplicationLogger {
+class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(using ec: ExecutionContext) extends ApplicationLogger {
 
   import config.serviceBaseUrl
 
@@ -40,15 +42,14 @@ class TpoApplicationCommandConnector @Inject() (http: HttpClientV2, config: Thir
       applicationId: ApplicationId,
       command: ApplicationCommand,
       adminsToEmail: Set[LaxEmailAddress]
-    )(implicit hc: HeaderCarrier
+    )(using hc: HeaderCarrier
     ): Future[HasSucceeded] = {
 
-    import uk.gov.hmrc.apiplatform.modules.common.domain.services.NonEmptyListFormatters._
     import play.api.libs.json._
     import uk.gov.hmrc.http.HttpReads.Implicits._
     import play.api.http.Status._
 
-    def parseWithLogAndThrow[T](input: String)(implicit reads: Reads[T]): T = {
+    def parseWithLogAndThrow[T](input: String)(using reads: Reads[T]): T = {
       Json.parse(input).validate[T] match {
         case JsSuccess(t, _) =>
           logger.debug(s"Found dispatch command failure(s) - $t")

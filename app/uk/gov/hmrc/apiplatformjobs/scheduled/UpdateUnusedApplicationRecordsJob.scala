@@ -19,17 +19,16 @@ package uk.gov.hmrc.apiplatformjobs.scheduled
 import java.time.temporal.ChronoUnit
 import java.time.{Clock, Instant, LocalDate}
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 
 import play.api.Configuration
-import uk.gov.hmrc.mongo.lock.LockRepository
+import uk.gov.hmrc.mongo.lock.MongoLockRepository
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{ApplicationId, Environment, LaxEmailAddress}
-import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
 
 import uk.gov.hmrc.apiplatformjobs.connectors.{ThirdPartyDeveloperConnector, ThirdPartyOrchestratorConnector}
-import uk.gov.hmrc.apiplatformjobs.models._
+import uk.gov.hmrc.apiplatformjobs.models.*
 import uk.gov.hmrc.apiplatformjobs.repository.UnusedApplicationsRepository
 
 abstract class UpdateUnusedApplicationRecordsJob(
@@ -39,8 +38,8 @@ abstract class UpdateUnusedApplicationRecordsJob(
     environment: Environment,
     configuration: Configuration,
     override val clock: Clock,
-    lockRepository: LockRepository
-  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, lockRepository) {
+    override val mongoLockRepository: MongoLockRepository
+  ) extends UnusedApplicationsJob("UpdateUnusedApplicationRecordsJob", environment, configuration, clock, mongoLockRepository) {
 
   private val neverUsedAppNotificationPeriod        = 7.days
   private val neverUsedAppAllowedPeriodOfInactivity = 30.days
@@ -55,7 +54,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
   def notificationCutoffDateForUnusedApps(): Instant    = notificationCutoffDate(deleteUnusedApplicationsAfter(environment), firstNotificationInAdvance(environment))
   def notificationCutoffDateForNeverUsedApps(): Instant = notificationCutoffDate(neverUsedAppAllowedPeriodOfInactivity, neverUsedAppNotificationPeriod)
 
-  override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] = {
+  override def functionToExecute()(implicit executionContext: ExecutionContext): Future[Result] = {
     def applicationsToUpdate(knownApplications: List[UnusedApplication], allAppsConsideredFoundAsUnused: Set[ApplicationUsageDetails]): (Set[ApplicationId], Set[ApplicationId]) = {
 
       val knownApplicationIds: Set[ApplicationId]               = knownApplications.map(_.applicationId).toSet
@@ -79,7 +78,7 @@ abstract class UpdateUnusedApplicationRecordsJob(
       currentUnusedApplications <- tpoConnector.findApplicationsThatHaveNotBeenUsedSince(environment, notificationCutoffDateForUnusedApps())
 
       neverUsedSandboxApplications  <- if (environment.isSandbox)
-                                         tpoConnector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.SANDBOX, notificationCutoffDateForNeverUsedApps())
+                                         tpoConnector.findApplicationsThatHaveNeverBeenUsedCreatedBefore(Environment.Sandbox, notificationCutoffDateForNeverUsedApps())
                                        else
                                          Future.successful(List.empty)
       allAppsConsideredFoundAsUnused = (currentUnusedApplications ++ neverUsedSandboxApplications).toSet
@@ -96,10 +95,11 @@ abstract class UpdateUnusedApplicationRecordsJob(
 
       _ = logInfo(s"Found ${noLongerConsideredAppIds.size} applications that have been used since last update")
       _ = if (noLongerConsideredAppIds.nonEmpty) Future.sequence(noLongerConsideredAppIds.map(unusedApplicationsRepository.deleteUnusedApplicationRecord(environment, _)))
-    } yield RunningOfJobSuccessful
+    } yield Result(s"Scheduled job $name succeeded")
   }
 
   def unusedApplicationRecord(applicationUsageDetails: ApplicationUsageDetails, verifiedAdministratorDetails: Map[LaxEmailAddress, Administrator]): UnusedApplication = {
+    import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.asLocalDate
     val verifiedApplicationAdministrators =
       applicationUsageDetails.administrators.intersect(verifiedAdministratorDetails.keySet).flatMap(verifiedAdministratorDetails.get)
 
@@ -128,15 +128,15 @@ class UpdateUnusedSandboxApplicationRecordsJob @Inject() (
     unusedApplicationsRepository: UnusedApplicationsRepository,
     configuration: Configuration,
     clock: Clock,
-    lockRepository: LockRepository
+    mongoLockRepository: MongoLockRepository
   ) extends UpdateUnusedApplicationRecordsJob(
       tpoConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
-      Environment.SANDBOX,
+      Environment.Sandbox,
       configuration,
       clock,
-      lockRepository
+      mongoLockRepository
     )
 
 @Singleton
@@ -146,13 +146,13 @@ class UpdateUnusedProductionApplicationRecordsJob @Inject() (
     unusedApplicationsRepository: UnusedApplicationsRepository,
     configuration: Configuration,
     clock: Clock,
-    lockRepository: LockRepository
+    mongoLockRepository: MongoLockRepository
   ) extends UpdateUnusedApplicationRecordsJob(
       tpoConnector,
       thirdPartyDeveloperConnector,
       unusedApplicationsRepository,
-      Environment.PRODUCTION,
+      Environment.Production,
       configuration,
       clock,
-      lockRepository
+      mongoLockRepository
     )

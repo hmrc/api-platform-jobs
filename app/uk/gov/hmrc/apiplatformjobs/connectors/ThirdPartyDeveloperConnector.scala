@@ -21,16 +21,17 @@ import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-import play.api.libs.json._
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import play.api.libs.json.*
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import uk.gov.hmrc.apiplatform.modules.common.domain.models.{LaxEmailAddress, UserId}
-import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.InstantConversionSyntax
+import uk.gov.hmrc.apiplatform.modules.common.services.DateTimeHelper.*
 
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters._
-import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector._
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.*
+import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.JsonFormatters.*
 import uk.gov.hmrc.apiplatformjobs.connectors.model.{GetOrCreateUserIdRequest, GetOrCreateUserIdResponse}
 
 object ThirdPartyDeveloperConnector {
@@ -47,8 +48,7 @@ object ThirdPartyDeveloperConnector {
   case class ThirdPartyDeveloperConnectorConfig(baseUrl: String)
 
   object JsonFormatters {
-    import play.api.libs.json.Format
-
+    import play.api.libs.json.{Format, Writes}
     implicit val FindUserIdResponseReads: Reads[FindUserIdResponse]                                     = Json.reads[FindUserIdResponse]
     implicit val FindUserIdRequestWrite: Writes[FindUserIdRequest]                                      = Json.writes[FindUserIdRequest]
     implicit val formatDeleteDeveloperRequest: Format[DeleteDeveloperRequest]                           = Json.format[DeleteDeveloperRequest]
@@ -59,14 +59,14 @@ object ThirdPartyDeveloperConnector {
 }
 
 @Singleton
-class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClientV2)(implicit ec: ExecutionContext)
+class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnectorConfig, http: HttpClientV2)(using ec: ExecutionContext)
     extends ResponseUtils {
 
-  import ThirdPartyDeveloperConnector._
+  import ThirdPartyDeveloperConnector.*
 
   val dateFormatter = DateTimeFormatter.BASIC_ISO_DATE
 
-  def fetchUserId(email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
+  def fetchUserId(email: LaxEmailAddress)(using hc: HeaderCarrier): Future[Option[CoreUserDetails]] = {
     http
       .post(url"${config.baseUrl}/developers/find-user-id")
       .withBody(Json.toJson(FindUserIdRequest(email)))
@@ -74,14 +74,14 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
       .map(_.map(userIdResponse => CoreUserDetails(email, userIdResponse.userId)))
   }
 
-  def getOrCreateUserId(getOrCreateUserIdRequest: GetOrCreateUserIdRequest)(implicit hc: HeaderCarrier): Future[GetOrCreateUserIdResponse] = {
+  def getOrCreateUserId(getOrCreateUserIdRequest: GetOrCreateUserIdRequest)(using hc: HeaderCarrier): Future[GetOrCreateUserIdResponse] = {
     http
       .post(url"${config.baseUrl}/developers/user-id")
       .withBody(Json.toJson(getOrCreateUserIdRequest))
       .execute[GetOrCreateUserIdResponse]
   }
 
-  def fetchUnverifiedDevelopers(createdBefore: Instant, limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
+  def fetchUnverifiedDevelopers(createdBefore: Instant, limit: Int)(using hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
     val queryParams: Seq[(String, String)] = Seq(
       "createdBefore" -> dateFormatter.format(createdBefore.asLocalDateTime),
       "limit"         -> limit.toString,
@@ -93,23 +93,22 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
       .map(_.map(d => CoreUserDetails(d.email, d.userId)))
   }
 
-  def fetchAllDevelopers(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
+  def fetchAllDevelopers(using hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
     http
       .get(url"${config.baseUrl}/developers")
       .execute[Seq[DeveloperResponse]]
       .map(_.map(d => CoreUserDetails(d.email, d.userId)))
   }
 
-  def fetchExpiredUnregisteredDevelopers(limit: Int)(implicit hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
+  def fetchExpiredUnregisteredDevelopers(limit: Int)(using hc: HeaderCarrier): Future[Seq[CoreUserDetails]] = {
     http
-      .get(url"${config.baseUrl}/unregistered-developer/expired?limit=${limit.toString()}")
+      .get(url"${config.baseUrl}/unregistered-developer/expired?limit=${limit.toString}")
       .execute[Seq[UnregisteredDeveloperResponse]]
       .map(_.map(u => CoreUserDetails(u.email, u.userId)))
   }
 
   def fetchVerifiedDevelopers(emailAddresses: Set[LaxEmailAddress]): Future[Seq[DeveloperResponse]] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
-
     for {
       developerDetails  <- http
                              .post(url"${config.baseUrl}/developers/get-by-emails")
@@ -119,7 +118,7 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
     } yield verifiedDevelopers
   }
 
-  def deleteDeveloper(email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Int] = {
+  def deleteDeveloper(email: LaxEmailAddress)(using hc: HeaderCarrier): Future[Int] = {
     http
       .post(url"${config.baseUrl}/developer/delete?notifyDeveloper=false")
       .withBody(Json.toJson(DeleteDeveloperRequest(email)))
@@ -127,7 +126,7 @@ class ThirdPartyDeveloperConnector @Inject() (config: ThirdPartyDeveloperConnect
       .map(statusOrThrow)
   }
 
-  def deleteUnregisteredDeveloper(email: LaxEmailAddress)(implicit hc: HeaderCarrier): Future[Int] = {
+  def deleteUnregisteredDeveloper(email: LaxEmailAddress)(using hc: HeaderCarrier): Future[Int] = {
     http
       .post(url"${config.baseUrl}/unregistered-developer/delete")
       .withBody(Json.toJson(DeleteUnregisteredDevelopersRequest(Seq(email))))

@@ -27,6 +27,7 @@ import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
+import uk.gov.hmrc.mongo.logging.ObservableFutureImplicits
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
@@ -41,17 +42,18 @@ class UnusedApplicationsRepositorySpec
     extends AsyncHmrcSpec
     with GuiceOneAppPerSuite
     with DefaultPlayMongoRepositorySupport[UnusedApplication]
+    with ObservableFutureImplicits
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with FixedClock {
 
-  implicit val materializer: Materializer = NoMaterializer
+  given materializer: Materializer = NoMaterializer
 
   private val unusedApplicationRepository = new UnusedApplicationsRepository(mongoComponent, FixedClock.clock)
 
   override protected val repository: PlayMongoRepository[UnusedApplication] = unusedApplicationRepository
 
-  val todaysDate = now.toLocalDate()
+  val todaysDate = now.toLocalDate
 
   trait Setup {
 
@@ -59,17 +61,17 @@ class UnusedApplicationsRepositorySpec
         applicationId: ApplicationId,
         lastInteractionDate: LocalDate = todaysDate,
         scheduledNotificationDates: Seq[LocalDate] = Seq(todaysDate.plusDays(1)),
-        scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate()
+        scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate
       ) =
-      UnusedApplication(applicationId, ApplicationNameData.one, Seq(), Environment.SANDBOX, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
+      UnusedApplication(applicationId, ApplicationNameData.one, Seq(), Environment.Sandbox, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
 
     def productionApplication(
         applicationId: ApplicationId,
         lastInteractionDate: LocalDate = todaysDate,
-        scheduledNotificationDates: Seq[LocalDate] = Seq(now.plusDays(1).toLocalDate()),
-        scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate()
+        scheduledNotificationDates: Seq[LocalDate] = Seq(now.plusDays(1).toLocalDate),
+        scheduledDeletionDate: LocalDate = now.plusDays(30).toLocalDate
       ) =
-      UnusedApplication(applicationId, ApplicationNameData.two, Seq(), Environment.PRODUCTION, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
+      UnusedApplication(applicationId, ApplicationNameData.two, Seq(), Environment.Production, lastInteractionDate, scheduledNotificationDates, scheduledDeletionDate)
   }
 
   "applicationsByEnvironment" should {
@@ -82,7 +84,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplications(Environment.SANDBOX))
+      val results = await(unusedApplicationRepository.unusedApplications(Environment.Sandbox))
 
       results.size should be(1)
       results.head.applicationId should be(sandboxApplicationId)
@@ -97,7 +99,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplications(Environment.PRODUCTION))
+      val results = await(unusedApplicationRepository.unusedApplications(Environment.Production))
 
       results.size should be(2)
       val returnedApplicationIds = results.map(_.applicationId)
@@ -120,7 +122,7 @@ class UnusedApplicationsRepositorySpec
           )
           .toFuture()
       )
-      val results       = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.SANDBOX))
+      val results       = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.Sandbox))
 
       results.size should be(1)
       results.head.applicationId should be(applicationId)
@@ -141,7 +143,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.SANDBOX))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.Sandbox))
 
       results.size should be(1)
       results.head.applicationId should be(applicationId)
@@ -162,7 +164,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.PRODUCTION))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.Production))
 
       results.size should be(1)
       results.head.applicationId should be(applicationId)
@@ -183,7 +185,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.PRODUCTION))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.Production))
 
       results.size should be(1)
       results.head.applicationId should be(applicationId)
@@ -199,7 +201,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val result = await(unusedApplicationRepository.updateNotificationsSent(Environment.SANDBOX, applicationId))
+      val result = await(unusedApplicationRepository.updateNotificationsSent(Environment.Sandbox, applicationId))
 
       result should be(true)
       val updatedApplication: UnusedApplication =
@@ -221,7 +223,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val result = await(unusedApplicationRepository.updateNotificationsSent(Environment.PRODUCTION, applicationId))
+      val result = await(unusedApplicationRepository.updateNotificationsSent(Environment.Production, applicationId))
 
       result should be(true)
       val updatedApplication: UnusedApplication =
@@ -256,7 +258,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.SANDBOX, appsToDeletePerCycle, instant))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.Sandbox, appsToDeletePerCycle, instant))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)
@@ -279,7 +281,7 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.PRODUCTION, appsToDeletePerCycle, instant))
+      val results = await(unusedApplicationRepository.unusedApplicationsToBeDeleted(Environment.Production, appsToDeletePerCycle, instant))
 
       val returnedApplicationIds = results.map(_.applicationId)
       returnedApplicationIds.size should be(1)
@@ -297,10 +299,10 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(Environment.SANDBOX, sandboxApplicationId))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(Environment.Sandbox, sandboxApplicationId))
 
       result should be(true)
-      await(unusedApplicationRepository.unusedApplications(Environment.SANDBOX)).size should be(0)
+      await(unusedApplicationRepository.unusedApplications(Environment.Sandbox)).size should be(0)
     }
 
     "correctly remove a PRODUCTION application" in new Setup {
@@ -312,14 +314,14 @@ class UnusedApplicationsRepositorySpec
           .toFuture()
       )
 
-      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(Environment.PRODUCTION, productionApplicationId))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(Environment.Production, productionApplicationId))
 
       result should be(true)
-      await(unusedApplicationRepository.unusedApplications(Environment.PRODUCTION)).size should be(0)
+      await(unusedApplicationRepository.unusedApplications(Environment.Production)).size should be(0)
     }
 
     "return true if application id was not found in database" in {
-      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(Environment.PRODUCTION, ApplicationId.random))
+      val result = await(unusedApplicationRepository.deleteUnusedApplicationRecord(Environment.Production, ApplicationId.random))
 
       result should be(true)
     }
@@ -332,7 +334,7 @@ class UnusedApplicationsRepositorySpec
         """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : "2019-01-02T09:09:06.896", "scheduledNotificationDates" : [ ISODate("2020-01-01T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2020-01-01T00:00:00Z") }
           |""".stripMargin
       saveRawMongoJson(rawMongoDoc).wasAcknowledged() shouldBe true
-      val results     = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.SANDBOX))
+      val results     = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.Sandbox))
       results.size shouldBe 1
     }
 
@@ -341,7 +343,7 @@ class UnusedApplicationsRepositorySpec
         """{ "applicationId" : "c42f8e78-1539-457c-b4a2-cf6b8fc541b5", "applicationName" : "7 Days Unused App", "administrators" : [ { "emailAddress" : "imran.akram@digital.hmrc.gov.uk", "firstName" : "Imran", "lastName" : "Akram" } ], "environment" : "SANDBOX", "lastInteractionDate" : ISODate("2019-01-02T00:00:00Z"), "scheduledNotificationDates" : [ ISODate("2020-01-01T00:00:00Z") ], "scheduledDeletionDate" : ISODate("2020-01-01T00:00:00Z") }
           |""".stripMargin
       saveRawMongoJson(rawMongoDoc).wasAcknowledged() shouldBe true
-      val results     = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.SANDBOX))
+      val results     = await(unusedApplicationRepository.unusedApplicationsToBeNotified(Environment.Sandbox))
       results.size shouldBe 1
     }
   }
@@ -350,5 +352,4 @@ class UnusedApplicationsRepositorySpec
 
     await(mongoDatabase.getCollection("unusedApplications").insertOne(Document(raw)).toFuture())
   }
-
 }

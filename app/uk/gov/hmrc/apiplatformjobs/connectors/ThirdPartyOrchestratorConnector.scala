@@ -20,21 +20,21 @@ import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, _}
+import uk.gov.hmrc.http.{HeaderCarrier, *}
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationWithCollaborators
-import uk.gov.hmrc.apiplatform.modules.applications.query.domain.models.Param._
+import uk.gov.hmrc.apiplatform.modules.applications.query.domain.models.Param.*
 import uk.gov.hmrc.apiplatform.modules.applications.query.domain.models.{ApplicationQueries, ApplicationQuery}
 import uk.gov.hmrc.apiplatform.modules.applications.query.domain.services.QueryParamsToQueryStringMap
-import uk.gov.hmrc.apiplatform.modules.common.domain.models._
+import uk.gov.hmrc.apiplatform.modules.common.domain.models.*
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 
 import uk.gov.hmrc.apiplatformjobs.models.ApplicationUsageDetails
 
 @Singleton
-class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(implicit ec: ExecutionContext) extends ApplicationLogger {
+class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: ThirdPartyOrchestratorConnector.Config)(using ec: ExecutionContext) extends ApplicationLogger {
 
   import config.serviceBaseUrl
   import ThirdPartyOrchestratorConnector._
@@ -66,10 +66,10 @@ class ThirdPartyOrchestratorConnector @Inject() (http: HttpClientV2, config: Thi
       .map(toDomain)
   }
 
-  private def query[T](qry: ApplicationQuery)(implicit rds: HttpReads[T]): Future[T] = {
+  private def query[T](qry: ApplicationQuery)(using rds: HttpReads[T]): Future[T] = {
     val params                                 = QueryParamsToQueryStringMap.toQuery(qry)
     val singleValueParams: Map[String, String] = params.map {
-      case (k, vs) => k -> vs.mkString
+      case (k, vs) => k.text -> vs.mkString
     }
     http.get(url"$serviceBaseUrl/query?$singleValueParams")
       .execute[T]

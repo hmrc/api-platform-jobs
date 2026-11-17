@@ -17,7 +17,8 @@ object AppDependencies {
     "uk.gov.hmrc"                 %% "api-platform-common-domain"                 % commonDomainVersion,
     "uk.gov.hmrc"                 %% "api-platform-application-domain"            % appDomainVersion,
     "uk.gov.hmrc"                 %% "api-platform-organisation-domain"           % orgDomainVersion,
-    "com.github.pureconfig"       %% "pureconfig"                                 % "0.17.7"
+    "com.github.pureconfig"       %% "pureconfig-generic-scala3"                  % "0.17.11"
+
   )
 
   private lazy val testDeps = Seq(

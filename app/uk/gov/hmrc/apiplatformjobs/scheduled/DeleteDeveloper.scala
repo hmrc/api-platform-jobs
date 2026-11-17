@@ -28,8 +28,8 @@ import uk.gov.hmrc.apiplatform.modules.common.domain.models.{Actors, LaxEmailAdd
 import uk.gov.hmrc.apiplatform.modules.common.services.ApplicationLogger
 import uk.gov.hmrc.apiplatform.modules.organisations.domain.models.Organisation
 
+import uk.gov.hmrc.apiplatformjobs.connectors.*
 import uk.gov.hmrc.apiplatformjobs.connectors.ThirdPartyDeveloperConnector.CoreUserDetails
-import uk.gov.hmrc.apiplatformjobs.connectors._
 import uk.gov.hmrc.apiplatformjobs.models.HasSucceeded
 
 trait DeleteDeveloper {
@@ -42,7 +42,7 @@ trait DeleteDeveloper {
 
   val deleteFunction: (LaxEmailAddress) => Future[Int]
 
-  def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[HasSucceeded] = {
+  def deleteDeveloper(jobLabel: String)(developer: CoreUserDetails)(using ec: ExecutionContext, hc: HeaderCarrier): Future[HasSucceeded] = {
     val timestamp = Instant.now()
 
     val matchesCoreAppDetails: (Collaborator) => Boolean = (collaborator) => collaborator.userId == developer.id && collaborator.emailAddress == developer.email

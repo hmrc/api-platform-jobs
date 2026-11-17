@@ -24,8 +24,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 import play.api.libs.json.{Json, OFormat}
-import play.mvc.Http.Status._
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import play.mvc.Http.Status.*
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse, StringContextOps}
 
@@ -45,11 +46,11 @@ case class SendEmailRequest(
   )
 
 object SendEmailRequest {
-  implicit val sendEmailRequestFmt: OFormat[SendEmailRequest] = Json.format[SendEmailRequest]
+  given sendEmailRequestFmt: OFormat[SendEmailRequest] = Json.format[SendEmailRequest]
 }
 
 @Singleton
-class EmailConnector @Inject() (http: HttpClientV2, config: EmailConfig)(implicit val ec: ExecutionContext) extends ResponseUtils with ApplicationLogger {
+class EmailConnector @Inject() (http: HttpClientV2, config: EmailConfig)(using val ec: ExecutionContext) extends ResponseUtils with ApplicationLogger {
   val serviceUrl = config.baseUrl
 
   def sendApplicationToBeDeletedNotifications(unusedApplication: UnusedApplication, environmentName: String): Future[Boolean] = {
@@ -111,7 +112,7 @@ object EmailConnector {
         administrator.emailAddress,
         administrator.firstName,
         administrator.lastName,
-        unusedApplication.applicationName.value,
+        unusedApplication.applicationName,
         environmentName,
         s"${daysSince(unusedApplication.lastInteractionDate)} days",
         daysToDeletion(unusedApplication.scheduledDeletionDate)

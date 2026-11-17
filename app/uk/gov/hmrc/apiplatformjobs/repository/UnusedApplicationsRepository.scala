@@ -36,7 +36,7 @@ import uk.gov.hmrc.apiplatform.modules.common.services.ClockNow
 import uk.gov.hmrc.apiplatformjobs.models.{MongoFormat, UnusedApplication}
 
 @Singleton
-class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(implicit val ec: ExecutionContext)
+class UnusedApplicationsRepository @Inject() (mongo: MongoComponent, val clock: Clock)(using ec: ExecutionContext)
     extends PlayMongoRepository[UnusedApplication](
       collectionName = "unusedApplications",
       mongoComponent = mongo,

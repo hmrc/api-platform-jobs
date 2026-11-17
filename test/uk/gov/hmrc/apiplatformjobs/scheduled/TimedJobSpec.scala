@@ -43,14 +43,14 @@ class TimedJobSpec extends AsyncHmrcSpec with FixedClock {
                                                        |  }""".stripMargin))
 
       new TimedJob(jobName, configuration, FixedClock.clock, mockLockRepository) {
-        override def functionToExecute()(implicit executionContext: ExecutionContext): Future[RunningOfJobSuccessful] =
-          Future.successful(RunningOfJobSuccessful)
+        override def functionToExecute()(implicit executionContext: ExecutionContext): Future[Result] =
+          Future.successful(Result(s"Scheduled job $jobName ran successfully"))
       }
     }
   }
 
   "initialStartTime()" should {
-    val today: LocalDate    = now.toLocalDate()
+    val today: LocalDate    = now.toLocalDate
     val tomorrow: LocalDate = today.plusDays(1)
     val tenAM: LocalTime    = LocalTime.of(10, 0)
     val elevenPM: LocalTime = LocalTime.of(11, 0)
@@ -78,7 +78,7 @@ class TimedJobSpec extends AsyncHmrcSpec with FixedClock {
   "calculateInitialDelay()" should {
     import scala.concurrent.duration._
 
-    val today: LocalDate    = now.toLocalDate()
+    val today: LocalDate    = now.toLocalDate
     val tenAM: LocalTime    = LocalTime.of(10, 0)
     val elevenPM: LocalTime = LocalTime.of(11, 0)
     val hourLongInterval    = 60L

@@ -38,7 +38,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
   }
 
   trait SandboxSetup extends Setup {
-    val environment: Environment = Environment.SANDBOX
+    val environment: Environment = Environment.Sandbox
     val environmentName: String  = "Sandbox"
 
     val underTest =
@@ -53,7 +53,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
   }
 
   trait ProductionSetup extends Setup {
-    val environment: Environment = Environment.PRODUCTION
+    val environment: Environment = Environment.Production
     val environmentName: String  = "Production"
 
     val underTest =
@@ -79,7 +79,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       when(mockUnusedApplicationsRepository.updateNotificationsSent(eqTo(environment), eqTo(unusedApplication.applicationId), eqTo(instant)))
         .thenReturn(successful(true))
 
-      await(underTest.runJob)
+      await(underTest.executeInLock)
 
       verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
@@ -93,7 +93,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, instant)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
 
-      await(underTest.runJob)
+      await(underTest.executeInLock)
 
       verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
@@ -110,7 +110,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(true))
       when(mockUnusedApplicationsRepository.updateNotificationsSent(environment, unusedApplication.applicationId, instant)).thenReturn(successful(true))
 
-      await(underTest.runJob)
+      await(underTest.executeInLock)
 
       verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)
@@ -124,7 +124,7 @@ class SendUnusedApplicationNotificationsJobSpec extends AsyncHmrcSpec with Unuse
       when(mockUnusedApplicationsRepository.unusedApplicationsToBeNotified(environment, instant)).thenReturn(Future.successful(List(unusedApplication)))
       when(mockEmailConnector.sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)).thenReturn(successful(false))
 
-      await(underTest.runJob)
+      await(underTest.executeInLock)
 
       verify(mockUnusedApplicationsService).updateUnusedApplications()
       verify(mockEmailConnector).sendApplicationToBeDeletedNotifications(unusedApplication, environmentName)

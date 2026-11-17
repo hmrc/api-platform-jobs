@@ -19,8 +19,8 @@ package uk.gov.hmrc.apiplatformjobs.models
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate}
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import uk.gov.hmrc.apiplatform.modules.applications.core.domain.models.ApplicationName
@@ -65,7 +65,7 @@ object MongoFormat {
       ((JsPath \ "lastInteractionDate").read[LocalDate] or (JsPath \ "lastInteractionDate").read[String].map(raw => LocalDate.parse(raw, DateTimeFormatter.ISO_DATE_TIME))) and
       (JsPath \ "scheduledNotificationDates").read[List[LocalDate]] and
       (JsPath \ "scheduledDeletionDate").read[LocalDate]
-  )(UnusedApplication.apply _)
+  )(UnusedApplication.apply)
 
   implicit val unusedApplicationFormat: Format[UnusedApplication] = Format(unusedApplicationReads, Json.writes[UnusedApplication])
 }
